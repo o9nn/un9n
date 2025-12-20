@@ -126,6 +126,18 @@ The framework implements all four dimensions of embodied cognition:
 - **ReservoirCpp**: Echo State Network implementation
 - **Eigen**: Linear algebra (via ReservoirCpp)
 
+## Documentation
+
+### Integration & Verification
+- **[VERIFICATION_REPORT.md](VERIFICATION_REPORT.md)**: Complete verification of all components and echo-goals
+- **[ECHO_INTEGRATION_STATUS.md](ECHO_INTEGRATION_STATUS.md)**: Detailed status report on echo-goals and integration
+- **[RESERVOIRCPP_INTEGRATION_GUIDE.md](RESERVOIRCPP_INTEGRATION_GUIDE.md)**: Comprehensive guide for ReservoirCpp integration
+
+### Quick Start
+1. Review [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md) for system status
+2. Read [RESERVOIRCPP_INTEGRATION_GUIDE.md](RESERVOIRCPP_INTEGRATION_GUIDE.md) for implementation details
+3. Check [ECHO_INTEGRATION_STATUS.md](ECHO_INTEGRATION_STATUS.md) for echo-goals completion
+
 ## License
 
 MIT License - See LICENSE file for details.
