@@ -2,12 +2,28 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.3",
 	"Category": "",
-	"Description": "",
+	"Description": "Deep Tree Echo - Unified Cognitive Architecture for Embodied AI Avatars",
 	"Modules": [
+		{
+			"Name": "DeepTreeEcho",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "UnrealEcho",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
 		{
 			"Name": "DeepTreeEchoAvatar",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "Live2DCubismSDK",
+			"Enabled": true
 		}
 	]
 }
