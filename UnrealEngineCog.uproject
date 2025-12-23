@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.3",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "DeepTreeEchoAvatar",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
