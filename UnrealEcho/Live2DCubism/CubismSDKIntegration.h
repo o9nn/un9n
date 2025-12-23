@@ -3,18 +3,27 @@
 #include "CoreMinimal.h"
 #include "CubismSDKIntegration.generated.h"
 
+// Include the actual Cubism SDK components from CubismUE plugin
+#include "Model/CubismModelComponent.h"
+#include "Effects/LipSync/CubismLipSyncComponent.h"
+#include "Effects/EyeBlink/CubismEyeBlinkComponent.h"
+#include "Effects/LookAt/CubismLookAtComponent.h"
+#include "Effects/HarmonicMotion/CubismHarmonicMotionComponent.h"
+#include "Physics/CubismPhysicsComponent.h"
+#include "Expression/CubismExpressionComponent.h"
+#include "Motion/CubismMotionComponent.h"
+#include "Rendering/CubismRendererComponent.h"
+
 /**
  * Live2D Cubism SDK Integration Layer
- * Provides proper SDK integration for Deep Tree Echo avatar system
- * Maintains super-hot-girl aesthetic and hyper-chaotic behavior properties
+ * Provides Deep Tree Echo-specific integration with the CubismUE SDK plugin.
+ * Wraps UCubismModelComponent with DTE cognitive state bindings.
+ * Maintains super-hot-girl aesthetic and hyper-chaotic behavior properties.
  */
 
-// Forward declarations for Cubism SDK types
-struct CubismModel;
-struct CubismRenderer;
-struct CubismMotionManager;
-struct CubismPhysics;
-struct CubismExpressionMotion;
+// Forward declarations for SDK component types
+class UCubismModelComponent;
+class UCubismMoc3;
 
 USTRUCT(BlueprintType)
 struct FCubismModelInfo
@@ -110,7 +119,8 @@ struct FCubismDrawable
 
 /**
  * Cubism SDK Integration Class
- * Handles actual SDK initialization and model management
+ * Provides DTE-specific wrapper around the CubismUE SDK plugin.
+ * Uses real UCubismModelComponent for all SDK operations.
  */
 UCLASS()
 class DEEPTREECHO_API UCubismSDKIntegration : public UObject
@@ -121,25 +131,33 @@ public:
     UCubismSDKIntegration();
     virtual ~UCubismSDKIntegration();
 
-    /** Initialize Cubism Framework - must be called once at startup */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    static bool InitializeCubismFramework();
+    // ========================================
+    // SDK Framework Management (delegated to CubismUE plugin)
+    // ========================================
 
-    /** Shutdown Cubism Framework - must be called once at shutdown */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    static void ShutdownCubismFramework();
-
-    /** Check if Cubism Framework is initialized */
+    /** Check if Cubism Framework is initialized (always true with plugin) */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
     static bool IsCubismFrameworkInitialized();
 
-    /** Load a Cubism model from MOC3 data */
+    // ========================================
+    // Model Component Access
+    // ========================================
+
+    /** Get the underlying CubismModelComponent from SDK */
+    UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
+    UCubismModelComponent* GetModelComponent() const { return ModelComponent; }
+
+    /** Set the model component to wrap */
     UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    bool LoadModelFromMoc3(const TArray<uint8>& Moc3Data);
+    void SetModelComponent(UCubismModelComponent* InModelComponent);
 
     /** Get model information */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
     FCubismModelInfo GetModelInfo() const;
+
+    // ========================================
+    // Parameter Access (delegates to SDK)
+    // ========================================
 
     /** Get all parameters */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
@@ -149,7 +167,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
     FCubismParameter GetParameter(const FName& ParameterId) const;
 
-    /** Set parameter value */
+    /** Set parameter value - delegates to UCubismModelComponent */
     UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
     void SetParameterValue(const FName& ParameterId, float Value);
 
@@ -157,78 +175,64 @@ public:
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
     TArray<FCubismDrawable> GetAllDrawables() const;
 
-    /** Update model - must be called before rendering */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    void UpdateModel(float DeltaTime);
+    // ========================================
+    // SDK Component Access
+    // ========================================
 
-    /** Initialize renderer for this model */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    bool InitializeRenderer();
-
-    /** Load and apply motion */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    bool LoadMotion(const TArray<uint8>& MotionData, int32 Priority = 0);
-
-    /** Load and apply expression */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    bool LoadExpression(const TArray<uint8>& ExpressionData);
-
-    /** Initialize physics simulation */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    bool InitializePhysics(const TArray<uint8>& PhysicsData);
-
-    /** Update physics simulation */
-    UFUNCTION(BlueprintCallable, Category = "Live2D|SDK")
-    void UpdatePhysics(float DeltaTime);
-
-    /** Get vertex positions for a drawable */
+    /** Get lip sync component */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
-    TArray<FVector2D> GetDrawableVertexPositions(const FName& DrawableId) const;
+    UCubismLipSyncComponent* GetLipSync() const;
 
-    /** Get UV coordinates for a drawable */
+    /** Get eye blink component */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
-    TArray<FVector2D> GetDrawableUVs(const FName& DrawableId) const;
+    UCubismEyeBlinkComponent* GetEyeBlink() const;
 
-    /** Get indices for a drawable */
+    /** Get look-at (gaze) component */
     UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
-    TArray<int32> GetDrawableIndices(const FName& DrawableId) const;
+    UCubismLookAtComponent* GetLookAt() const;
+
+    /** Get physics component */
+    UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
+    UCubismPhysicsComponent* GetPhysics() const;
+
+    /** Get expression component */
+    UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
+    UCubismExpressionComponent* GetExpression() const;
+
+    /** Get motion component */
+    UFUNCTION(BlueprintPure, Category = "Live2D|SDK")
+    UCubismMotionComponent* GetMotion() const;
+
+    // ========================================
+    // DTE-Specific Extensions
+    // ========================================
+
+    /** Current chaos level for hyper-chaotic behavior */
+    UPROPERTY(BlueprintReadWrite, Category = "DeepTreeEcho")
+    float ChaosLevel = 0.3f;
+
+    /** Current echo resonance level */
+    UPROPERTY(BlueprintReadWrite, Category = "DeepTreeEcho")
+    float EchoResonance = 0.0f;
+
+    /** Current cognitive load */
+    UPROPERTY(BlueprintReadWrite, Category = "DeepTreeEcho")
+    float CognitiveLoad = 0.5f;
+
+    /** Glitch effect intensity */
+    UPROPERTY(BlueprintReadWrite, Category = "DeepTreeEcho")
+    float GlitchIntensity = 0.0f;
 
 private:
-    /** Internal Cubism model pointer */
-    void* CubismModelPtr;
-
-    /** Internal Cubism renderer pointer */
-    void* CubismRendererPtr;
-
-    /** Internal motion manager pointer */
-    void* MotionManagerPtr;
-
-    /** Internal physics pointer */
-    void* PhysicsPtr;
+    /** The wrapped CubismModelComponent from SDK */
+    UPROPERTY()
+    UCubismModelComponent* ModelComponent;
 
     /** Model information cache */
     FCubismModelInfo CachedModelInfo;
 
-    /** Parameter cache */
-    TMap<FName, FCubismParameter> ParameterCache;
-
-    /** Drawable cache */
-    TMap<FName, FCubismDrawable> DrawableCache;
-
-    /** Static flag for framework initialization */
-    static bool bIsFrameworkInitialized;
-
-    /** Helper: Update parameter cache from model */
-    void UpdateParameterCache();
-
-    /** Helper: Update drawable cache from model */
-    void UpdateDrawableCache();
-
-    /** Helper: Find parameter index by ID */
-    int32 FindParameterIndex(const FName& ParameterId) const;
-
-    /** Helper: Find drawable index by ID */
-    int32 FindDrawableIndex(const FName& DrawableId) const;
+    /** Helper: Build model info from SDK component */
+    void UpdateModelInfoCache();
 };
 
 /**
