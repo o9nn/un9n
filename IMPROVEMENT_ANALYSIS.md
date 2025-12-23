@@ -443,9 +443,12 @@ This document identifies all improvement areas for the Deep Tree Echo AGI avatar
 | ReservoirCpp binding | CRITICAL | High | Very High |
 | ~~.Build.cs modules~~ | ✅ DONE | - | - |
 | ~~Live2D SDK integration~~ | ✅ DONE | - | - |
+| ~~MetaHuman DNA integration~~ | ✅ DONE | - | - |
+| DNA → Body Schema binding | HIGH | Medium | High |
 | Random weight fix | HIGH | Medium | High |
 | Unit test framework | HIGH | Medium | High |
 | Avatar3DEnhanced.cpp | HIGH | Medium | Medium |
+| Expression → DNA mapping | HIGH | Medium | High |
 | Root CMakeLists.txt | MEDIUM | Low | Medium |
 | Magic number extraction | MEDIUM | Low | Medium |
 | API documentation | MEDIUM | Medium | Medium |
@@ -473,6 +476,123 @@ Multiple versions exist:
 
 ---
 
+## ✅ NEW: MetaHuman-DNA-Calibration Integration (December 23, 2025)
+
+### Status: Integrated as Native Code
+
+**Location**: `MetaHuman-DNA-Calibration/`
+
+MetaHuman-DNA-Calibration has been integrated as native code (not a submodule) to enable deep integration with the Deep Tree Echo embodied cognition system.
+
+### Repository Contents
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **DNACalib** | `dnacalib/DNACalib/` | C++ library for DNA file manipulation |
+| **DNAViewer** | `dna_viewer/` | Maya rig generation and FBX export |
+| **DNA Files** | `data/dna_files/` | Sample MetaHuman DNA (Ada, Taro) |
+| **Maya Libraries** | `lib/Maya2022-2024/` | Pre-compiled Python bindings |
+| **MH4 Assets** | `data/mh4/` | MetaHuman Creator 2023+ rig assets |
+
+### Integration Path with 4E Embodied Cognition
+
+The MetaHuman DNA system provides the **Embodied** foundation for avatar cognition:
+
+#### 1. Body Schema Integration (`DeepTreeEcho/4ECognition/`)
+
+```
+DNA Rig Definition → Body Schema State
+├── Joint Hierarchy → Proprioceptive Map
+├── Blend Shapes → Expression Capability Space
+├── Animated Maps → Muscle Activation Patterns
+└── LOD Structure → Attention-Gated Detail
+```
+
+**Key Integration Points:**
+- `UEmbodiedCognitionComponent::UpdateBodySchema()` ← DNA joint definitions
+- `UEmbodiedCognitionComponent::ProprioceptiveState` ← DNA bone transforms
+- `UEmbodiedCognitionComponent::SomaticMarkerState` ← DNA blend shape weights
+
+#### 2. Expression Synthesis Pipeline
+
+```
+Cognitive State (DeepTreeEchoCore)
+    ↓
+Emotion-to-Parameter Mapping (4ECognition)
+    ↓
+DNA Blend Shape Weights (MetaHuman-DNA-Calibration)
+    ↓
+Morph Target Animation (UnrealEcho/Avatar)
+```
+
+**Relevant DNA Calibration Operations:**
+- Rename joints for Deep Tree Echo naming conventions
+- Prune unused blend shapes for performance
+- Scale/rotate rig for environment integration
+- Extract LODs for attention-based detail management
+
+#### 3. Sensorimotor Contingency Mapping (`Enacted` Cognition)
+
+The DNA rig's joint hierarchy defines the action space:
+
+| DNA Component | Enacted Cognition Mapping |
+|---------------|--------------------------|
+| Facial joints (68+) | Microexpression generation |
+| Neck joints (neck_01, neck_02) | Head orientation/attention |
+| FACIAL_C_FacialRoot | Expression root for emotional state |
+| Blend shape deltas | Sensorimotor action primitives |
+
+#### 4. Implementation Tasks
+
+| Task | Priority | Files to Modify |
+|------|----------|-----------------|
+| DNA loader in DeepTreeEcho | HIGH | `DeepTreeEcho/Avatar/DNAIntegration.h/.cpp` (new) |
+| Expression catalog → DNA mapping | HIGH | `UnrealEcho/Avatar/ExpressionSynthesizer.cpp` |
+| Joint hierarchy → body schema | MEDIUM | `DeepTreeEcho/4ECognition/EmbodiedCognitionComponent.cpp` |
+| LOD ↔ attention coupling | MEDIUM | `DeepTreeEcho/Metamodel/AttentionSystem.cpp` |
+| DNA validation tooling | LOW | `Tools/ValidateDNA.py` (new) |
+
+### Python Environment Setup
+
+For DNA file manipulation outside Unreal:
+
+```bash
+# Add to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:/path/to/MetaHuman-DNA-Calibration"
+export PYTHONPATH="${PYTHONPATH}:/path/to/MetaHuman-DNA-Calibration/lib/Maya2022/linux"
+
+# Linux only
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/path/to/MetaHuman-DNA-Calibration/lib/Maya2022/linux"
+```
+
+### Sample DNA Files Available
+
+| Character | File | Rig Version | Notes |
+|-----------|------|-------------|-------|
+| Ada | `data/mh4/dna_files/Ada.dna` | MH.4 | 2023+ rig with extended expressions |
+| Taro | `data/dna_files/Taro.dna` | DHI | Classic rig |
+| Ada (Classic) | `data/dna_files/Ada.dna` | DHI | Classic rig |
+
+### Compatibility Note
+
+This repository is compatible with MetaHuman characters created in **Unreal Engine 5.5 or earlier**. Characters created in UE 5.6 should use the MetaHuman for Maya plugin from Fab.
+
+---
+
+## Video Source Organization (December 23, 2025)
+
+Video reference materials have been organized by avatar style/persona:
+
+| Folder | Videos | Avatar Style |
+|--------|--------|--------------|
+| `videosrc/photorealistic-cyberpunk/` | 8 | Primary photorealistic avatar |
+| `videosrc/anime-combat/` | 1 | Anime combat variant |
+| `videosrc/punk-variant/` | 1 | Punk/rebellious variant |
+
+See `videosrc/README.md` and `Analysis/expression_catalog.md` for detailed expression mappings.
+
+---
+
 ## Recommended Immediate Actions
 
 ### Week 1: Foundation
@@ -484,11 +604,14 @@ Multiple versions exist:
 1. ⬜ Implement ReservoirCpp → DeepTreeEcho binding layer
 2. ⬜ Create proper Eigen-based weight matrices
 3. ⬜ Add unit tests for reservoir operations
+4. ⬜ Create DNA → Body Schema binding layer
+5. ⬜ Implement expression catalog → DNA blend shape mapping
 
 ### Week 4+: Feature Completion
 1. ⬜ Implement `Avatar3DComponentEnhanced.cpp`
 2. ⬜ Complete neurochemical systems
-3. ⬜ Integrate Live2D SDK
+3. ⬜ Integrate Live2D SDK with MetaHuman DNA rig
+4. ⬜ Create DNAIntegration component for runtime DNA loading
 
 ---
 

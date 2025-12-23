@@ -6,6 +6,7 @@
 - **Deep Tree Echo** - Hierarchical cognitive architecture with 12-step processing cycles
 - **ReservoirCpp** - Echo State Networks for temporal pattern recognition
 - **4E Embodied Cognition** - Embodied, Embedded, Enacted, Extended cognition principles
+- **MetaHuman DNA** - High-fidelity avatar rig and expression system
 - **Unreal Engine Integration** - Real-time avatar and environment systems
 
 ## Repository Structure
@@ -23,28 +24,44 @@ un9n/
 │   ├── System5/            # Viable system model
 │   └── Wisdom/             # Higher-order cognition
 │
+├── MetaHuman-DNA-Calibration/  # MetaHuman rig and expression system
+│   ├── dnacalib/           # C++ DNA calibration library
+│   │   ├── DNACalib/       # Core DNA manipulation
+│   │   └── SPyUS/          # Python bindings
+│   ├── dna_viewer/         # Maya rig generation
+│   ├── data/               # DNA files, GUI scenes, shaders
+│   │   ├── dna_files/      # Sample DNA (Ada, Taro)
+│   │   └── mh4/            # MH Creator 2023+ assets
+│   ├── examples/           # Python usage examples
+│   └── lib/                # Pre-compiled Maya libraries
+│
 ├── ReservoirEcho/          # Echo State Network library (~1,531 C++ files)
 │   ├── reservoircpp_cpp/   # Core ESN implementation
 │   │   ├── include/        # Headers
 │   │   └── src/            # Implementation
 │   └── external/           # Dependencies (Eigen 3.4.0)
 │
-└── UnrealEcho/             # Unreal Engine cognitive components (106 C++ files)
-    ├── Animation/          # Animation systems
-    ├── Audio/              # Audio processing
-    ├── Avatar/             # Avatar components
-    ├── Character/          # Character systems
-    ├── Cognitive/          # Cognitive processing
-    ├── Consciousness/      # Consciousness streams
-    ├── DeepTreeEchoAvatar/ # DTE integration
-    ├── Environment/        # Environmental interaction
-    ├── Interaction/        # Interaction systems
-    ├── Narrative/          # Narrative systems
-    ├── NeuralNetwork/      # Neural network components
-    ├── Neurochemical/      # Neurochemical simulation
-    ├── Patterns/           # Pattern recognition
-    ├── Personality/        # Personality modeling
-    └── Rendering/          # Rendering pipeline
+├── UnrealEcho/             # Unreal Engine cognitive components (106 C++ files)
+│   ├── Animation/          # Animation systems
+│   ├── Audio/              # Audio processing
+│   ├── Avatar/             # Avatar components
+│   ├── Character/          # Character systems
+│   ├── Cognitive/          # Cognitive processing
+│   ├── Consciousness/      # Consciousness streams
+│   ├── DeepTreeEchoAvatar/ # DTE integration
+│   ├── Environment/        # Environmental interaction
+│   ├── Interaction/        # Interaction systems
+│   ├── Narrative/          # Narrative systems
+│   ├── NeuralNetwork/      # Neural network components
+│   ├── Neurochemical/      # Neurochemical simulation
+│   ├── Patterns/           # Pattern recognition
+│   ├── Personality/        # Personality modeling
+│   └── Rendering/          # Rendering pipeline
+│
+└── videosrc/               # Avatar video references
+    ├── photorealistic-cyberpunk/  # Primary avatar style (8 videos)
+    ├── anime-combat/       # Anime variant (1 video)
+    └── punk-variant/       # Punk variant (1 video)
 ```
 
 ## Key Architecture Concepts
@@ -84,6 +101,8 @@ Execution contexts follow rooted tree enumeration:
 | `UDeepTreeEchoReservoir` | `DeepTreeEcho/Reservoir/` | ESN integration with hierarchical processing |
 | `UEmbodiedCognitionComponent` | `DeepTreeEcho/4ECognition/` | 4E cognition state management |
 | `UAvatarEvolutionSystem` | `DeepTreeEcho/Avatar/` | Ontogenetic development stages |
+| `DNACalib` | `MetaHuman-DNA-Calibration/dnacalib/` | DNA file manipulation and calibration |
+| `DNAViewer` | `MetaHuman-DNA-Calibration/dna_viewer/` | Maya rig generation from DNA |
 
 ## Development Notes
 
@@ -100,9 +119,10 @@ Execution contexts follow rooted tree enumeration:
 - Tick-based processing in `TickComponent`
 
 ### Dependencies
-- **Unreal Engine 5.x** - Core engine
+- **Unreal Engine 5.x** - Core engine (5.5 or earlier for MetaHuman DNA)
 - **Eigen 3.4.0** - Linear algebra (in `ReservoirEcho/external/`)
 - **ReservoirCpp** - Echo State Networks (integrated)
+- **MetaHuman DNA Calibration** - DNA file tools (Python 3.7/3.9, Maya 2022-2024)
 
 ## Current Status
 
@@ -113,6 +133,8 @@ Execution contexts follow rooted tree enumeration:
 | 12-Step Cycle | Complete |
 | 4E Cognition | Complete |
 | Avatar Evolution | Complete |
+| MetaHuman DNA Integration | Complete |
+| DNA → Body Schema Binding | In Progress |
 | Memory Integration | In Progress |
 | OpenCog Integration | Planned |
 
@@ -145,3 +167,14 @@ Execution contexts follow rooted tree enumeration:
 - Update embedded state: affordances and environmental niche
 - Update enacted state: sensorimotor contingencies
 - Update extended state: external memory and tools
+
+### Working with MetaHuman DNA
+- Load DNA: `BinaryStreamReader` with `FileStream` in read mode
+- Modify DNA: Use `DNACalib` commands (rename, remove, scale, rotate)
+- Check rig version: `reader.getDBName()` returns "MH.4" or "DHI"
+- Generate Maya rig: Use `dna_viewer` with `gui.ma` scene
+- Export FBX: `dna_viewer_export_fbx.py` example
+
+Key joints (do not remove/rename):
+- `neck_01`, `neck_02` - Head-body connection
+- `FACIAL_C_FacialRoot` - Expression root
