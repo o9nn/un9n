@@ -403,4 +403,110 @@ private:
 
     /** Compute stage threshold */
     float ComputeStageThreshold(EDevelopmentalStage Stage) const;
+
+    // ========================================
+    // 4E EMBODIED COGNITION INTEGRATION
+    // ========================================
+
+public:
+    /** Get embodied score from motor and sensory capabilities */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    float GetEmbodiedScore() const;
+
+    /** Get embedded score from environmental coupling */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    float GetEmbeddedScore() const;
+
+    /** Get enacted score from action-perception integration */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    float GetEnactedScore() const;
+
+    /** Get extended score from tool use and social cognition */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    float GetExtendedScore() const;
+
+    /** Get overall 4E integration score */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    float Get4EIntegrationScore() const;
+
+    /** Update 4E scores from capability levels */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|4E")
+    void Update4EScores();
+
+    // ========================================
+    // WISDOM CULTIVATION
+    // ========================================
+
+    /** Current wisdom level (0-1) */
+    UPROPERTY(BlueprintReadOnly, Category = "Evolution|Wisdom")
+    float WisdomLevel = 0.0f;
+
+    /** Wisdom cultivation rate */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Evolution|Wisdom")
+    float WisdomCultivationRate = 0.001f;
+
+    /** Integrate wisdom from insights */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|Wisdom")
+    void IntegrateWisdom(float InsightValue);
+
+    /** Get wisdom-adjusted capability level */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|Wisdom")
+    float GetWisdomAdjustedCapability(ECapabilityDomain Domain) const;
+
+    /** Apply wisdom to all capabilities */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|Wisdom")
+    void ApplyWisdomToCapabilities();
+
+    // ========================================
+    // COGNITIVE CYCLE INTEGRATION
+    // ========================================
+
+    /** Current cognitive cycle step (0-11) */
+    UPROPERTY(BlueprintReadOnly, Category = "Evolution|Cognitive")
+    int32 CurrentCognitiveStep = 0;
+
+    /** Set cognitive step for evolution modulation */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|Cognitive")
+    void SetCognitiveStep(int32 Step);
+
+    /** Get evolution rate modifier for current cognitive step */
+    UFUNCTION(BlueprintCallable, Category = "Evolution|Cognitive")
+    float GetCognitiveStepEvolutionModifier() const;
+
+    // ========================================
+    // EVENTS
+    // ========================================
+
+    /** Called when stage transitions */
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStageTransition, EDevelopmentalStage, OldStage, EDevelopmentalStage, NewStage);
+    UPROPERTY(BlueprintAssignable, Category = "Evolution|Events")
+    FOnStageTransition OnStageTransition;
+
+    /** Called when capability level changes significantly */
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCapabilityLevelChanged, ECapabilityDomain, Domain, float, NewLevel);
+    UPROPERTY(BlueprintAssignable, Category = "Evolution|Events")
+    FOnCapabilityLevelChanged OnCapabilityLevelChanged;
+
+    /** Called when wisdom level changes */
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWisdomLevelChanged, float, NewWisdomLevel);
+    UPROPERTY(BlueprintAssignable, Category = "Evolution|Events")
+    FOnWisdomLevelChanged OnWisdomLevelChanged;
+
+    /** Called when 4E integration score changes */
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOn4EScoreChanged, float, NewScore);
+    UPROPERTY(BlueprintAssignable, Category = "Evolution|Events")
+    FOn4EScoreChanged On4EScoreChanged;
+
+private:
+    /** Previous 4E score for change detection */
+    float Previous4EScore = 0.0f;
+
+    /** Previous wisdom level for change detection */
+    float PreviousWisdomLevel = 0.0f;
+
+    /** 4E dimension scores */
+    float EmbodiedScore = 0.0f;
+    float EmbeddedScore = 0.0f;
+    float EnactedScore = 0.0f;
+    float ExtendedScore = 0.0f;
 };

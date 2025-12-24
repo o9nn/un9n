@@ -6,9 +6,9 @@
  */
 
 #include "DeepTreeEchoCore.h"
-#include "../Cognitive/DeepTreeEchoCognitiveCore.h"
+#include "../../UnrealEcho/Cognitive/DeepTreeEchoCognitiveCore.h"
 #include "../Reservoir/DeepTreeEchoReservoir.h"
-#include "RecursiveMutualAwarenessSystem.h"
+#include "../../UnrealEcho/Consciousness/RecursiveMutualAwarenessSystem.h"
 
 UDeepTreeEchoCore::UDeepTreeEchoCore()
 {
