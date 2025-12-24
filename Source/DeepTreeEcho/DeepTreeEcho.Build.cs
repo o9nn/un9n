@@ -33,6 +33,8 @@ public class DeepTreeEcho : ModuleRules
 				Path.Combine(DeepTreeEchoRoot, "System5"),
 				Path.Combine(DeepTreeEchoRoot, "UnrealBridge"),
 				Path.Combine(DeepTreeEchoRoot, "Wisdom"),
+				// Sys6 Operad Architecture
+				Path.Combine(DeepTreeEchoRoot, "Sys6"),
 			}
 		);
 
