@@ -35,6 +35,8 @@ public class DeepTreeEcho : ModuleRules
 				Path.Combine(DeepTreeEchoRoot, "Wisdom"),
 				// Sys6 Operad Architecture
 				Path.Combine(DeepTreeEchoRoot, "Sys6"),
+				// Taskflow parallel task scheduling
+				Path.Combine(DeepTreeEchoRoot, "Taskflow"),
 			}
 		);
 
@@ -43,6 +45,8 @@ public class DeepTreeEcho : ModuleRules
 			new string[] {
 				Path.Combine(ReservoirEchoRoot, "reservoircpp_cpp/include"),
 				Path.Combine(ReservoirEchoRoot, "external/eigen-3.4.0"),
+				// Taskflow header-only library for parallel task graphs
+				Path.Combine(ReservoirEchoRoot, "external/taskflow-3.8.0"),
 			}
 		);
 
