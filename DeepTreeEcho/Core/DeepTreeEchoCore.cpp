@@ -9,6 +9,8 @@
 #include "../../UnrealEcho/Cognitive/DeepTreeEchoCognitiveCore.h"
 #include "../Reservoir/DeepTreeEchoReservoir.h"
 #include "../../UnrealEcho/Consciousness/RecursiveMutualAwarenessSystem.h"
+#include "../Memory/HypergraphMemorySystem.h"
+#include "../4ECognition/DNABodySchemaBinding.h"
 
 UDeepTreeEchoCore::UDeepTreeEchoCore()
 {
@@ -53,6 +55,18 @@ void UDeepTreeEchoCore::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
     // Update gestalt processing
     UpdateGestaltProcessing();
+
+    // Update memory integration
+    if (bEnableMemoryIntegration)
+    {
+        UpdateMemoryIntegration();
+    }
+
+    // Update body schema synchronization
+    if (bEnableBodySchemaBinding)
+    {
+        UpdateBodySchemaSync();
+    }
 }
 
 void UDeepTreeEchoCore::InitializeSystem()
@@ -482,5 +496,167 @@ void UDeepTreeEchoCore::FindComponentReferences()
         CognitiveCore = Owner->FindComponentByClass<UDeepTreeEchoCognitiveCore>();
         ReservoirSystem = Owner->FindComponentByClass<UDeepTreeEchoReservoir>();
         MutualAwarenessSystem = Owner->FindComponentByClass<URecursiveMutualAwarenessSystem>();
+        MemorySystem = Owner->FindComponentByClass<UHypergraphMemorySystem>();
+        BodySchemaBinding = Owner->FindComponentByClass<UDNABodySchemaBinding>();
+    }
+}
+
+// ========================================
+// MEMORY INTEGRATION IMPLEMENTATION
+// ========================================
+
+int64 UDeepTreeEchoCore::StoreEpisodicMemory(const FString& Label, const TArray<float>& Embedding)
+{
+    if (!MemorySystem)
+    {
+        return -1;
+    }
+
+    return MemorySystem->CreateNode(EMemoryNodeType::Episode, Label, Embedding, 0.7f);
+}
+
+TArray<int64> UDeepTreeEchoCore::RetrieveSimilarMemories(const TArray<float>& QueryEmbedding, float Threshold)
+{
+    if (!MemorySystem)
+    {
+        return TArray<int64>();
+    }
+
+    return MemorySystem->FindSimilarNodes(QueryEmbedding, Threshold, 10);
+}
+
+int64 UDeepTreeEchoCore::CreateBelief(const FString& Proposition, float Confidence)
+{
+    if (!MemorySystem)
+    {
+        return -1;
+    }
+
+    TArray<int64> EmptyContent;
+    return MemorySystem->CreateBelief(Proposition, EmptyContent, EBeliefModality::Probable, Confidence);
+}
+
+int64 UDeepTreeEchoCore::CreateDesire(const FString& Goal, float Priority)
+{
+    if (!MemorySystem)
+    {
+        return -1;
+    }
+
+    TArray<int64> EmptyContent;
+    return MemorySystem->CreateDesire(Goal, EmptyContent, 0.5f, Priority);
+}
+
+void UDeepTreeEchoCore::TriggerMemoryConsolidation()
+{
+    if (MemorySystem)
+    {
+        MemorySystem->RunConsolidation();
+    }
+}
+
+// ========================================
+// BODY SCHEMA IMPLEMENTATION
+// ========================================
+
+TArray<float> UDeepTreeEchoCore::GetBodyProprioceptiveState()
+{
+    if (BodySchemaBinding)
+    {
+        return BodySchemaBinding->GetProprioceptiveVector();
+    }
+
+    return CognitionState4E.ProprioceptiveState;
+}
+
+void UDeepTreeEchoCore::SyncBodySchemaToEmbodiedCognition()
+{
+    if (!BodySchemaBinding)
+    {
+        return;
+    }
+
+    // Get proprioceptive state from body schema
+    TArray<float> ProprioVector = BodySchemaBinding->GetProprioceptiveVector();
+    if (ProprioVector.Num() > 0)
+    {
+        CognitionState4E.ProprioceptiveState = ProprioVector;
+    }
+
+    // Update body measurements to motor readiness
+    float ReachCapability = BodySchemaBinding->ComputePeripersonalRadius();
+    CognitionState4E.MotorReadiness = FMath::Clamp(ReachCapability / 100.0f, 0.0f, 1.0f);
+}
+
+void UDeepTreeEchoCore::UpdateMemoryIntegration()
+{
+    if (!MemorySystem)
+    {
+        return;
+    }
+
+    // At reflective steps (5, 6, 10, 11, 12), consolidate memories
+    if (IsReflectiveStep())
+    {
+        // Decay activations
+        MemorySystem->DecayActivations(0.016f); // Assuming ~60Hz tick
+
+        // At step 12 (end of cycle), run full consolidation
+        if (CurrentCycleStep == 12)
+        {
+            MemorySystem->RunConsolidation();
+        }
+    }
+
+    // At expressive steps, boost active memories
+    if (IsExpressiveStep())
+    {
+        TArray<int64> ActiveNodes = MemorySystem->GetMostActiveNodes(5);
+        for (int64 NodeID : ActiveNodes)
+        {
+            MemorySystem->BoostNodeActivation(NodeID, 0.05f);
+        }
+    }
+
+    // Integrate reservoir patterns at nesting level 4
+    if (CurrentNestingLevel == 4 && ReservoirSystem)
+    {
+        // Detect temporal patterns and integrate into memory
+        TArray<FTemporalPattern> Patterns = ReservoirSystem->DetectTemporalPatterns();
+        TArray<TArray<float>> PatternEmbeddings;
+        for (const FTemporalPattern& Pattern : Patterns)
+        {
+            PatternEmbeddings.Add(Pattern.PatternEmbedding);
+        }
+        if (PatternEmbeddings.Num() > 0)
+        {
+            MemorySystem->IntegrateReservoirPatterns(PatternEmbeddings);
+        }
+    }
+}
+
+void UDeepTreeEchoCore::UpdateBodySchemaSync()
+{
+    if (!BodySchemaBinding)
+    {
+        return;
+    }
+
+    // Sync at perceiving steps (1, 4, 7, 10)
+    if (CurrentCycleStep == 1 || CurrentCycleStep == 4 ||
+        CurrentCycleStep == 7 || CurrentCycleStep == 10)
+    {
+        SyncBodySchemaToEmbodiedCognition();
+    }
+
+    // Encode body state to reservoir at acting steps
+    if (ReservoirSystem && (CurrentCycleStep == 2 || CurrentCycleStep == 5 ||
+                            CurrentCycleStep == 8 || CurrentCycleStep == 11))
+    {
+        TArray<float> BodyState = BodySchemaBinding->EncodeBodyState(2);
+        if (BodyState.Num() > 0)
+        {
+            ReservoirSystem->ProcessInput(BodyState, 2); // Acting stream
+        }
     }
 }

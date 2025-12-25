@@ -26,6 +26,8 @@
 class UDeepTreeEchoCognitiveCore;
 class UDeepTreeEchoReservoir;
 class URecursiveMutualAwarenessSystem;
+class UHypergraphMemorySystem;
+class UDNABodySchemaBinding;
 
 /**
  * Cognitive Mode - Current processing mode of the system
@@ -233,6 +235,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeepTreeEcho|Config")
     bool bEnableRelevanceRealization = true;
 
+    /** Enable hypergraph memory integration */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeepTreeEcho|Config")
+    bool bEnableMemoryIntegration = true;
+
+    /** Enable DNA body schema binding */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeepTreeEcho|Config")
+    bool bEnableBodySchemaBinding = true;
+
     /** 12-step cognitive cycle duration */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DeepTreeEcho|Config", meta = (ClampMin = "1.0", ClampMax = "60.0"))
     float CycleDuration = 12.0f;
@@ -252,6 +262,14 @@ public:
     /** Reference to Mutual Awareness component */
     UPROPERTY(BlueprintReadOnly, Category = "DeepTreeEcho|Components")
     URecursiveMutualAwarenessSystem* MutualAwarenessSystem;
+
+    /** Reference to Hypergraph Memory System */
+    UPROPERTY(BlueprintReadOnly, Category = "DeepTreeEcho|Components")
+    UHypergraphMemorySystem* MemorySystem;
+
+    /** Reference to DNA Body Schema Binding */
+    UPROPERTY(BlueprintReadOnly, Category = "DeepTreeEcho|Components")
+    UDNABodySchemaBinding* BodySchemaBinding;
 
     // ========================================
     // COGNITIVE STATE
@@ -362,6 +380,42 @@ public:
     float GetGestaltCoherence() const;
 
     // ========================================
+    // PUBLIC API - MEMORY INTEGRATION
+    // ========================================
+
+    /** Store experience in episodic memory */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|Memory")
+    int64 StoreEpisodicMemory(const FString& Label, const TArray<float>& Embedding);
+
+    /** Retrieve memories by similarity */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|Memory")
+    TArray<int64> RetrieveSimilarMemories(const TArray<float>& QueryEmbedding, float Threshold = 0.5f);
+
+    /** Create belief in intentional memory */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|Memory")
+    int64 CreateBelief(const FString& Proposition, float Confidence = 0.7f);
+
+    /** Create desire/goal in intentional memory */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|Memory")
+    int64 CreateDesire(const FString& Goal, float Priority = 0.5f);
+
+    /** Trigger memory consolidation */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|Memory")
+    void TriggerMemoryConsolidation();
+
+    // ========================================
+    // PUBLIC API - BODY SCHEMA
+    // ========================================
+
+    /** Get proprioceptive vector from body schema */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|BodySchema")
+    TArray<float> GetBodyProprioceptiveState();
+
+    /** Sync body schema to embodied cognition */
+    UFUNCTION(BlueprintCallable, Category = "DeepTreeEcho|BodySchema")
+    void SyncBodySchemaToEmbodiedCognition();
+
+    // ========================================
     // PUBLIC API - CYCLE MANAGEMENT
     // ========================================
 
@@ -416,6 +470,12 @@ private:
 
     /** Update gestalt processing */
     void UpdateGestaltProcessing();
+
+    /** Update memory integration */
+    void UpdateMemoryIntegration();
+
+    /** Update body schema synchronization */
+    void UpdateBodySchemaSync();
 
     /** Find and cache component references */
     void FindComponentReferences();

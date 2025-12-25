@@ -285,7 +285,86 @@ void UPlanningSystem::UpdateGoalProgress(float DeltaTime)
     }
 }
 
-void UPlanningSystem::UpdatePlanExecution(float DeltaTime) {}
+void UPlanningSystem::UpdatePlanExecution(float DeltaTime)
+{
+    // Find the currently executing plan
+    int32 PlanIndex = FindPlanIndex(CurrentPlanID);
+    if (PlanIndex < 0) return;
+
+    FPlan& CurrentPlan = Plans[PlanIndex];
+    if (CurrentPlan.Status != EPlanStatus::Executing) return;
+
+    // Check if we've completed all actions
+    if (CurrentPlan.CurrentActionIndex >= CurrentPlan.Actions.Num())
+    {
+        CurrentPlan.Status = EPlanStatus::Completed;
+        OnPlanStatusChanged.Broadcast(CurrentPlanID, EPlanStatus::Completed);
+        CurrentPlanID.Empty();
+        return;
+    }
+
+    FPlannedAction& CurrentAction = CurrentPlan.Actions[CurrentPlan.CurrentActionIndex];
+
+    // Start action if pending
+    if (CurrentAction.Status == EActionStatus::Pending)
+    {
+        // Check preconditions before starting
+        bool bCanStart = true;
+        for (const FString& Precondition : CurrentAction.Preconditions)
+        {
+            if (!IsConditionSatisfied(Precondition))
+            {
+                bCanStart = false;
+                break;
+            }
+        }
+
+        if (bCanStart)
+        {
+            CurrentAction.Status = EActionStatus::Executing;
+            CurrentActionStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+            OnActionStarted.Broadcast(CurrentAction);
+        }
+        else
+        {
+            // Preconditions not met - attempt replan
+            CurrentPlan.Status = EPlanStatus::Replanning;
+            OnPlanStatusChanged.Broadcast(CurrentPlanID, EPlanStatus::Replanning);
+            CurrentPlan.ReplanCount++;
+
+            // Generate new action sequence
+            int32 GoalIndex = FindGoalIndex(CurrentPlan.TargetGoalID);
+            if (GoalIndex >= 0)
+            {
+                TArray<FPlannedAction> NewActions = GenerateActionSequence(Goals[GoalIndex]);
+                if (NewActions.Num() > 0)
+                {
+                    CurrentPlan.Actions = NewActions;
+                    CurrentPlan.CurrentActionIndex = 0;
+                    CurrentPlan.Status = EPlanStatus::Executing;
+                    OnPlanStatusChanged.Broadcast(CurrentPlanID, EPlanStatus::Executing);
+                }
+                else
+                {
+                    CurrentPlan.Status = EPlanStatus::Failed;
+                    OnPlanStatusChanged.Broadcast(CurrentPlanID, EPlanStatus::Failed);
+                }
+            }
+        }
+    }
+    else if (CurrentAction.Status == EActionStatus::Executing)
+    {
+        // Track execution time
+        float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+        CurrentAction.ActualDuration = CurrentTime - CurrentActionStartTime;
+
+        // Check for action timeout
+        if (ActionTimeout > 0.0f && CurrentAction.ActualDuration > ActionTimeout)
+        {
+            CompleteCurrentAction(false);  // Action timed out - mark as failed
+        }
+    }
+}
 void UPlanningSystem::CheckGoalConditions()
 {
     for (FGoal& G : Goals)
