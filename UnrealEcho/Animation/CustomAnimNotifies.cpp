@@ -6,6 +6,7 @@
 #include "Avatar/Avatar3DComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "TimerManager.h"
 
 // UAnimNotify_TriggerAudioCue
 
@@ -106,6 +107,7 @@ UAnimNotify_TriggerMaterialEffect::UAnimNotify_TriggerMaterialEffect()
     ParameterValue = 1.0f;
     Duration = 1.0f;
     bFadeOut = true;
+    MaterialSlot = EAvatarMaterialSlot::Skin;
 }
 
 void UAnimNotify_TriggerMaterialEffect::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
@@ -127,12 +129,66 @@ void UAnimNotify_TriggerMaterialEffect::Notify(USkeletalMeshComponent* MeshComp,
         return;
     }
 
-    // Set the material parameter
-    // Note: This is a simplified version. A full implementation would need to handle
-    // the fade-out over time, which would require a timer or tick function
-    MaterialManager->SetScalarParameter(EAvatarMaterialSlot::Skin, ParameterName, ParameterValue);
+    // Set the material parameter immediately
+    MaterialManager->SetScalarParameter(MaterialSlot, ParameterName, ParameterValue);
 
-    // TODO: Implement fade-out over Duration if bFadeOut is true
+    // If fade-out is enabled and duration is valid, schedule fade-out
+    if (bFadeOut && Duration > 0.0f)
+    {
+        // Create a timer to handle fade-out over duration
+        FTimerHandle FadeOutTimerHandle;
+        FTimerDelegate FadeOutDelegate;
+        
+        // Capture necessary variables for the lambda
+        const float FadeStepTime = 0.033f; // ~30 updates per second
+        const float TotalSteps = Duration / FadeStepTime;
+        const float StepDecrement = ParameterValue / TotalSteps;
+        
+        // Create a shared counter for the fade steps
+        TSharedPtr<int32> CurrentStep = MakeShared<int32>(0);
+        TSharedPtr<float> CurrentValue = MakeShared<float>(ParameterValue);
+        
+        FadeOutDelegate.BindLambda([MaterialManager, MaterialSlot, ParameterName, StepDecrement, TotalSteps, CurrentStep, CurrentValue]()
+        {
+            if (MaterialManager && MaterialManager->IsValidLowLevel())
+            {
+                (*CurrentStep)++;
+                (*CurrentValue) = FMath::Max(0.0f, (*CurrentValue) - StepDecrement);
+                
+                MaterialManager->SetScalarParameter(MaterialSlot, ParameterName, *CurrentValue);
+            }
+        });
+        
+        // Set repeating timer for fade-out effect
+        if (UWorld* World = Owner->GetWorld())
+        {
+            World->GetTimerManager().SetTimer(
+                FadeOutTimerHandle,
+                FadeOutDelegate,
+                FadeStepTime,
+                true, // Loop
+                0.0f  // Initial delay
+            );
+            
+            // Set a one-time timer to clear the repeating timer after duration
+            FTimerHandle CleanupTimerHandle;
+            FTimerDelegate CleanupDelegate;
+            CleanupDelegate.BindLambda([World, FadeOutTimerHandle]() mutable
+            {
+                if (World && World->GetTimerManager().IsTimerActive(FadeOutTimerHandle))
+                {
+                    World->GetTimerManager().ClearTimer(FadeOutTimerHandle);
+                }
+            });
+            
+            World->GetTimerManager().SetTimer(
+                CleanupTimerHandle,
+                CleanupDelegate,
+                Duration + 0.1f, // Slightly longer than duration to ensure cleanup
+                false // One-shot
+            );
+        }
+    }
 }
 
 // UAnimNotify_TriggerGestureSound

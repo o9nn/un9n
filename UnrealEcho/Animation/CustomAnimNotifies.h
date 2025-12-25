@@ -5,6 +5,10 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Sound/SoundBase.h"
 #include "NiagaraSystem.h"
+
+// Forward declarations
+enum class EAvatarMaterialSlot : uint8;
+
 #include "CustomAnimNotifies.generated.h"
 
 /**
@@ -73,6 +77,7 @@ public:
 /**
  * Animation Notify: Trigger Material Effect
  * Triggers a material parameter change (e.g., blush, sparkle)
+ * If bFadeOut is true, the parameter will fade from ParameterValue to 0 over Duration
  */
 UCLASS()
 class UNREALENGINE_API UAnimNotify_TriggerMaterialEffect : public UAnimNotify
@@ -95,6 +100,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
     bool bFadeOut;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+    EAvatarMaterialSlot MaterialSlot;
 };
 
 /**
