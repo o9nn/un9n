@@ -45,12 +45,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload build artifacts
         if: matrix.build_type == 'Release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dnacalib-linux-py${{ matrix.python_version }}-${{ matrix.library_type }}
           path: |
@@ -122,12 +122,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -154,7 +154,7 @@ jobs:
         run: cmake --build build --parallel $(sysctl -n hw.ncpu)
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dnacalib-macos-py${{ matrix.python_version }}
           path: |
@@ -177,12 +177,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Set up Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -212,7 +212,7 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dnacalib-windows-py${{ matrix.python_version }}
           path: |
@@ -231,10 +231,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -271,7 +271,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check DNA file presence
         working-directory: MetaHuman-DNA-Calibration
@@ -315,12 +315,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -345,7 +345,7 @@ jobs:
         run: cpack -G ZIP
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dnacalib-package
           path: ${{ env.DNACALIB_DIR }}/build/*.zip

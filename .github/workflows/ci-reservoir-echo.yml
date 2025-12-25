@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload build artifacts
         if: matrix.build_type == 'Release' && matrix.compiler == 'gcc'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: reservoir-echo-linux-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: |
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload compile commands
         if: matrix.build_type == 'Debug' && matrix.compiler == 'clang'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: compile-commands
           path: ${{ env.RESERVOIR_DIR }}/build/compile_commands.json
@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -174,7 +174,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload build artifacts
         if: matrix.build_type == 'Release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: reservoir-echo-macos-${{ matrix.build_type }}
           path: |
@@ -223,7 +223,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -253,7 +253,7 @@ jobs:
 
       - name: Upload build artifacts
         if: matrix.build_type == 'Release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: reservoir-echo-windows-${{ matrix.build_type }}
           path: |
@@ -272,7 +272,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -307,7 +307,7 @@ jobs:
           lcov --list coverage.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ${{ env.RESERVOIR_DIR }}/coverage.info
           flags: reservoir-echo
@@ -320,7 +320,7 @@ jobs:
           genhtml coverage.info --output-directory coverage-report
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report
           path: ${{ env.RESERVOIR_DIR }}/coverage-report
@@ -336,7 +336,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -346,7 +346,7 @@ jobs:
           sudo apt-get install -y cmake ninja-build clang-tools-15 cppcheck
 
       - name: Download compile commands
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: compile-commands
           path: ${{ env.RESERVOIR_DIR }}/build
@@ -371,7 +371,7 @@ jobs:
             --xml 2>&1 | tee cppcheck-report.xml
 
       - name: Upload analysis reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: static-analysis-reports
           path: |
