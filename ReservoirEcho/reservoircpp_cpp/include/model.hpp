@@ -2,24 +2,24 @@
 #define RESERVOIRCPP_MODEL_HPP
 
 #include "reservoircpp/contextlib/ExitStack.hpp"
-#include "reservoircpp//utils/verbosity.hpp"
-#include "reservoircpp///_base.hpp"
-#include "reservoircpp//utils/graphflow/(.hpp"
-#include "reservoircpp//utils/model_utils/(.hpp"
+#include "reservoircpp/utils/verbosity.hpp"
+#include "reservoircpp/_base.hpp"
+#include "reservoircpp/utils/graphflow/(.hpp"
+#include "reservoircpp/utils/model_utils/(.hpp"
 #include "numpy.hpp"
 #include "reservoircpp/typing/Optional.hpp"
 #include "reservoircpp/typing/Sequence.hpp"
-#include "reservoircpp//_base/check_xy.hpp"
-#include "reservoircpp//_base/_Node.hpp"
+#include "reservoircpp/_base/check_xy.hpp"
+#include "reservoircpp/_base/_Node.hpp"
 #include "reservoircpp/typing/List.hpp"
 #include "reservoircpp/collections/defaultdict.hpp"
 #include "reservoircpp/typing/Dict.hpp"
-#include "reservoircpp//utils/progress.hpp"
-#include "reservoircpp//type/MappedData.hpp"
+#include "reservoircpp/utils/progress.hpp"
+#include "reservoircpp/type/MappedData.hpp"
 #include "reservoircpp/contextlib/contextmanager.hpp"
 #include "reservoircpp/typing/Tuple.hpp"
 #include "reservoircpp/functools/partial.hpp"
-#include "reservoircpp//utils/validation/is_mapping.hpp"
+#include "reservoircpp/utils/validation/is_mapping.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

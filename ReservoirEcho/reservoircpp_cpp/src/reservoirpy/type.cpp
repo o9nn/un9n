@@ -1,3 +1,3 @@
 // Implementation generated from d:/gitco/reservoircpp/reservoircpp\reservoirpy\type.py
-#include "reservoirpy\type.hpp"
+#include "reservoirpy/type.hpp"
 

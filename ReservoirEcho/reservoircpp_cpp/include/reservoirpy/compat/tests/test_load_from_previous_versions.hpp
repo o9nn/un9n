@@ -1,12 +1,12 @@
 #ifndef RESERVOIRCPP_TEST_LOAD_FROM_PREVIOUS_VERSIONS_HPP
 #define RESERVOIRCPP_TEST_LOAD_FROM_PREVIOUS_VERSIONS_HPP
 
-#include "reservoircpp////ESN.hpp"
-#include "reservoircpp/////activationsfunc.hpp"
+#include "reservoircpp//ESN.hpp"
+#include "reservoircpp///activationsfunc.hpp"
 #include "numpy.hpp"
 #include "pytest.hpp"
 #include <reservoircpp/scipy.hpp>
-#include "reservoircpp////load_compat.hpp"
+#include "reservoircpp//load_compat.hpp"
 #include "reservoircpp/contextlib/contextmanager.hpp"
 #include "shutil.hpp"
 #include "os.hpp"

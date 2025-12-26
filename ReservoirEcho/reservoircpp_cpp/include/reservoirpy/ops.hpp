@@ -1,17 +1,17 @@
 #ifndef RESERVOIRCPP_OPS_HPP
 #define RESERVOIRCPP_OPS_HPP
 
-#include "reservoircpp//model/FrozenModel.hpp"
+#include "reservoircpp/model/FrozenModel.hpp"
 #include "reservoircpp/typing/Sequence.hpp"
-#include "reservoircpp//model/Model.hpp"
-#include "reservoircpp//utils/graphflow/find_parents_and_children.hpp"
-#include "reservoircpp//_base/_Node.hpp"
-#include "reservoircpp//nodes/concat/Concat.hpp"
+#include "reservoircpp/model/Model.hpp"
+#include "reservoircpp/utils/graphflow/find_parents_and_children.hpp"
+#include "reservoircpp/_base/_Node.hpp"
+#include "reservoircpp/nodes/concat/Concat.hpp"
 #include "reservoircpp/itertools/product.hpp"
 #include "reservoircpp/typing/Iterable.hpp"
 #include "reservoircpp/uuid/uuid4.hpp"
 #include "reservoircpp/typing/Union.hpp"
-#include "reservoircpp//_base/DistantFeedback.hpp"
+#include "reservoircpp/_base/DistantFeedback.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

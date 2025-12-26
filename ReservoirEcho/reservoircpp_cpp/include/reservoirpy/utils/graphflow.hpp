@@ -3,12 +3,12 @@
 
 #include "reservoircpp/collections/deque.hpp"
 #include "numpy.hpp"
-#include "reservoircpp///safe_defaultdict_copy.hpp"
+#include "reservoircpp/safe_defaultdict_copy.hpp"
 #include "reservoircpp/typing/List.hpp"
 #include "reservoircpp/collections/defaultdict.hpp"
 #include "reservoircpp/typing/Dict.hpp"
-#include "reservoircpp//validation/is_mapping.hpp"
-#include "reservoircpp///_base/_Node.hpp"
+#include "reservoircpp/validation/is_mapping.hpp"
+#include "reservoircpp/_base/_Node.hpp"
 #include "reservoircpp/collections/namedtuple.hpp"
 
 using namespace reservoircpp;

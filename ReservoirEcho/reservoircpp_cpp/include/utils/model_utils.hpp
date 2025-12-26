@@ -1,11 +1,11 @@
 #ifndef RESERVOIRCPP_MODEL_UTILS_HPP
 #define RESERVOIRCPP_MODEL_UTILS_HPP
 
-#include "reservoircpp///_base/check_xy.hpp"
+#include "reservoircpp/_base/check_xy.hpp"
 #include "numpy.hpp"
-#include "reservoircpp//validation/is_mapping.hpp"
+#include "reservoircpp/validation/is_mapping.hpp"
 #include "reservoircpp/collections/defaultdict.hpp"
-#include "reservoircpp//validation/is_sequence_set.hpp"
+#include "reservoircpp/validation/is_sequence_set.hpp"
 #include "reservoircpp/typing/Iterable.hpp"
 #include "reservoircpp/uuid/uuid4.hpp"
 

@@ -1,12 +1,12 @@
 #ifndef RESERVOIRCPP_EXPERIMENTAL_HPP
 #define RESERVOIRCPP_EXPERIMENTAL_HPP
 
-#include "reservoircpp//sklearn/from_sklearn.hpp"
-#include "reservoircpp//randomchoice/RandomChoice.hpp"
-#include "reservoircpp//add/Add.hpp"
-#include "reservoircpp//batchforce/BatchFORCE.hpp"
-#include "reservoircpp//spiking/lif/LIF.hpp"
-#include "reservoircpp//norm/AsabukiNorm.hpp"
+#include "reservoircpp/sklearn/from_sklearn.hpp"
+#include "reservoircpp/randomchoice/RandomChoice.hpp"
+#include "reservoircpp/add/Add.hpp"
+#include "reservoircpp/batchforce/BatchFORCE.hpp"
+#include "reservoircpp/spiking/lif/LIF.hpp"
+#include "reservoircpp/norm/AsabukiNorm.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

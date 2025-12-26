@@ -5,8 +5,8 @@
 #include "numpy.hpp"
 #include "reservoircpp/urllib/request/urlopen.hpp"
 #include "zipfile.hpp"
-#include "reservoircpp//_utils/_get_data_folder.hpp"
-#include "reservoircpp////logger.hpp"
+#include "reservoircpp/_utils/_get_data_folder.hpp"
+#include "reservoircpp//logger.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

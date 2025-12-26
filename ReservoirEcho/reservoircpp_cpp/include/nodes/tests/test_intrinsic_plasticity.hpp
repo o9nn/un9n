@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_TEST_INTRINSIC_PLASTICITY_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///reservoirs/intrinsic_plasticity/IPReservoir.hpp"
-#include "reservoircpp///readouts/Ridge.hpp"
+#include "reservoircpp/reservoirs/intrinsic_plasticity/IPReservoir.hpp"
+#include "reservoircpp/readouts/Ridge.hpp"
 #include "reservoircpp/numpy/testing/assert_allclose.hpp"
 #include "pytest.hpp"
 

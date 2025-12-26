@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_BATCHFORCE_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
-#include "reservoircpp///nodes/readouts/base/(.hpp"
+#include "reservoircpp/node/Node.hpp"
+#include "reservoircpp/nodes/readouts/base/(.hpp"
 #include "reservoircpp/functools/partial.hpp"
 
 using namespace reservoircpp;

@@ -3,8 +3,8 @@
 
 #include "numpy.hpp"
 #include "reservoircpp/numpy/testing/assert_array_equal.hpp"
-#include "reservoircpp////datasets/mackey_glass.hpp"
-#include "reservoircpp////LIF.hpp"
+#include "reservoircpp//datasets/mackey_glass.hpp"
+#include "reservoircpp//LIF.hpp"
 #include "pytest.hpp"
 
 using namespace reservoircpp;

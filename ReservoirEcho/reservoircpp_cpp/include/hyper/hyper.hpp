@@ -1,8 +1,8 @@
 #ifndef RESERVOIRCPP_HYPER_HPP
 #define RESERVOIRCPP_HYPER_HPP
 
-#include "reservoircpp//_hyperplot/plot_hyperopt_report.hpp"
-#include "reservoircpp//_hypersearch/research.hpp"
+#include "reservoircpp/_hyperplot/plot_hyperopt_report.hpp"
+#include "reservoircpp/_hypersearch/research.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

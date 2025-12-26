@@ -2,9 +2,9 @@
 #define RESERVOIRCPP_NORM_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///activationsfunc/tanh.hpp"
-#include "reservoircpp///activationsfunc/relu.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/activationsfunc/tanh.hpp"
+#include "reservoircpp/activationsfunc/relu.hpp"
+#include "reservoircpp/node/Node.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

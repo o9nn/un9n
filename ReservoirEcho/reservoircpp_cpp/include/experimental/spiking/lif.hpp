@@ -1,13 +1,13 @@
 #ifndef RESERVOIRCPP_LIF_HPP
 #define RESERVOIRCPP_LIF_HPP
 
-#include "reservoircpp////utils/validation/is_array.hpp"
-#include "reservoircpp////utils/random/rand_generator.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp//utils/validation/is_array.hpp"
+#include "reservoircpp//utils/random/rand_generator.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "reservoircpp/functools/partial.hpp"
-#include "reservoircpp////type/Weights.hpp"
+#include "reservoircpp//type/Weights.hpp"
 #include "sys.hpp"
-#include "reservoircpp////mat_gen/uniform.hpp"
+#include "reservoircpp//mat_gen/uniform.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

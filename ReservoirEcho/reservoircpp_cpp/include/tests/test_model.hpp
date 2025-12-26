@@ -1,15 +1,15 @@
 #ifndef RESERVOIRCPP_TEST_MODEL_HPP
 #define RESERVOIRCPP_TEST_MODEL_HPP
 
-#include "reservoircpp///model/Model.hpp"
-#include "reservoircpp///ops/merge.hpp"
+#include "reservoircpp/model/Model.hpp"
+#include "reservoircpp/ops/merge.hpp"
 #include "reservoircpp/reservoirpy/nodes/io/Input.hpp"
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/node/Node.hpp"
 #include "reservoircpp/reservoirpy/nodes/io/Output.hpp"
 #include "reservoircpp/numpy/testing/assert_array_equal.hpp"
 #include "pytest.hpp"
-#include "reservoircpp//dummy_nodes.hpp"
+#include "reservoircpp/dummy_nodes.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

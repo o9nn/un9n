@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_TEST_DELAY_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///readouts/Ridge.hpp"
-#include "reservoircpp///delay/Delay.hpp"
+#include "reservoircpp/readouts/Ridge.hpp"
+#include "reservoircpp/delay/Delay.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

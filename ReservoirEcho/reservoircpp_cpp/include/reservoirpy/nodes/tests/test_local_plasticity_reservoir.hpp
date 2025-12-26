@@ -3,9 +3,9 @@
 
 #include "numpy.hpp"
 #include "reservoircpp/numpy/testing/assert_allclose.hpp"
-#include "reservoircpp///readouts/Ridge.hpp"
-#include "reservoircpp////mat_gen/ring.hpp"
-#include "reservoircpp///reservoirs/local_plasticity_reservoir/LocalPlasticityReservoir.hpp"
+#include "reservoircpp/readouts/Ridge.hpp"
+#include "reservoircpp//mat_gen/ring.hpp"
+#include "reservoircpp/reservoirs/local_plasticity_reservoir/LocalPlasticityReservoir.hpp"
 #include "pytest.hpp"
 
 using namespace reservoircpp;

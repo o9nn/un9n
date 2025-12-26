@@ -9,11 +9,11 @@
 #include "numpy.hpp"
 #include "reservoircpp/typing/Tuple.hpp"
 #include "uuid.hpp"
-#include "reservoircpp////utils/parallel/temp_registry.hpp"
+#include "reservoircpp//utils/parallel/temp_registry.hpp"
 #include "reservoircpp/multiprocessing/Manager.hpp"
 #include "reservoircpp/functools/partial.hpp"
-#include "reservoircpp////utils/parallel/get_joblib_backend.hpp"
-#include "reservoircpp////utils/parallel/clean_tempfile.hpp"
+#include "reservoircpp//utils/parallel/get_joblib_backend.hpp"
+#include "reservoircpp//utils/parallel/clean_tempfile.hpp"
 #include "os.hpp"
 
 using namespace reservoircpp;

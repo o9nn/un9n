@@ -1,7 +1,7 @@
 #ifndef RESERVOIRCPP_TESTS_HPP
 #define RESERVOIRCPP_TESTS_HPP
 
-#include "reservoircpp/////verbosity.hpp"
+#include "reservoircpp///verbosity.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

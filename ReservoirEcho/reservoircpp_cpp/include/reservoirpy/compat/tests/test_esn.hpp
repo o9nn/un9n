@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_TEST_ESN_HPP
 
 #include "reservoircpp/math/sin.hpp"
-#include "reservoircpp///_esn/ESN.hpp"
-#include "reservoircpp///utils/save/load.hpp"
+#include "reservoircpp/_esn/ESN.hpp"
+#include "reservoircpp/utils/save/load.hpp"
 #include "numpy.hpp"
 #include "reservoircpp/math/cos.hpp"
 #include <reservoircpp/scipy.hpp>

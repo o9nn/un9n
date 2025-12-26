@@ -2,7 +2,7 @@
 #define RESERVOIRCPP_TEST_OPS_HPP
 
 #include "pytest.hpp"
-#include "reservoircpp//dummy_nodes.hpp"
+#include "reservoircpp/dummy_nodes.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_BASE_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp////utils/validation/is_array.hpp"
-#include "reservoircpp////mat_gen/zeros.hpp"
+#include "reservoircpp//utils/validation/is_array.hpp"
+#include "reservoircpp//mat_gen/zeros.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

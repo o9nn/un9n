@@ -1,15 +1,15 @@
 #ifndef RESERVOIRCPP__CHAOS_HPP
 #define RESERVOIRCPP__CHAOS_HPP
 
-#include "reservoircpp///utils/validation/check_vector.hpp"
+#include "reservoircpp/utils/validation/check_vector.hpp"
 #include "reservoircpp/joblib/Memory.hpp"
 #include "numpy.hpp"
 #include "reservoircpp/numpy/random/Generator.hpp"
 #include "reservoircpp/scipy/fft/ifft.hpp"
-#include "reservoircpp////_TEMPDIR.hpp"
-#include "reservoircpp//_seed/get_seed.hpp"
+#include "reservoircpp//_TEMPDIR.hpp"
+#include "reservoircpp/_seed/get_seed.hpp"
 #include "reservoircpp/numpy/random/RandomState.hpp"
-#include "reservoircpp///utils/random/rand_generator.hpp"
+#include "reservoircpp/utils/random/rand_generator.hpp"
 #include "collections.hpp"
 #include "reservoircpp/scipy/fft/fft.hpp"
 #include "reservoircpp/scipy/integrate/solve_ivp.hpp"

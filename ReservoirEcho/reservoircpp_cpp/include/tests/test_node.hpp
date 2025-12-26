@@ -5,7 +5,7 @@
 #include "pickle.hpp"
 #include "reservoircpp/numpy/testing/assert_array_equal.hpp"
 #include "pytest.hpp"
-#include "reservoircpp//dummy_nodes.hpp"
+#include "reservoircpp/dummy_nodes.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

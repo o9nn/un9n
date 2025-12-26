@@ -1,18 +1,18 @@
 #ifndef RESERVOIRCPP__BASE_HPP
 #define RESERVOIRCPP__BASE_HPP
 
-#include "reservoircpp//type/Shape.hpp"
-#include "reservoircpp//type/MappedData.hpp"
+#include "reservoircpp/type/Shape.hpp"
+#include "reservoircpp/type/MappedData.hpp"
 #include "reservoircpp/typing/Sequence.hpp"
 #include "reservoircpp/typing/Iterator.hpp"
 #include "numpy.hpp"
-#include "reservoircpp//utils/validation/check_vector.hpp"
+#include "reservoircpp/utils/validation/check_vector.hpp"
 #include "reservoircpp/typing/Dict.hpp"
 #include "reservoircpp/typing/Any.hpp"
-#include "reservoircpp//utils/progress.hpp"
+#include "reservoircpp/utils/progress.hpp"
 #include "reservoircpp/abc/ABC.hpp"
 #include "reservoircpp/abc/abstractmethod.hpp"
-#include "reservoircpp//utils/validation/is_mapping.hpp"
+#include "reservoircpp/utils/validation/is_mapping.hpp"
 #include "reservoircpp/uuid/uuid4.hpp"
 #include "reservoircpp/typing/Union.hpp"
 #include "reservoircpp/contextlib/contextmanager.hpp"

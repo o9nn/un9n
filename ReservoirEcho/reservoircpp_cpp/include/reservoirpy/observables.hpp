@@ -3,13 +3,13 @@
 
 #include "numpy.hpp"
 #include "reservoircpp/scipy/sparse/linalg/eigs.hpp"
-#include "reservoircpp//model/Model.hpp"
+#include "reservoircpp/model/Model.hpp"
 #include "reservoircpp/copy/deepcopy.hpp"
 #include <reservoircpp/scipy.hpp>
 #include "sys.hpp"
 #include "reservoircpp/scipy/sparse/issparse.hpp"
-#include "reservoircpp//utils/random/rand_generator.hpp"
-#include "reservoircpp//type/Weights.hpp"
+#include "reservoircpp/utils/random/rand_generator.hpp"
+#include "reservoircpp/type/Weights.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

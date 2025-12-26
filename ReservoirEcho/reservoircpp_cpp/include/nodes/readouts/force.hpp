@@ -1,18 +1,18 @@
 #ifndef RESERVOIRCPP_FORCE_HPP
 #define RESERVOIRCPP_FORCE_HPP
 
-#include "reservoircpp//lms/initialize.hpp"
-#include "reservoircpp//lms/train.hpp"
-#include "reservoircpp//base/readout_forward.hpp"
-#include "reservoircpp////mat_gen/zeros.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp/lms/initialize.hpp"
+#include "reservoircpp/lms/train.hpp"
+#include "reservoircpp/base/readout_forward.hpp"
+#include "reservoircpp//mat_gen/zeros.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "reservoircpp/numbers/Number.hpp"
 #include "warnings.hpp"
 #include "reservoircpp/functools/partial.hpp"
 #include "reservoircpp/typing/Iterable.hpp"
-#include "reservoircpp////type/Weights.hpp"
-#include "reservoircpp//rls/initialize.hpp"
-#include "reservoircpp//rls/train.hpp"
+#include "reservoircpp//type/Weights.hpp"
+#include "reservoircpp/rls/initialize.hpp"
+#include "reservoircpp/rls/train.hpp"
 #include "reservoircpp/typing/Union.hpp"
 #include "reservoircpp/typing/Callable.hpp"
 

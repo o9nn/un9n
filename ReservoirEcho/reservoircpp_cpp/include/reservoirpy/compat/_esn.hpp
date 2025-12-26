@@ -1,16 +1,16 @@
 #ifndef RESERVOIRCPP__ESN_HPP
 #define RESERVOIRCPP__ESN_HPP
 
-#include "reservoircpp///type/Data.hpp"
-#include "reservoircpp//utils/validation/check_input_lists.hpp"
+#include "reservoircpp/type/Data.hpp"
+#include "reservoircpp/utils/validation/check_input_lists.hpp"
 #include "time.hpp"
 #include "reservoircpp/typing/Sequence.hpp"
 #include "numpy.hpp"
-#include "reservoircpp//_base/_ESNBase.hpp"
-#include "reservoircpp//utils/parallel/parallelize.hpp"
-#include "reservoircpp//regression_models/RidgeRegression.hpp"
-#include "reservoircpp///type/Activation.hpp"
-#include "reservoircpp//utils/validation/_check_values.hpp"
+#include "reservoircpp/_base/_ESNBase.hpp"
+#include "reservoircpp/utils/parallel/parallelize.hpp"
+#include "reservoircpp/regression_models/RidgeRegression.hpp"
+#include "reservoircpp/type/Activation.hpp"
+#include "reservoircpp/utils/validation/_check_values.hpp"
 #include "reservoircpp/typing/Callable.hpp"
 
 using namespace reservoircpp;

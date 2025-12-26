@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_TEST_CONCAT_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///reservoirs/Reservoir.hpp"
-#include "reservoircpp///concat/Concat.hpp"
+#include "reservoircpp/reservoirs/Reservoir.hpp"
+#include "reservoircpp/concat/Concat.hpp"
 #include "reservoircpp/numpy/testing/assert_array_equal.hpp"
 
 using namespace reservoircpp;
