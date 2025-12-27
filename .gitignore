@@ -132,7 +132,7 @@
 /*.sln
 /*.xcodeproj
 /Makefile
-/CMakeLists.txt
+# /CMakeLists.txt is tracked - needed for ReservoirCpp build
 /cmake-build-debug
 *.target.xml
 *.dll.config
