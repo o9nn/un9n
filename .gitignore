@@ -317,7 +317,9 @@ Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/**
 **/CMakeFiles/
 **/cmake_install.cmake
 **/Makefile
-**/*.cmake.in
+# Allow CMake template files
+!*.h.in
+!*.cmake.in
 !**/CMakeLists.txt
 !**/cmake/*.cmake
 
