@@ -320,6 +320,9 @@ Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/**
 # Allow CMake template files
 !*.h.in
 !*.cmake.in
+
+# Allow SWIG interface files
+!*.i
 !**/CMakeLists.txt
 !**/cmake/*.cmake
 
