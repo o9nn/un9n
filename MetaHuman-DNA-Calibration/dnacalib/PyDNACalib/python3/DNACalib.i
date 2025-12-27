@@ -9,35 +9,21 @@
 #include <string>
 #include <vector>
 
+// Include all required headers
+#include <pma/MemoryResource.h>
+#include <pma/ScopedPtr.h>
+#include <pma/PolyAllocator.h>
+#include <status/Status.h>
+#include <status/StatusCode.h>
+#include <trio/Stream.h>
+#include <trio/streams/FileStream.h>
+#include <trio/streams/MemoryMappedFileStream.h>
+#include <trio/streams/MemoryStream.h>
+#include <trust/ArrayView.h>
+
 // DNACalib library headers
-#include "dnacalib/DNACalib.h"
-#include "dnacalib/Command.h"
 #include "dnacalib/Defs.h"
-#include "dnacalib/commands/CalculateMeshLowerLODsCommand.h"
-#include "dnacalib/commands/ClearBlendShapesCommand.h"
-#include "dnacalib/commands/CommandSequence.h"
-#include "dnacalib/commands/ConditionalCommand.h"
-#include "dnacalib/commands/PruneBlendShapeTargetsCommand.h"
-#include "dnacalib/commands/RemoveAnimatedMapCommand.h"
-#include "dnacalib/commands/RemoveBlendShapeCommand.h"
-#include "dnacalib/commands/RemoveJointAnimationCommand.h"
-#include "dnacalib/commands/RemoveJointCommand.h"
-#include "dnacalib/commands/RemoveMeshCommand.h"
-#include "dnacalib/commands/RenameAnimatedMapCommand.h"
-#include "dnacalib/commands/RenameBlendShapeCommand.h"
-#include "dnacalib/commands/RenameJointCommand.h"
-#include "dnacalib/commands/RenameMeshCommand.h"
-#include "dnacalib/commands/RotateCommand.h"
-#include "dnacalib/commands/ScaleCommand.h"
-#include "dnacalib/commands/SetBlendShapeTargetDeltasCommand.h"
-#include "dnacalib/commands/SetLODsCommand.h"
-#include "dnacalib/commands/SetNeutralJointTranslationsCommand.h"
-#include "dnacalib/commands/SetNeutralJointRotationsCommand.h"
-#include "dnacalib/commands/SetSkinWeightsCommand.h"
-#include "dnacalib/commands/SetVertexPositionsCommand.h"
-#include "dnacalib/commands/TranslateCommand.h"
-#include "dnacalib/dna/DNACalibDNAReader.h"
-#include "dnacalib/types/Aliases.h"
+#include "dnacalib/Command.h"
 %}
 
 // Include standard SWIG typemaps
@@ -46,15 +32,18 @@
 %include <stdint.i>
 %include <std_shared_ptr.i>
 
-// Import DNA module
-%import "DNA.i"
-
 // Define vector templates
 %template(StringVector) std::vector<std::string>;
 %template(FloatVector) std::vector<float>;
 %template(IntVector) std::vector<int>;
 %template(UInt16Vector) std::vector<uint16_t>;
 %template(UInt32Vector) std::vector<uint32_t>;
+
+// Ignore the problematic using declarations and namespaces
+%ignore pma;
+%ignore trio;
+%ignore sc;
+%ignore trust;
 
 // Exception handling
 %exception {
@@ -66,13 +55,5 @@
     }
 }
 
-// Forward declarations for dnacalib namespace
-namespace dnacalib {
-    class Command;
-    class CommandSequence;
-}
-
-// Include the main DNACalib headers for SWIG processing
+// Include the safe headers
 %include "dnacalib/Defs.h"
-%include "dnacalib/Command.h"
-%include "dnacalib/types/Aliases.h"

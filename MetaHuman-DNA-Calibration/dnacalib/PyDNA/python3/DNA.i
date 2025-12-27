@@ -9,16 +9,23 @@
 #include <string>
 #include <vector>
 
+// Include all required headers
+#include <pma/MemoryResource.h>
+#include <pma/ScopedPtr.h>
+#include <pma/PolyAllocator.h>
+#include <status/Status.h>
+#include <status/StatusCode.h>
+#include <trio/Stream.h>
+#include <trio/streams/FileStream.h>
+#include <trio/streams/MemoryMappedFileStream.h>
+#include <trio/streams/MemoryStream.h>
+#include <trust/ArrayView.h>
+
 // DNA library headers
-#include "dna/DNA.h"
 #include "dna/DataLayer.h"
-#include "dna/BinaryStreamReader.h"
-#include "dna/BinaryStreamWriter.h"
-#include "dna/JSONStreamReader.h"
-#include "dna/JSONStreamWriter.h"
-#include "dna/StreamReader.h"
-#include "dna/StreamWriter.h"
 #include "dna/types/Aliases.h"
+#include "dna/types/ArrayView.h"
+#include "dna/types/StringView.h"
 %}
 
 // Include standard SWIG typemaps
@@ -34,6 +41,21 @@
 %template(UInt16Vector) std::vector<uint16_t>;
 %template(UInt32Vector) std::vector<uint32_t>;
 
+// Ignore the problematic using declarations and namespaces
+%ignore pma;
+%ignore trio;
+%ignore sc;
+%ignore trust;
+
+// Ignore specific types that cause issues
+%ignore dna::BoundedIOStream;
+%ignore dna::FileStream;
+%ignore dna::MemoryMappedFileStream;
+%ignore dna::MemoryStream;
+%ignore dna::Status;
+%ignore dna::ArrayView;
+%ignore dna::ConstArrayView;
+
 // Exception handling
 %exception {
     try {
@@ -44,18 +66,5 @@
     }
 }
 
-// Forward declarations
-namespace dna {
-    class Reader;
-    class Writer;
-    class StreamReader;
-    class StreamWriter;
-    class BinaryStreamReader;
-    class BinaryStreamWriter;
-    class JSONStreamReader;
-    class JSONStreamWriter;
-}
-
-// Include the main DNA headers for SWIG processing
-%include "dna/types/Aliases.h"
+// Only include the DataLayer enum which is safe to wrap
 %include "dna/DataLayer.h"
