@@ -234,7 +234,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSkillUnlocked, const FString&, S
  * Manages game-specific skill acquisition with motor learning
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UGameSkillTrainingSystem : public UActorComponent
+class DEEPTREEECHO_API UGameSkillTrainingSystem : public UActorComponent
 {
     GENERATED_BODY()
 

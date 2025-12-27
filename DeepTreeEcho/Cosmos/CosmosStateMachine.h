@@ -226,7 +226,7 @@ struct FCosmosSystemConfig
  * the Deep-Tree-Echo cognitive framework.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UCosmosStateMachine : public UActorComponent
+class DEEPTREEECHO_API UCosmosStateMachine : public UActorComponent
 {
     GENERATED_BODY()
 

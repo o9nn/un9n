@@ -504,7 +504,7 @@ struct FEntelechyState
  * cognitive architecture.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UEntelechyFramework : public UActorComponent
+class DEEPTREEECHO_API UEntelechyFramework : public UActorComponent
 {
     GENERATED_BODY()
 

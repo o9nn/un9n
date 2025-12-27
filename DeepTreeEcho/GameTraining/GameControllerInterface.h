@@ -216,7 +216,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOutputCommandGenerated, const FCo
  * Bridges gamepad input/output with Deep Tree Echo cognitive system
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UGameControllerInterface : public UActorComponent
+class DEEPTREEECHO_API UGameControllerInterface : public UActorComponent
 {
     GENERATED_BODY()
 

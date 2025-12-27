@@ -185,7 +185,7 @@ struct FMembraneContext
  * Implements the full cognitive architecture
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoCognitiveCore : public UActorComponent
+class UNREALECHO_API UDeepTreeEchoCognitiveCore : public UActorComponent
 {
     GENERATED_BODY()
 

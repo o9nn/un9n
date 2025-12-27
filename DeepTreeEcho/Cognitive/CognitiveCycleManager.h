@@ -241,7 +241,7 @@ struct FCognitiveCycleState
  * for the Deep-Tree-Echo framework.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UCognitiveCycleManager : public UActorComponent
+class DEEPTREEECHO_API UCognitiveCycleManager : public UActorComponent
 {
     GENERATED_BODY()
 
