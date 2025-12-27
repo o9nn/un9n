@@ -6,6 +6,29 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Find Eigen if not already found by parent project
+if(NOT EIGEN3_FOUND)
+    # Priority 1: Check eigen-3.4.0 (if complete with headers)
+    set(EIGEN_3_4_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0")
+    if(EXISTS "${EIGEN_3_4_DIR}/Eigen/Core")
+        set(EIGEN3_INCLUDE_DIR "${EIGEN_3_4_DIR}")
+        set(EIGEN3_FOUND TRUE)
+        message(STATUS "ReservoirCpp: Using Eigen 3.4.0 from ${EIGEN3_INCLUDE_DIR}")
+    endif()
+endif()
+
+if(NOT EIGEN3_FOUND)
+    # Priority 2: Check taskflow bundled eigen-3.3.7
+    set(EIGEN_3_3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/taskflow-3.8.0/3rd-party/eigen-3.3.7")
+    if(EXISTS "${EIGEN_3_3_DIR}/Eigen/Core")
+        set(EIGEN3_INCLUDE_DIR "${EIGEN_3_3_DIR}")
+        set(EIGEN3_FOUND TRUE)
+        message(STATUS "ReservoirCpp: Using Eigen 3.3.7 from ${EIGEN3_INCLUDE_DIR}")
+    endif()
+endif()
+
+if(NOT EIGEN3_FOUND)
+    message(FATAL_ERROR "Eigen library not found. Install libeigen3-dev or ensure bundled Eigen has header files.")
 # Find required packages
 # First try to find system Eigen using find_package
 find_package(Eigen3 3.3 QUIET CONFIG)

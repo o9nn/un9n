@@ -132,7 +132,7 @@
 /*.sln
 /*.xcodeproj
 /Makefile
-/CMakeLists.txt
+# /CMakeLists.txt is tracked - needed for ReservoirCpp build
 /cmake-build-debug
 *.target.xml
 *.dll.config
@@ -310,6 +310,7 @@ Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/**
 # Ignore large FB data files
 /Engine/Source/ThirdParty/Facebook/IOS/**/*.yml
 /Engine/Source/ThirdParty/Facebook/IOS/**/*.json
+/build/
 
 # CMake build directories - prevent stale cache issues in CI
 **/build/

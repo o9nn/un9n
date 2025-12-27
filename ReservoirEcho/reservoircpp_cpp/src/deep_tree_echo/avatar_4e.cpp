@@ -459,6 +459,7 @@ void Avatar4E::update_enacted_state(double delta_time) {
 }
 
 void Avatar4E::update_extended_state(double delta_time) {
+    (void)delta_time;  // Will be used for time-based tool state updates
     // Update tool integration state
     extended_state_ = tool_integration_.get_state();
 }
