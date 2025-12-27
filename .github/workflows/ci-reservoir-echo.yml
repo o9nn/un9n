@@ -63,6 +63,7 @@ jobs:
             cmake \
             ninja-build \
             libgtest-dev \
+            libeigen3-dev \
             ${{ matrix.compiler == 'gcc' && 'g++-12' || 'clang-15' }}
 
       - name: Configure CMake
@@ -136,7 +137,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev clang-15
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev clang-15
 
       - name: Configure CMake with sanitizer
         working-directory: ${{ env.RESERVOIR_DIR }}
@@ -180,7 +181,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake ninja googletest
+          brew install cmake ninja googletest eigen
 
       - name: Configure CMake
         working-directory: ${{ env.RESERVOIR_DIR }}
@@ -279,7 +280,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev gcovr lcov
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev gcovr lcov
 
       - name: Configure CMake with coverage
         working-directory: ${{ env.RESERVOIR_DIR }}
@@ -343,7 +344,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build clang-tools-15 cppcheck
+          sudo apt-get install -y cmake ninja-build libeigen3-dev clang-tools-15 cppcheck
 
       - name: Download compile commands
         uses: actions/download-artifact@v7

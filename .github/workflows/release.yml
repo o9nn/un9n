@@ -95,7 +95,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev swig
           pip install numpy
 
       - name: Build ReservoirEcho
@@ -168,7 +168,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake ninja
+          brew install cmake ninja eigen
           pip install numpy
 
       - name: Build ReservoirEcho
