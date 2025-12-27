@@ -7,12 +7,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find required packages
-# Look for Eigen in our external directory
-set(EIGEN3_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0")
-if(NOT EXISTS "${EIGEN3_INCLUDE_DIR}")
-    message(FATAL_ERROR "Eigen library not found at ${EIGEN3_INCLUDE_DIR}")
+# First try to find system Eigen, then fall back to bundled version
+find_package(Eigen3 3.3 QUIET)
+if(NOT Eigen3_FOUND)
+    # Look for Eigen in our external directory
+    set(EIGEN3_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0")
+    if(EXISTS "${EIGEN3_INCLUDE_DIR}/Eigen/Dense")
+        message(STATUS "Using bundled Eigen from ${EIGEN3_INCLUDE_DIR}")
+        set(EIGEN3_FOUND TRUE)
+    else()
+        message(FATAL_ERROR "Eigen library not found. Install libeigen3-dev or ensure bundled Eigen has header files.")
+    endif()
+else()
+    message(STATUS "Using system Eigen3: ${EIGEN3_INCLUDE_DIR}")
 endif()
-set(EIGEN3_FOUND TRUE)
 
 # Set compiler flags
 if(MSVC)

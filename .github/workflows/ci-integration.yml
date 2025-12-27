@@ -46,6 +46,7 @@ jobs:
             cmake \
             ninja-build \
             libgtest-dev \
+            libeigen3-dev \
             python3-dev \
             python3-pip
 
