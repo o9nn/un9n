@@ -122,14 +122,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build libeigen3-dev
 
       - name: Build ReservoirEcho (if changed)
         if: needs.changed-files.outputs.reservoir-changed == 'true'
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
           echo "=== Building ReservoirEcho ==="
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
           cmake --build build --parallel $(nproc)
           echo "✓ ReservoirEcho builds successfully"
 
@@ -138,7 +138,7 @@ jobs:
         working-directory: MetaHuman-DNA-Calibration/dnacalib
         run: |
           echo "=== Building DNACalib ==="
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
           cmake --build build --parallel $(nproc)
           echo "✓ DNACalib builds successfully"
 
@@ -171,14 +171,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev
 
       - name: Run ReservoirEcho tests (if changed)
         if: needs.changed-files.outputs.reservoir-changed == 'true'
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
           echo "=== Running ReservoirEcho Tests ==="
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
           cmake --build build --parallel $(nproc)
           cd build && ctest --output-on-failure --parallel $(nproc)
           echo "✓ All ReservoirEcho tests passed"

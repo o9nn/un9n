@@ -311,3 +311,42 @@ Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/**
 /Engine/Source/ThirdParty/Facebook/IOS/**/*.yml
 /Engine/Source/ThirdParty/Facebook/IOS/**/*.json
 /build/
+
+# CMake build directories - prevent stale cache issues in CI
+**/build/
+**/CMakeCache.txt
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+# Allow CMake template files
+!*.h.in
+!*.cmake.in
+
+# Allow SWIG interface files
+!*.i
+!**/CMakeLists.txt
+!**/cmake/*.cmake
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.lib
+*.dll
+*.exe
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE specific
+*.swp
+*.swo
+*~
+
+# ReservoirEcho specific build exclusions
+ReservoirEcho/reservoircpp_cpp/build/
+MetaHuman-DNA-Calibration/dnacalib/build/

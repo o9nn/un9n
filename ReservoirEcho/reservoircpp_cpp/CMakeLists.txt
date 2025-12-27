@@ -29,6 +29,45 @@ endif()
 
 if(NOT EIGEN3_FOUND)
     message(FATAL_ERROR "Eigen library not found. Install libeigen3-dev or ensure bundled Eigen has header files.")
+# Find required packages
+# First try to find system Eigen using find_package
+find_package(Eigen3 3.3 QUIET CONFIG)
+if(NOT Eigen3_FOUND)
+    # Try again without CONFIG (for older CMake or different installations)
+    find_package(Eigen3 3.3 QUIET)
+endif()
+
+if(Eigen3_FOUND)
+    message(STATUS "Using system Eigen3: ${EIGEN3_INCLUDE_DIR}")
+    if(NOT EIGEN3_INCLUDE_DIR)
+        # Some Eigen3 configs set EIGEN3_INCLUDE_DIRS instead
+        set(EIGEN3_INCLUDE_DIR "${EIGEN3_INCLUDE_DIRS}")
+    endif()
+    if(NOT EIGEN3_INCLUDE_DIR)
+        # Get include dir from target if available
+        get_target_property(EIGEN3_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+    endif()
+else()
+    # Check common system paths for Eigen
+    set(EIGEN_SEARCH_PATHS
+        "/usr/include/eigen3"
+        "/usr/local/include/eigen3"
+        "/opt/homebrew/include/eigen3"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0"
+    )
+    
+    foreach(SEARCH_PATH ${EIGEN_SEARCH_PATHS})
+        if(EXISTS "${SEARCH_PATH}/Eigen/Dense")
+            set(EIGEN3_INCLUDE_DIR "${SEARCH_PATH}")
+            set(Eigen3_FOUND TRUE)
+            message(STATUS "Found Eigen at ${EIGEN3_INCLUDE_DIR}")
+            break()
+        endif()
+    endforeach()
+    
+    if(NOT Eigen3_FOUND)
+        message(FATAL_ERROR "Eigen library not found. Install libeigen3-dev or ensure bundled Eigen has header files.")
+    endif()
 endif()
 
 # Set compiler flags

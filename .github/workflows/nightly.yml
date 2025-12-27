@@ -45,7 +45,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev
           if [ "${{ matrix.compiler }}" == "gcc" ]; then
             sudo apt-get install -y g++-12
           else
@@ -54,7 +54,7 @@ jobs:
 
       - name: Install dependencies (macOS)
         if: startsWith(matrix.os, 'macos')
-        run: brew install cmake ninja googletest
+        run: brew install cmake ninja googletest eigen
 
       - name: Set compiler (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -70,7 +70,7 @@ jobs:
       - name: Build ReservoirEcho
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DBUILD_TESTS=ON \
             -DBUILD_EXAMPLES=ON
@@ -108,7 +108,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev clang-15
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev clang-15
 
       - name: Build with ${{ matrix.sanitizer.name }} sanitizer
         working-directory: ReservoirEcho/reservoircpp_cpp
@@ -116,7 +116,7 @@ jobs:
           CC: clang-15
           CXX: clang++-15
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="${{ matrix.sanitizer.flags }}" \
             -DCMAKE_C_FLAGS="${{ matrix.sanitizer.flags }}" \
@@ -144,12 +144,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgtest-dev gcovr lcov
+          sudo apt-get install -y cmake ninja-build libgtest-dev libeigen3-dev gcovr lcov
 
       - name: Build with coverage
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
             -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
@@ -198,12 +198,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build libeigen3-dev
 
       - name: Build optimized
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS="-O3 -march=native" \
             -DBUILD_TESTS=OFF \

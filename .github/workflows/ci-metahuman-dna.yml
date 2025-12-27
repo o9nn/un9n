@@ -62,7 +62,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build libeigen3-dev swig
 
       - name: Configure CMake
         working-directory: ${{ env.DNACALIB_DIR }}
@@ -327,7 +327,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build libeigen3-dev swig
           pip install numpy
 
       - name: Configure and build for packaging
