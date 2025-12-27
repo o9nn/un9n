@@ -101,7 +101,7 @@ jobs:
       - name: Build ReservoirEcho
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTS=OFF \
             -DBUILD_EXAMPLES=ON
@@ -110,7 +110,7 @@ jobs:
       - name: Build DNACalib
         working-directory: MetaHuman-DNA-Calibration/dnacalib
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DDNAC_BUILD_SHARED=ON \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
@@ -174,7 +174,7 @@ jobs:
       - name: Build ReservoirEcho
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTS=OFF \
             -DBUILD_EXAMPLES=ON
@@ -183,7 +183,7 @@ jobs:
       - name: Build DNACalib
         working-directory: MetaHuman-DNA-Calibration/dnacalib
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DDNAC_BUILD_SHARED=ON \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON

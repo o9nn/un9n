@@ -70,7 +70,7 @@ jobs:
       - name: Build ReservoirEcho
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DBUILD_TESTS=ON \
             -DBUILD_EXAMPLES=ON
@@ -116,7 +116,7 @@ jobs:
           CC: clang-15
           CXX: clang++-15
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="${{ matrix.sanitizer.flags }}" \
             -DCMAKE_C_FLAGS="${{ matrix.sanitizer.flags }}" \
@@ -149,7 +149,7 @@ jobs:
       - name: Build with coverage
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
             -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
@@ -203,7 +203,7 @@ jobs:
       - name: Build optimized
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
-          cmake -B build -G Ninja \
+          rm -rf build CMakeCache.txt CMakeFiles && cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS="-O3 -march=native" \
             -DBUILD_TESTS=OFF \

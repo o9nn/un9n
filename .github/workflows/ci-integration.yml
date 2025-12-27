@@ -56,6 +56,8 @@ jobs:
         working-directory: ReservoirEcho/reservoircpp_cpp
         run: |
           echo "=== Building ReservoirEcho ==="
+          # Clean any stale build artifacts to prevent CMake cache conflicts
+          rm -rf build CMakeCache.txt CMakeFiles
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DBUILD_TESTS=ON \
@@ -68,6 +70,8 @@ jobs:
         working-directory: MetaHuman-DNA-Calibration/dnacalib
         run: |
           echo "=== Building DNACalib ==="
+          # Clean any stale build artifacts to prevent CMake cache conflicts
+          rm -rf build CMakeCache.txt CMakeFiles
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DDNAC_BUILD_SHARED=ON \
