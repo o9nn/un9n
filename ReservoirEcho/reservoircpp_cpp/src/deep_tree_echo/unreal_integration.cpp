@@ -32,6 +32,7 @@ void CharacterController::set_target_rotation(double yaw) {
 }
 
 void CharacterController::play_animation(const std::string& anim_name, double blend_time) {
+    (void)blend_time;  // Will be used when integrating with Unreal animation system
     current_animation_ = anim_name;
     // In a real implementation, this would interface with Unreal's animation system
 }
@@ -41,14 +42,17 @@ void CharacterController::set_animation_parameter(const std::string& param, doub
 }
 
 void CharacterController::trigger_animation_event(const std::string& event_name) {
+    (void)event_name;  // Will be used when integrating with Unreal animation notifies
     // Trigger animation notify in Unreal
 }
 
 void CharacterController::apply_impulse(const Vector& impulse) {
+    (void)impulse;  // Will be used when integrating with Unreal physics
     // Apply physics impulse to character
 }
 
 void CharacterController::grab_object(const std::string& object_id) {
+    (void)object_id;  // Will be used when integrating with Unreal interaction system
     // Implement object grabbing
 }
 
@@ -216,8 +220,10 @@ Vector EnvironmentInterface::get_perception_vector() const {
     return perception;
 }
 
-void EnvironmentInterface::interact_with_object(const std::string& object_id, 
+void EnvironmentInterface::interact_with_object(const std::string& object_id,
                                                   const std::string& action) {
+    (void)object_id;  // Will be used when integrating with Unreal
+    (void)action;     // Will be used when integrating with Unreal
     // Send interaction command to Unreal
 }
 
@@ -235,6 +241,7 @@ Vector EnvironmentInterface::find_path_to(const Vector& destination) {
 }
 
 bool EnvironmentInterface::is_path_clear(const Vector& direction, double distance) {
+    (void)direction;  // Will be used for raycast direction when integrating with Unreal
     return current_perception_.nearest_obstacle_distance > distance;
 }
 
@@ -284,6 +291,7 @@ AudioInterface::AudioInterface() {
 }
 
 void AudioInterface::speak(const std::string& text) {
+    (void)text;  // Will be used when integrating with TTS system
     speaking_ = true;
     // In real implementation, send to TTS system
 }
@@ -314,6 +322,8 @@ std::string AudioInterface::get_transcription() const {
 }
 
 void AudioInterface::play_sound(const std::string& sound_id, double volume) {
+    (void)sound_id;  // Will be used when integrating with Unreal audio
+    (void)volume;    // Will be used when integrating with Unreal audio
     // Play sound effect in Unreal
 }
 

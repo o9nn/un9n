@@ -55,6 +55,8 @@ if(MSVC)
     add_compile_options(/W4)
 else()
     add_compile_options(-Wall -Wextra -pedantic)
+    # Suppress deprecated-copy warnings from Eigen 3.3.7 with modern GCC
+    add_compile_options(-Wno-deprecated-copy)
 endif()
 
 # Add ReservoirCpp subdirectory
