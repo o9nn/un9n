@@ -414,7 +414,7 @@ struct FSensorimotorConfig
  * for embodied avatar control in the Deep-Tree-Echo framework.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class USensorimotorIntegration : public UActorComponent
+class DEEPTREEECHO_API USensorimotorIntegration : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -169,7 +169,7 @@ struct FStreamSynchronizationState
  * Integrates echobeats cognitive loop with reservoir computing.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UEchobeatsReservoirDynamics : public UActorComponent
+class DEEPTREEECHO_API UEchobeatsReservoirDynamics : public UActorComponent
 {
     GENERATED_BODY()
 

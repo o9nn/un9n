@@ -496,7 +496,7 @@ struct FMetamodelState
  * the Deep-Tree-Echo cognitive framework.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UHolisticMetamodel : public UActorComponent
+class DEEPTREEECHO_API UHolisticMetamodel : public UActorComponent
 {
     GENERATED_BODY()
 

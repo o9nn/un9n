@@ -330,7 +330,7 @@ struct FAuraVisualState
  * - Extended: Tool-using cognition with external scaffolding
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UEmbodiedAvatarComponent : public UActorComponent
+class DEEPTREEECHO_API UEmbodiedAvatarComponent : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -210,7 +210,7 @@ struct FGestaltState
  * Main integration point for the cognitive architecture
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoCore : public UActorComponent
+class DEEPTREEECHO_API UDeepTreeEchoCore : public UActorComponent
 {
     GENERATED_BODY()
 

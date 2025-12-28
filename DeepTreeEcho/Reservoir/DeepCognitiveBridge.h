@@ -217,7 +217,7 @@ struct FNestedShellLevel
  * for 4E embodied cognition in the Deep Tree Echo avatar.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UDeepCognitiveBridge : public UActorComponent
+class DEEPTREEECHO_API UDeepCognitiveBridge : public UActorComponent
 {
     GENERATED_BODY()
 
