@@ -237,12 +237,7 @@ jobs:
 
       - name: Configure CMake
         working-directory: ${{ env.RESERVOIR_DIR }}
-        run: |
-          cmake -B build `
-            -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
-            -DBUILD_TESTS=ON `
-            -DBUILD_EXAMPLES=ON
+        run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
 
       - name: Build
         working-directory: ${{ env.RESERVOIR_DIR }}
