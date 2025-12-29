@@ -199,13 +199,10 @@ jobs:
 
       - name: Configure CMake
         working-directory: ${{ env.DNACALIB_DIR }}
+        shell: pwsh
         run: |
-          cmake -B build `
-            -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
-            -DDNAC_BUILD_SHARED=ON `
-            -DPython3_EXECUTABLE=$(Get-Command python).Source `
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          $pythonPath = (Get-Command python).Source
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DDNAC_BUILD_SHARED=ON "-DPython3_EXECUTABLE=$pythonPath" -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
       - name: Build DNACalib
         working-directory: ${{ env.DNACALIB_DIR }}
