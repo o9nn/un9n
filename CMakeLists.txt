@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.14)
-project(un9n VERSION 0.1.0 LANGUAGES CXX)
+project(un9n
+    VERSION 1.0.0
+    DESCRIPTION "Deep Tree Echo - Unified Cognitive Framework for 4E Embodied AGI"
+    LANGUAGES CXX
+)
+
+# Version string for release builds
+set(VERSION_STRING "${PROJECT_VERSION}" CACHE STRING "Version string for builds")
+
+# ============================================================================
+# Build Options
+# ============================================================================
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_E2E_TESTS "Build end-to-end tests" ON)
+option(BUILD_BENCHMARKS "Build performance benchmarks" OFF)
+option(ENABLE_COVERAGE "Enable code coverage" OFF)
 
 # Specify C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -62,6 +78,133 @@ endif()
 # Add ReservoirCpp subdirectory
 add_subdirectory(ReservoirEcho/reservoircpp_cpp)
 
-message(STATUS "un9n project configured successfully")
-message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  Eigen location: ${EIGEN3_INCLUDE_DIR}")
+# ============================================================================
+# Testing Infrastructure
+# ============================================================================
+if(BUILD_TESTING OR BUILD_E2E_TESTS)
+    find_package(GTest QUIET)
+    if(NOT GTest_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG v1.14.0
+        )
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
+    include(GoogleTest)
+    enable_testing()
+endif()
+
+# Coverage flags
+if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(--coverage -fprofile-arcs -ftest-coverage)
+    add_link_options(--coverage)
+endif()
+
+# ============================================================================
+# Unit Tests
+# ============================================================================
+if(BUILD_TESTING)
+    message(STATUS "Building unit tests")
+    
+    # DeepTreeEcho Unit Tests
+    file(GLOB UNIT_TEST_SOURCES "DeepTreeEcho/Testing/UnitTests/*.cpp")
+    
+    if(UNIT_TEST_SOURCES)
+        add_executable(DeepTreeEchoUnitTests ${UNIT_TEST_SOURCES})
+        target_link_libraries(DeepTreeEchoUnitTests
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            Threads::Threads
+            Eigen3::Eigen
+        )
+        target_include_directories(DeepTreeEchoUnitTests PRIVATE
+            ${CMAKE_SOURCE_DIR}/DeepTreeEcho
+            ${CMAKE_SOURCE_DIR}/ReservoirEcho/reservoircpp_cpp/include
+        )
+        gtest_discover_tests(DeepTreeEchoUnitTests
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            PROPERTIES LABELS "unit"
+        )
+    endif()
+endif()
+
+# ============================================================================
+# E2E Tests
+# ============================================================================
+if(BUILD_E2E_TESTS)
+    message(STATUS "Building E2E tests")
+    
+    file(GLOB E2E_TEST_SOURCES "DeepTreeEcho/Testing/E2E/*.cpp")
+    
+    foreach(E2E_SOURCE ${E2E_TEST_SOURCES})
+        get_filename_component(E2E_NAME ${E2E_SOURCE} NAME_WE)
+        
+        add_executable(${E2E_NAME} ${E2E_SOURCE})
+        target_link_libraries(${E2E_NAME}
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            Threads::Threads
+            Eigen3::Eigen
+        )
+        target_include_directories(${E2E_NAME} PRIVATE
+            ${CMAKE_SOURCE_DIR}/DeepTreeEcho
+            ${CMAKE_SOURCE_DIR}/ReservoirEcho/reservoircpp_cpp/include
+        )
+        gtest_discover_tests(${E2E_NAME}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            PROPERTIES
+                LABELS "e2e"
+                TIMEOUT 300
+        )
+    endforeach()
+endif()
+
+# ============================================================================
+# Installation
+# ============================================================================
+include(GNUInstallDirs)
+
+# Install headers
+install(DIRECTORY DeepTreeEcho/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/DeepTreeEcho
+    FILES_MATCHING
+    PATTERN "*.h"
+    PATTERN "*.hpp"
+    PATTERN "Testing" EXCLUDE
+)
+
+# ============================================================================
+# CPack Configuration
+# ============================================================================
+set(CPACK_PACKAGE_NAME "un9n")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+set(CPACK_PACKAGE_VENDOR "DeepTreeEcho")
+
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TGZ")
+else()
+    set(CPACK_GENERATOR "TGZ;DEB")
+endif()
+
+include(CPack)
+
+message(STATUS "")
+message(STATUS "=== un9n Build Configuration ===")
+message(STATUS "Version: ${PROJECT_VERSION}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Eigen location: ${EIGEN3_INCLUDE_DIR}")
+message(STATUS "")
+message(STATUS "Testing:")
+message(STATUS "  Unit Tests: ${BUILD_TESTING}")
+message(STATUS "  E2E Tests: ${BUILD_E2E_TESTS}")
+message(STATUS "  Benchmarks: ${BUILD_BENCHMARKS}")
+message(STATUS "  Coverage: ${ENABLE_COVERAGE}")
+message(STATUS "================================")
