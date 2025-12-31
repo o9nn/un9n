@@ -96,7 +96,7 @@
 !.editorconfig
 !.plist
 !.yaml
-!.yml
+!*.yml
 
 # Projects and makefiles
 !*.cmake
