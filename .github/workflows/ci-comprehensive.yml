@@ -34,12 +34,12 @@ jobs:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -80,7 +80,7 @@ jobs:
             build_type: Debug
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -104,7 +104,7 @@ jobs:
           brew install googletest eigen boost
 
       - name: Cache build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             build
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unit-test-results-deeptreeecho-${{ matrix.os }}-${{ matrix.build_type }}
           path: build/Testing/
@@ -149,7 +149,7 @@ jobs:
         build_type: [Release]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -163,7 +163,7 @@ jobs:
           sudo apt-get install -y libgtest-dev libeigen3-dev
 
       - name: Cache build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ReservoirEcho/reservoircpp_cpp/build
           key: ${{ runner.os }}-reservoircpp-${{ matrix.build_type }}-${{ hashFiles('ReservoirEcho/reservoircpp_cpp/CMakeLists.txt') }}
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unit-test-results-reservoircpp-${{ matrix.os }}
           path: ReservoirEcho/reservoircpp_cpp/build/Testing/
@@ -201,10 +201,10 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -227,7 +227,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.python-version == '3.11'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: python-coverage
           path: .coverage
@@ -242,7 +242,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || github.event.inputs.run_e2e == 'true'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -255,7 +255,7 @@ jobs:
           sudo apt-get install -y libgtest-dev libeigen3-dev libboost-all-dev
 
       - name: Cache build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build
           key: ${{ runner.os }}-e2e-${{ hashFiles('**/CMakeLists.txt') }}
@@ -277,7 +277,7 @@ jobs:
 
       - name: Upload E2E results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e2e-test-results
           path: build/Testing/
@@ -292,7 +292,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_stress == 'true'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -324,7 +324,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -349,7 +349,7 @@ jobs:
           ctest --output-on-failure -R "Performance|Benchmark" -C Release
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results
           path: build/benchmark_results/
@@ -363,12 +363,12 @@ jobs:
     needs: [unit-tests-deeptreeecho, unit-tests-python]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -398,7 +398,7 @@ jobs:
           genhtml coverage.info --output-directory coverage-report || true
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report
           path: coverage-report/
@@ -411,7 +411,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Doxygen
         run: |
@@ -428,7 +428,7 @@ jobs:
 
       - name: Upload documentation
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: documentation
           path: docs/html/
