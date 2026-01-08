@@ -28,6 +28,9 @@
 #include <memory>
 #include <chrono>
 #include <optional>
+#include <barrier>
+#include <unordered_map>
+#include <future>
 
 namespace DeepTreeEcho {
 

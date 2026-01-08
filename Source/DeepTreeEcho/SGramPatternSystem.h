@@ -50,7 +50,7 @@ struct FNGramVertex
         , bIsZeroPoint(InIndex == 0)
     {
         // Position vertices starting from top, going clockwise
-        Angle = (2.0f * PI * InIndex) / Base;
+        Angle = (2.0f * FMath::PI * InIndex) / Base;
         Position = FVector2D(FMath::Sin(Angle), -FMath::Cos(Angle));
     }
 };

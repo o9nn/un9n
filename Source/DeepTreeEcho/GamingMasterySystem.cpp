@@ -438,9 +438,15 @@ void UGamingMasterySystem::UpdateOpponentModel(const FString& OpponentID, const 
     {
         TotalTendency += Pair.Value;
     }
-    for (auto& Pair : Model.BehavioralTendencies)
+    // Normalize using key-based access
+    TArray<FString> TendencyKeys;
+    for (const auto& Pair : Model.BehavioralTendencies)
     {
-        Pair.Value /= TotalTendency;
+        TendencyKeys.Add(Pair.Key);
+    }
+    for (const FString& Key : TendencyKeys)
+    {
+        Model.BehavioralTendencies[Key] /= TotalTendency;
     }
     
     // Update Bayesian model
@@ -1058,9 +1064,15 @@ void UGamingMasterySystem::ApplySkillDecay(float DeltaTime)
 {
     float CurrentTime = GetWorld()->GetTimeSeconds();
     
-    for (auto& Pair : Skills)
+    TArray<FString> SkillKeys;
+    for (const auto& Pair : Skills)
     {
-        FGamingSkillComponent& Skill = Pair.Value;
+        SkillKeys.Add(Pair.Key);
+    }
+    
+    for (const FString& Key : SkillKeys)
+    {
+        FGamingSkillComponent& Skill = Skills[Key];
         
         // Calculate time since last practice in days
         float DaysSincePractice = (CurrentTime - Skill.LastPracticeTime) / 86400.0f;
@@ -1123,11 +1135,16 @@ void UGamingMasterySystem::UpdateBayesianModel(FOpponentModel& Model, const FStr
     float Alpha = 1.0f; // Smoothing parameter
     float TotalActions = Model.ObservationCount + Alpha * Model.BehavioralTendencies.Num();
     
-    for (auto& Pair : Model.ActionPredictions)
+    TArray<FString> ActionKeys;
+    for (const auto& Pair : Model.ActionPredictions)
     {
-        float ActionCount = Model.BehavioralTendencies.Contains(Pair.Key) ? 
-            Model.BehavioralTendencies[Pair.Key] * Model.ObservationCount : Alpha;
-        Pair.Value = ActionCount / TotalActions;
+        ActionKeys.Add(Pair.Key);
+    }
+    for (const FString& Key : ActionKeys)
+    {
+        float ActionCount = Model.BehavioralTendencies.Contains(Key) ? 
+            Model.BehavioralTendencies[Key] * Model.ObservationCount : Alpha;
+        Model.ActionPredictions[Key] = ActionCount / TotalActions;
     }
     
     // Update skill level estimate based on action quality

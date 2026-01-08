@@ -14,6 +14,7 @@
 #include <sstream>
 #include <cmath>
 #include <numeric>
+#include <set>
 
 namespace DeepTreeEcho {
 

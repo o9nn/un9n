@@ -18,7 +18,26 @@
 #ifdef __linux__
 #include <pthread.h>
 #include <sched.h>
+#ifdef HAVE_NUMA
 #include <numa.h>
+#endif
+#endif
+
+// NUMA fallback for systems without libnuma
+#ifndef HAVE_NUMA
+struct bitmask { unsigned long size; unsigned long *maskp; };
+namespace {
+    inline int numa_available() { return -1; }
+    inline int numa_num_configured_nodes() { return 1; }
+    inline int numa_node_of_cpu(int /*cpu*/) { return 0; }
+    inline void numa_set_preferred(int /*node*/) {}
+    inline void numa_run_on_node(int /*node*/) {}
+    inline int numa_num_configured_cpus() { return 1; }
+    inline bitmask* numa_allocate_cpumask() { return nullptr; }
+    inline void numa_node_to_cpus(int /*node*/, bitmask* /*mask*/) {}
+    inline int numa_bitmask_isbitset(bitmask* /*mask*/, int /*cpu*/) { return 0; }
+    inline void numa_free_cpumask(bitmask* /*mask*/) {}
+}
 #endif
 
 namespace DeepTreeEcho {

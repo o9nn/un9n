@@ -344,10 +344,15 @@ TMap<FString, float> UEchobeatsGamingIntegration::AssessSituation(const TArray<F
         }
     }
 
-    // Clamp values
-    for (auto& Pair : Assessment)
+    // Clamp values - use key-based access for modification
+    TArray<FString> Keys;
+    for (const auto& Pair : Assessment)
     {
-        Pair.Value = FMath::Clamp(Pair.Value, 0.0f, 1.0f);
+        Keys.Add(Pair.Key);
+    }
+    for (const FString& Key : Keys)
+    {
+        Assessment[Key] = FMath::Clamp(Assessment[Key], 0.0f, 1.0f);
     }
 
     return Assessment;
@@ -421,9 +426,14 @@ TMap<FString, float> UEchobeatsGamingIntegration::EvaluateGoals(const TMap<FStri
     {
         TotalGoal += Pair.Value;
     }
-    for (auto& Pair : GoalEvaluation)
+    TArray<FString> GoalKeys;
+    for (const auto& Pair : GoalEvaluation)
     {
-        Pair.Value /= TotalGoal;
+        GoalKeys.Add(Pair.Key);
+    }
+    for (const FString& Key : GoalKeys)
+    {
+        GoalEvaluation[Key] /= TotalGoal;
     }
 
     return GoalEvaluation;
@@ -1156,13 +1166,19 @@ void UEchobeatsGamingIntegration::UpdateTriadState(int32 TriadIndex)
 void UEchobeatsGamingIntegration::ApplySalienceDecay(float DeltaTime)
 {
     TArray<FString> ToRemove;
-
-    for (auto& Pair : SalienceMap.ElementSalience)
+    TArray<FString> AllKeys;
+    
+    for (const auto& Pair : SalienceMap.ElementSalience)
     {
-        Pair.Value -= SalienceDecayRate * DeltaTime;
-        if (Pair.Value <= 0.0f)
+        AllKeys.Add(Pair.Key);
+    }
+    
+    for (const FString& Key : AllKeys)
+    {
+        SalienceMap.ElementSalience[Key] -= SalienceDecayRate * DeltaTime;
+        if (SalienceMap.ElementSalience[Key] <= 0.0f)
         {
-            ToRemove.Add(Pair.Key);
+            ToRemove.Add(Key);
         }
     }
 
