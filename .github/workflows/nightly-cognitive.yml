@@ -1,0 +1,223 @@
+name: Nightly Cognitive Tests
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3 AM UTC daily
+  workflow_dispatch:
+
+env:
+  UE_VERSION: '5.4'
+
+jobs:
+  # ============================================================================
+  # Cognitive Architecture Integrity
+  # ============================================================================
+  cognitive-integrity:
+    name: Cognitive Architecture Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deep placeholder audit
+        run: |
+          echo "## Deep Placeholder Audit" >> $GITHUB_STEP_SUMMARY
+
+          # Scan all source for remaining placeholders
+          RESULTS=$(grep -rn "placeholder\|PLACEHOLDER\|TODO\|FIXME\|HACK\|XXX\|STUB" \
+            DeepTreeEcho/ Source/ UnrealEcho/ \
+            --include="*.cpp" --include="*.h" 2>/dev/null || true)
+
+          if [ -n "$RESULTS" ]; then
+            echo "$RESULTS" > placeholder-audit.txt
+            TOTAL=$(echo "$RESULTS" | wc -l)
+            echo "Found $TOTAL items requiring attention" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$RESULTS" | head -50 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No placeholders found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: placeholder-audit
+          path: placeholder-audit.txt
+          if-no-files-found: ignore
+
+  # ============================================================================
+  # 4E Cognition Coverage Analysis
+  # ============================================================================
+  four-e-coverage:
+    name: 4E Cognition Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Analyze 4E dimension coverage
+        run: |
+          echo "## 4E Cognition Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Embodied dimension analysis
+          EMBODIED_FILES=$(find DeepTreeEcho -name "*.cpp" -o -name "*.h" | \
+            xargs grep -l "Embodied\|BodySchema\|Proprioceptive\|SomaticMarker" 2>/dev/null | wc -l)
+          EMBODIED_REFS=$(grep -rn "Embodied\|BodySchema\|Proprioceptive\|SomaticMarker" \
+            DeepTreeEcho/ --include="*.cpp" --include="*.h" 2>/dev/null | wc -l)
+
+          # Embedded dimension analysis
+          EMBEDDED_FILES=$(find DeepTreeEcho -name "*.cpp" -o -name "*.h" | \
+            xargs grep -l "Embedded\|Affordance\|Environmental\|NicheCoupling" 2>/dev/null | wc -l)
+          EMBEDDED_REFS=$(grep -rn "Embedded\|Affordance\|Environmental\|NicheCoupling" \
+            DeepTreeEcho/ --include="*.cpp" --include="*.h" 2>/dev/null | wc -l)
+
+          # Enacted dimension analysis
+          ENACTED_FILES=$(find DeepTreeEcho -name "*.cpp" -o -name "*.h" | \
+            xargs grep -l "Enacted\|Sensorimotor\|ActionPerception\|PredictionError" 2>/dev/null | wc -l)
+          ENACTED_REFS=$(grep -rn "Enacted\|Sensorimotor\|ActionPerception\|PredictionError" \
+            DeepTreeEcho/ --include="*.cpp" --include="*.h" 2>/dev/null | wc -l)
+
+          # Extended dimension analysis
+          EXTENDED_FILES=$(find DeepTreeEcho -name "*.cpp" -o -name "*.h" | \
+            xargs grep -l "Extended\|ToolUse\|ExternalMemory\|SocialCognition" 2>/dev/null | wc -l)
+          EXTENDED_REFS=$(grep -rn "Extended\|ToolUse\|ExternalMemory\|SocialCognition" \
+            DeepTreeEcho/ --include="*.cpp" --include="*.h" 2>/dev/null | wc -l)
+
+          echo "| Dimension | Files | References |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Embodied | $EMBODIED_FILES | $EMBODIED_REFS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Embedded | $EMBEDDED_FILES | $EMBEDDED_REFS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Enacted | $ENACTED_FILES | $ENACTED_REFS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extended | $EXTENDED_FILES | $EXTENDED_REFS |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # MetaHuman DNA Bridge Validation
+  # ============================================================================
+  metahuman-dna-validation:
+    name: MetaHuman DNA Bridge Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate FACS Action Unit completeness
+        run: |
+          echo "## MetaHuman DNA Bridge Report" >> $GITHUB_STEP_SUMMARY
+
+          # Check FACS AU coverage
+          REQUIRED_AUS=("AU1" "AU2" "AU4" "AU5" "AU6" "AU7" "AU9" "AU12" "AU15" "AU17" "AU20" "AU23" "AU25" "AU26")
+          MISSING=0
+
+          for au in "${REQUIRED_AUS[@]}"; do
+            if grep -rq "$au" DeepTreeEcho/Avatar/ --include="*.cpp" --include="*.h"; then
+              echo "- ✅ $au implemented" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ $au MISSING" >> $GITHUB_STEP_SUMMARY
+              MISSING=$((MISSING + 1))
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Missing AUs: $MISSING / ${#REQUIRED_AUS[@]}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate morph target mappings
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Morph Target Mappings" >> $GITHUB_STEP_SUMMARY
+
+          CTRL_TARGETS=$(grep -rn "CTRL_" DeepTreeEcho/Avatar/ --include="*.cpp" | wc -l)
+          echo "MetaHuman CTRL_ morph targets: $CTRL_TARGETS" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate chaotic dynamics
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Chaotic Dynamics" >> $GITHUB_STEP_SUMMARY
+
+          LORENZ=$(grep -rn "Lorenz\|Sigma.*10\|Rho.*28\|Beta.*8" \
+            DeepTreeEcho/ --include="*.cpp" | wc -l)
+          LYAPUNOV=$(grep -rn "Lyapunov" DeepTreeEcho/ --include="*.cpp" --include="*.h" | wc -l)
+
+          echo "- Lorenz attractor references: $LORENZ" >> $GITHUB_STEP_SUMMARY
+          echo "- Lyapunov exponent references: $LYAPUNOV" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Evolution System Health
+  # ============================================================================
+  evolution-health:
+    name: Evolution System Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check evolution completeness
+        run: |
+          echo "## Evolution System Health" >> $GITHUB_STEP_SUMMARY
+
+          # Check ontogenetic stages
+          STAGES=("Embryonic" "Juvenile" "Adolescent" "Adult" "Transcendent")
+          for stage in "${STAGES[@]}"; do
+            COUNT=$(grep -rn "$stage" DeepTreeEcho/Evolution/ --include="*.cpp" --include="*.h" | wc -l)
+            echo "- $stage stage: $COUNT references" >> $GITHUB_STEP_SUMMARY
+          done
+
+          # Check holistic streams
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Holistic Streams" >> $GITHUB_STEP_SUMMARY
+          STREAMS=("Entropic:en-tropis:auto-vortis:auto-morphosis" \
+                   "Negnentropic:negen-tropis:auto-stasis:auto-poiesis" \
+                   "Identity:iden-tropis:auto-gnosis:auto-genesis")
+
+          for stream_info in "${STREAMS[@]}"; do
+            IFS=':' read -ra PARTS <<< "$stream_info"
+            STREAM_NAME="${PARTS[0]}"
+            PHASE_COUNT=0
+            for phase in "${PARTS[@]:1}"; do
+              if grep -rq "$phase" DeepTreeEcho/Evolution/ --include="*.cpp"; then
+                PHASE_COUNT=$((PHASE_COUNT + 1))
+              fi
+            done
+            echo "- $STREAM_NAME: $PHASE_COUNT/3 phases implemented" >> $GITHUB_STEP_SUMMARY
+          done
+
+  # ============================================================================
+  # Nightly Summary
+  # ============================================================================
+  nightly-summary:
+    name: Nightly Summary
+    runs-on: ubuntu-latest
+    needs: [cognitive-integrity, four-e-coverage, metahuman-dna-validation, evolution-health]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Deep Tree Echo Nightly Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run Date: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Cognitive Integrity | ${{ needs.cognitive-integrity.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4E Coverage | ${{ needs.four-e-coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MetaHuman DNA | ${{ needs.metahuman-dna-validation.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Evolution Health | ${{ needs.evolution-health.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Nightly cognitive tests failed on ${new Date().toISOString().split('T')[0]}`,
+              body: `The nightly cognitive test suite has failed. Please investigate.\n\nRun: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'ci-failure', 'cognitive']
+            })

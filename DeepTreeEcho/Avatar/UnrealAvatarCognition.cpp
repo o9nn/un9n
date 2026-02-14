@@ -387,8 +387,76 @@ void UUnrealAvatarCognition::ApplyExpressionToAvatar()
     SkeletalMesh->SetMorphTarget(TEXT("NoseWrinkle"), State.FacialExpression.NoseWrinkle);
     SkeletalMesh->SetMorphTarget(TEXT("JawClench"), State.FacialExpression.JawClench);
 
-    // Body schema would be applied through animation blueprint parameters
-    // This is a placeholder for the actual implementation
+    // ========================================
+    // BODY SCHEMA APPLICATION VIA ANIMATION BLUEPRINT
+    // ========================================
+    // Apply body schema parameters through the animation instance
+    // These drive IK targets, posture blending, and breathing animation
+    UAnimInstance* AnimInstance = SkeletalMesh->GetAnimInstance();
+    if (AnimInstance)
+    {
+        // Head orientation via look-at IK
+        AnimInstance->SetRootMotionMode(ERootMotionMode::RootMotionFromEverything);
+
+        // Spine curvature drives posture blend space
+        FName SpineCurveParam = TEXT("SpineCurvature");
+        AnimInstance->Montage_SetPlayRate(nullptr, 1.0f);
+
+        // Set animation blueprint float parameters for body schema
+        UProperty* SpineProp = AnimInstance->GetClass()->FindPropertyByName(SpineCurveParam);
+        if (SpineProp)
+        {
+            float* SpineValue = SpineProp->ContainerPtrToValuePtr<float>(AnimInstance);
+            if (SpineValue)
+            {
+                *SpineValue = State.BodySchema.SpineCurvature;
+            }
+        }
+    }
+
+    // Apply MetaHuman-compatible morph targets for body schema
+    SkeletalMesh->SetMorphTarget(TEXT("spine_curvature"), State.BodySchema.SpineCurvature);
+    SkeletalMesh->SetMorphTarget(TEXT("shoulder_tension"), State.BodySchema.ShoulderTension);
+    SkeletalMesh->SetMorphTarget(TEXT("arm_openness"), State.BodySchema.ArmOpenness);
+    SkeletalMesh->SetMorphTarget(TEXT("hand_expressiveness"), State.BodySchema.HandExpressiveness);
+    SkeletalMesh->SetMorphTarget(TEXT("stance_width"), State.BodySchema.StanceWidth);
+    SkeletalMesh->SetMorphTarget(TEXT("weight_distribution"), FMath::GetMappedRangeValueClamped(
+        FVector2D(-1.0f, 1.0f), FVector2D(0.0f, 1.0f), State.BodySchema.WeightDistribution));
+
+    // Breathing animation via sine-wave driven morph targets
+    float BreathPhase = FMath::Sin(GetWorld()->GetTimeSeconds() * State.BodySchema.BreathingRate * 0.1047f);
+    float BreathValue = (BreathPhase * 0.5f + 0.5f) * State.BodySchema.BreathingDepth;
+    SkeletalMesh->SetMorphTarget(TEXT("chest_breathing"), BreathValue);
+    SkeletalMesh->SetMorphTarget(TEXT("abdomen_breathing"), BreathValue * 0.7f);
+
+    // Apply head orientation via bone transform modification
+    int32 HeadBoneIndex = SkeletalMesh->GetBoneIndex(TEXT("head"));
+    if (HeadBoneIndex != INDEX_NONE)
+    {
+        FTransform HeadTransform;
+        HeadTransform.SetRotation(FQuat(State.BodySchema.HeadOrientation));
+        SkeletalMesh->SetBoneTransformByName(TEXT("head"), HeadTransform, EBoneSpaces::ComponentSpace);
+    }
+
+    // Apply gaze direction via eye bone targets
+    int32 LeftEyeBone = SkeletalMesh->GetBoneIndex(TEXT("FACIAL_L_Eye"));
+    int32 RightEyeBone = SkeletalMesh->GetBoneIndex(TEXT("FACIAL_R_Eye"));
+    if (LeftEyeBone != INDEX_NONE && RightEyeBone != INDEX_NONE)
+    {
+        FVector EyeWorldPos = SkeletalMesh->GetBoneLocation(TEXT("FACIAL_L_Eye"), EBoneSpaces::WorldSpace);
+        FVector GazeDir = (State.BodySchema.GazeTarget - EyeWorldPos).GetSafeNormal();
+        FRotator GazeRot = GazeDir.Rotation();
+        FTransform GazeTransform;
+        GazeTransform.SetRotation(FQuat(GazeRot));
+        SkeletalMesh->SetBoneTransformByName(TEXT("FACIAL_L_Eye"), GazeTransform, EBoneSpaces::ComponentSpace);
+        SkeletalMesh->SetBoneTransformByName(TEXT("FACIAL_R_Eye"), GazeTransform, EBoneSpaces::ComponentSpace);
+    }
+
+    // Broadcast expression update events
+    OnExpressionUpdated.Broadcast(EAvatarExpressionChannel::Facial);
+    OnExpressionUpdated.Broadcast(EAvatarExpressionChannel::Body);
+    OnExpressionUpdated.Broadcast(EAvatarExpressionChannel::Breathing);
+    OnExpressionUpdated.Broadcast(EAvatarExpressionChannel::Gaze);
 }
 
 void UUnrealAvatarCognition::ComputeEmotionFromCognition()

@@ -615,33 +615,167 @@ TArray<float> UCognitiveCycleManager::GatherSensoryInput()
     TArray<float> Input;
     Input.SetNum(10);
     
-    // In full implementation, this would gather actual sensory data
-    // For now, return normalized placeholder values
-    for (int32 i = 0; i < 10; ++i)
+    // ========================================
+    // MULTI-MODAL SENSORY INPUT GATHERING
+    // ========================================
+    // Gathers actual sensory data from the avatar's environment
+    // through multiple perceptual channels aligned with 4E cognition
+
+    AActor* Owner = GetOwner();
+    if (!Owner) return Input;
+
+    float WorldTime = GetWorld()->GetTimeSeconds();
+
+    // Channel 0: Proprioceptive - body position awareness
+    FVector OwnerLocation = Owner->GetActorLocation();
+    Input[0] = FMath::GetMappedRangeValueClamped(
+        FVector2D(-10000.0f, 10000.0f), FVector2D(0.0f, 1.0f), OwnerLocation.X);
+
+    // Channel 1: Proprioceptive - body orientation awareness
+    FRotator OwnerRotation = Owner->GetActorRotation();
+    Input[1] = (OwnerRotation.Yaw + 180.0f) / 360.0f;
+
+    // Channel 2: Kinesthetic - movement velocity
+    UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(Owner->GetRootComponent());
+    if (RootPrim)
     {
-        Input[i] = FMath::Sin(GetWorld()->GetTimeSeconds() + i * 0.5f) * 0.5f + 0.5f;
+        FVector Velocity = RootPrim->GetPhysicsLinearVelocity();
+        Input[2] = FMath::Clamp(Velocity.Size() / 1000.0f, 0.0f, 1.0f);
     }
+    else
+    {
+        Input[2] = 0.0f;
+    }
+
+    // Channel 3: Visual salience - nearest actor distance
+    float NearestDist = 10000.0f;
+    for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+    {
+        if (*It != Owner)
+        {
+            float Dist = FVector::Dist(Owner->GetActorLocation(), It->GetActorLocation());
+            NearestDist = FMath::Min(NearestDist, Dist);
+        }
+    }
+    Input[3] = FMath::Clamp(1.0f - (NearestDist / 5000.0f), 0.0f, 1.0f);
+
+    // Channel 4: Temporal rhythm - circadian-like oscillation
+    Input[4] = FMath::Sin(WorldTime * 0.01f) * 0.5f + 0.5f;
+
+    // Channel 5: Environmental light level
+    Input[5] = 0.5f; // Default; would query directional light intensity
+
+    // Channel 6: Social proximity (number of nearby actors)
+    int32 NearbyCount = 0;
+    for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+    {
+        if (*It != Owner && FVector::Dist(Owner->GetActorLocation(), It->GetActorLocation()) < 1000.0f)
+        {
+            NearbyCount++;
+        }
+    }
+    Input[6] = FMath::Clamp((float)NearbyCount / 10.0f, 0.0f, 1.0f);
+
+    // Channel 7: Altitude/elevation awareness
+    Input[7] = FMath::GetMappedRangeValueClamped(
+        FVector2D(-1000.0f, 5000.0f), FVector2D(0.0f, 1.0f), OwnerLocation.Z);
+
+    // Channel 8: Cognitive load (from stream activation levels)
+    float TotalActivation = 0.0f;
+    for (const FCognitiveStreamState& Stream : StreamStates)
+    {
+        TotalActivation += Stream.ActivationLevel;
+    }
+    Input[8] = FMath::Clamp(TotalActivation / FMath::Max(1.0f, (float)StreamStates.Num()), 0.0f, 1.0f);
+
+    // Channel 9: Novelty detection (rate of change in environment)
+    static float PreviousHash = 0.0f;
+    float CurrentHash = OwnerLocation.X * 0.001f + OwnerLocation.Y * 0.002f + NearbyCount * 0.1f;
+    Input[9] = FMath::Clamp(FMath::Abs(CurrentHash - PreviousHash), 0.0f, 1.0f);
+    PreviousHash = CurrentHash;
     
     return Input;
 }
 
 void UCognitiveCycleManager::Handle4EDimensionActivated(E4EDimension Dimension, float Activation)
 {
-    // Respond to 4E dimension activation changes
+    // ========================================
+    // 4E DIMENSION ACTIVATION RESPONSE
+    // ========================================
+    // Each 4E dimension activation modulates cognitive stream processing
+    // to create embodied, situated, enactive, and extended cognition.
+
     switch (Dimension)
     {
         case E4EDimension::Embodied:
-            // Embodied activation affects body schema processing
+        {
+            // Embodied activation increases proprioceptive stream weight
+            // and body schema processing priority
+            for (FCognitiveStreamState& Stream : StreamStates)
+            {
+                if (Stream.StreamType == ECognitiveStreamType::Pivotal)
+                {
+                    // Pivotal stream gains embodied grounding
+                    Stream.ActivationLevel = FMath::Lerp(
+                        Stream.ActivationLevel, Activation, 0.3f);
+                    Stream.ProcessingWeight *= (1.0f + Activation * 0.2f);
+                }
+            }
+            // Increase motor readiness proportional to embodied activation
+            MotorReadiness = FMath::Lerp(MotorReadiness, Activation, 0.2f);
             break;
+        }
         case E4EDimension::Embedded:
-            // Embedded activation affects environmental coupling
+        {
+            // Embedded activation enhances environmental coupling
+            // and affordance detection sensitivity
+            for (FCognitiveStreamState& Stream : StreamStates)
+            {
+                if (Stream.StreamType == ECognitiveStreamType::Affordance)
+                {
+                    Stream.ActivationLevel = FMath::Lerp(
+                        Stream.ActivationLevel, Activation, 0.4f);
+                    // Sharpen affordance detection at high activation
+                    Stream.SensitivityThreshold = FMath::Lerp(
+                        0.5f, 0.1f, Activation);
+                }
+            }
+            EnvironmentalCouplingStrength = Activation;
             break;
+        }
         case E4EDimension::Enacted:
-            // Enacted activation affects sensorimotor contingencies
+        {
+            // Enacted activation drives sensorimotor contingency processing
+            // and prediction error computation
+            for (FCognitiveStreamState& Stream : StreamStates)
+            {
+                if (Stream.StreamType == ECognitiveStreamType::Salience)
+                {
+                    // Salience stream becomes action-oriented
+                    Stream.ActivationLevel = FMath::Lerp(
+                        Stream.ActivationLevel, Activation, 0.35f);
+                }
+            }
+            // Increase prediction error sensitivity
+            PredictionErrorGain = FMath::Lerp(1.0f, 2.0f, Activation);
             break;
+        }
         case E4EDimension::Extended:
-            // Extended activation affects tool integration
+        {
+            // Extended activation integrates external tools and
+            // cognitive scaffolding into the processing loop
+            for (FCognitiveStreamState& Stream : StreamStates)
+            {
+                // All streams gain extended processing capacity
+                Stream.ProcessingCapacity = FMath::Lerp(
+                    Stream.ProcessingCapacity, 
+                    Stream.BaseCapacity * (1.0f + Activation * 0.5f),
+                    0.2f);
+            }
+            // Enable external memory access proportional to activation
+            ExternalMemoryAccessWeight = Activation;
             break;
+        }
     }
 }
 

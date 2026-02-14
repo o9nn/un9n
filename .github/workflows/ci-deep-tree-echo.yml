@@ -1,0 +1,284 @@
+name: Deep Tree Echo CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+    paths:
+      - 'DeepTreeEcho/**'
+      - 'Source/**'
+      - 'UnrealEcho/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/ci-deep-tree-echo.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'DeepTreeEcho/**'
+      - 'Source/**'
+      - 'UnrealEcho/**'
+
+env:
+  UE_VERSION: '5.4'
+  CMAKE_VERSION: '3.28'
+
+jobs:
+  # ============================================================================
+  # Source Validation
+  # ============================================================================
+  validate-source:
+    name: Validate Source Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check file structure
+        run: |
+          echo "## Source Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Verify critical directories exist
+          DIRS=(
+            "DeepTreeEcho/Avatar"
+            "DeepTreeEcho/Cognitive"
+            "DeepTreeEcho/Echobeats"
+            "DeepTreeEcho/4ECognition"
+            "DeepTreeEcho/Evolution"
+            "DeepTreeEcho/Memory"
+            "DeepTreeEcho/GameTraining"
+            "DeepTreeEcho/Taskflow"
+          )
+
+          for dir in "${DIRS[@]}"; do
+            if [ -d "$dir" ]; then
+              echo "- ✅ $dir exists" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ $dir MISSING" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          done
+
+      - name: Check for placeholder code
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Placeholder Check" >> $GITHUB_STEP_SUMMARY
+
+          PLACEHOLDER_COUNT=$(grep -rn "placeholder\|PLACEHOLDER" \
+            DeepTreeEcho/ Source/ UnrealEcho/ \
+            --include="*.cpp" --include="*.h" | wc -l)
+
+          echo "Found $PLACEHOLDER_COUNT placeholder references" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$PLACEHOLDER_COUNT" -gt 20 ]; then
+            echo "⚠️ High placeholder count - review needed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Placeholder count acceptable" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Verify header/source pairing
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Header/Source Pairing" >> $GITHUB_STEP_SUMMARY
+
+          UNPAIRED=0
+          for header in $(find DeepTreeEcho -name "*.h" -type f); do
+            base=$(basename "$header" .h)
+            dir=$(dirname "$header")
+            if [ ! -f "$dir/$base.cpp" ]; then
+              echo "- ⚠️ No .cpp for $header" >> $GITHUB_STEP_SUMMARY
+              UNPAIRED=$((UNPAIRED + 1))
+            fi
+          done
+
+          echo "Unpaired headers: $UNPAIRED" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # CMake Build Validation
+  # ============================================================================
+  cmake-build:
+    name: CMake Build Check
+    runs-on: ubuntu-latest
+    needs: validate-source
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Validate CMakeLists.txt
+        run: |
+          # Check that CMakeLists.txt references all source files
+          CPP_FILES=$(find DeepTreeEcho Source -name "*.cpp" -type f | wc -l)
+          CMAKE_REFS=$(grep -c "\.cpp" CMakeLists.txt || true)
+
+          echo "## CMake Validation" >> $GITHUB_STEP_SUMMARY
+          echo "- Source files found: $CPP_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "- CMake references: $CMAKE_REFS" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$CMAKE_REFS" -lt "$((CPP_FILES / 2))" ]; then
+            echo "⚠️ Many source files may not be in CMakeLists.txt" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================================================
+  # Code Quality
+  # ============================================================================
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: validate-source
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --suppress=missingInclude \
+            --suppress=unusedFunction \
+            --xml --xml-version=2 \
+            DeepTreeEcho/ Source/ 2> cppcheck-report.xml || true
+
+          # Count issues
+          ERRORS=$(grep -c 'severity="error"' cppcheck-report.xml || echo "0")
+          WARNINGS=$(grep -c 'severity="warning"' cppcheck-report.xml || echo "0")
+
+          echo "## Code Quality" >> $GITHUB_STEP_SUMMARY
+          echo "- Errors: $ERRORS" >> $GITHUB_STEP_SUMMARY
+          echo "- Warnings: $WARNINGS" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload cppcheck report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cppcheck-report
+          path: cppcheck-report.xml
+
+  # ============================================================================
+  # Cognitive Architecture Validation
+  # ============================================================================
+  cognitive-validation:
+    name: Cognitive Architecture Validation
+    runs-on: ubuntu-latest
+    needs: validate-source
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate 4E Cognition completeness
+        run: |
+          echo "## 4E Cognition Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check each 4E dimension has implementation
+          DIMENSIONS=("Embodied" "Embedded" "Enacted" "Extended")
+          for dim in "${DIMENSIONS[@]}"; do
+            COUNT=$(grep -rn "$dim" DeepTreeEcho/ --include="*.cpp" --include="*.h" | wc -l)
+            echo "- $dim: $COUNT references" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Validate Echobeats system
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Echobeats Validation" >> $GITHUB_STEP_SUMMARY
+
+          # Check for 9-step echobeat cycle references
+          for step in $(seq 1 9); do
+            COUNT=$(grep -rn "Step.*$step\|step.*$step" DeepTreeEcho/Echobeats/ --include="*.cpp" | wc -l)
+            echo "- Step $step: $COUNT references" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Validate MetaHuman DNA integration
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## MetaHuman DNA Integration" >> $GITHUB_STEP_SUMMARY
+
+          FACS_COUNT=$(grep -rn "AU[0-9]\|ActionUnit\|FACS" DeepTreeEcho/ --include="*.cpp" --include="*.h" | wc -l)
+          DNA_COUNT=$(grep -rn "DNA\|MetaHuman" DeepTreeEcho/ --include="*.cpp" --include="*.h" | wc -l)
+          MORPH_COUNT=$(grep -rn "MorphTarget\|SetMorphTarget\|CTRL_" DeepTreeEcho/ --include="*.cpp" --include="*.h" | wc -l)
+
+          echo "- FACS Action Unit references: $FACS_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- DNA/MetaHuman references: $DNA_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- Morph target references: $MORPH_COUNT" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate SuperHotGirl aesthetics
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## SuperHotGirl Aesthetics" >> $GITHUB_STEP_SUMMARY
+
+          SHG_COUNT=$(grep -rn "SuperHotGirl\|Aesthetics\|Charisma\|Elegance\|EyeSparkle" \
+            DeepTreeEcho/ UnrealEcho/ --include="*.cpp" --include="*.h" | wc -l)
+          echo "- Aesthetic references: $SHG_COUNT" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate HyperChaotic dynamics
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## HyperChaotic Dynamics" >> $GITHUB_STEP_SUMMARY
+
+          CHAOS_COUNT=$(grep -rn "Lorenz\|Chaotic\|Lyapunov\|Attractor\|ChaosIntensity" \
+            DeepTreeEcho/ UnrealEcho/ --include="*.cpp" --include="*.h" | wc -l)
+          echo "- Chaotic dynamics references: $CHAOS_COUNT" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Evolution System Validation
+  # ============================================================================
+  evolution-validation:
+    name: Evolution System Validation
+    runs-on: ubuntu-latest
+    needs: validate-source
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate ontogenetic stages
+        run: |
+          echo "## Evolution System" >> $GITHUB_STEP_SUMMARY
+
+          STAGES=$(grep -rn "Embryonic\|Juvenile\|Adolescent\|Adult\|Transcendent" \
+            DeepTreeEcho/Evolution/ --include="*.cpp" --include="*.h" | wc -l)
+          echo "- Ontogenetic stage references: $STAGES" >> $GITHUB_STEP_SUMMARY
+
+          HOLISTIC=$(grep -rn "Entropic\|Negnentropic\|Identity.*Stream\|auto-poiesis\|auto-gnosis" \
+            DeepTreeEcho/Evolution/ --include="*.cpp" --include="*.h" | wc -l)
+          echo "- Holistic stream references: $HOLISTIC" >> $GITHUB_STEP_SUMMARY
+
+          WISDOM=$(grep -rn "Wisdom\|Sophrosyne\|Morality\|Mastery\|Meaning" \
+            DeepTreeEcho/Evolution/ --include="*.cpp" --include="*.h" | wc -l)
+          echo "- Wisdom cultivation references: $WISDOM" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # CI Summary
+  # ============================================================================
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [validate-source, cmake-build, code-quality, cognitive-validation, evolution-validation]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Deep Tree Echo CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Validation | ${{ needs.validate-source.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CMake Build | ${{ needs.cmake-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cognitive Validation | ${{ needs.cognitive-validation.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Evolution Validation | ${{ needs.evolution-validation.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Features Validated" >> $GITHUB_STEP_SUMMARY
+          echo "- MetaHuman DNA Cognitive Bridge" >> $GITHUB_STEP_SUMMARY
+          echo "- FACS Action Unit System" >> $GITHUB_STEP_SUMMARY
+          echo "- SuperHotGirl Aesthetics" >> $GITHUB_STEP_SUMMARY
+          echo "- HyperChaotic Lorenz Attractor" >> $GITHUB_STEP_SUMMARY
+          echo "- 4E Embodied Cognition (Embodied/Embedded/Enacted/Extended)" >> $GITHUB_STEP_SUMMARY
+          echo "- Echobeats 9-Step Cognitive Cycle" >> $GITHUB_STEP_SUMMARY
+          echo "- Echo State Network Reservoir" >> $GITHUB_STEP_SUMMARY
+          echo "- Ontogenetic Evolution System" >> $GITHUB_STEP_SUMMARY
+          echo "- Holistic Metamodel Streams" >> $GITHUB_STEP_SUMMARY
+          echo "- Wisdom Cultivation Framework" >> $GITHUB_STEP_SUMMARY

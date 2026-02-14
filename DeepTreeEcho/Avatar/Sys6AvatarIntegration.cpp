@@ -379,8 +379,71 @@ void USys6AvatarIntegration::ProcessEmbeddedCognition(float DeltaTime)
     {
         if (Element.Dimension == E4EAvatarDimension::Embedded)
         {
-            // Apply environmental influence to target transform
-            // This is a placeholder for more sophisticated environmental processing
+            // ========================================
+            // ENVIRONMENTAL AFFORDANCE PROCESSING
+            // ========================================
+            // Detects environmental affordances through raycasting
+            // and spatial queries, updating body schema elements
+            // to reflect the avatar's embedded situatedness.
+
+            AActor* Owner = GetOwner();
+            if (!Owner) continue;
+
+            // Raycast from element position to detect nearby surfaces
+            FVector ElementWorldPos = Owner->GetActorTransform().TransformPosition(
+                Element.CurrentTransform.GetLocation());
+            
+            // Ground detection for stance adaptation
+            FHitResult GroundHit;
+            FVector TraceStart = ElementWorldPos;
+            FVector TraceEnd = ElementWorldPos - FVector(0.0f, 0.0f, 200.0f);
+            FCollisionQueryParams QueryParams;
+            QueryParams.AddIgnoredActor(Owner);
+            
+            if (GetWorld()->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd,
+                ECC_WorldStatic, QueryParams))
+            {
+                // Adapt body schema to ground surface
+                float GroundDistance = GroundHit.Distance;
+                float SurfaceAngle = FMath::Acos(FVector::DotProduct(GroundHit.Normal, FVector::UpVector));
+                
+                // Adjust target transform based on terrain
+                FVector SurfaceAdaptation = FVector(0.0f, 0.0f, -GroundDistance * 0.01f);
+                Element.TargetTransform.SetLocation(
+                    Element.TargetTransform.GetLocation() + SurfaceAdaptation);
+                
+                // Surface angle affects posture through body schema
+                Element.EnvironmentalCoupling = FMath::Clamp(
+                    1.0f - (SurfaceAngle / PI), 0.0f, 1.0f);
+            }
+
+            // Proximity detection for social space awareness
+            FVector ForwardDir = Owner->GetActorForwardVector();
+            FHitResult ProximityHit;
+            FVector ProxEnd = ElementWorldPos + ForwardDir * 300.0f;
+            
+            if (GetWorld()->LineTraceSingleByChannel(ProximityHit, ElementWorldPos, ProxEnd,
+                ECC_Pawn, QueryParams))
+            {
+                // Close proximity triggers defensive/attentive posture
+                float ProximityFactor = 1.0f - (ProximityHit.Distance / 300.0f);
+                Element.AffordanceWeight = FMath::Lerp(
+                    Element.AffordanceWeight, ProximityFactor, 0.1f);
+            }
+            else
+            {
+                Element.AffordanceWeight = FMath::Lerp(
+                    Element.AffordanceWeight, 0.0f, 0.05f);
+            }
+
+            // Blend target transform toward affordance-influenced position
+            Element.CurrentTransform = FTransform(
+                FMath::Lerp(Element.CurrentTransform.GetRotation(),
+                    Element.TargetTransform.GetRotation(), 0.1f * DeltaTime),
+                FMath::Lerp(Element.CurrentTransform.GetLocation(),
+                    Element.TargetTransform.GetLocation(), 0.1f * DeltaTime),
+                FVector::OneVector
+            );
         }
     }
 }
