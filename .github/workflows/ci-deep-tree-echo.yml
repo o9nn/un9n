@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check file structure
         run: |
@@ -100,7 +100,7 @@ jobs:
     needs: validate-source
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -130,7 +130,7 @@ jobs:
     needs: validate-source
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install cppcheck
         run: sudo apt-get install -y cppcheck
@@ -151,7 +151,7 @@ jobs:
           echo "- Warnings: $WARNINGS" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload cppcheck report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cppcheck-report
           path: cppcheck-report.xml
@@ -165,7 +165,7 @@ jobs:
     needs: validate-source
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate 4E Cognition completeness
         run: |
@@ -230,7 +230,7 @@ jobs:
     needs: validate-source
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate ontogenetic stages
         run: |
