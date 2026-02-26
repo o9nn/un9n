@@ -536,9 +536,17 @@ bool UMetaHumanDNABridge::LoadDNAData()
         FDNAJointInfo JointInfo;
         JointInfo.JointName = JointNames[i];
         JointInfo.JointIndex = i;
-        // TODO: Get neutral transform from Python wrapper
-        JointInfo.NeutralTransform = FTransform::Identity;
-        JointInfo.ParentIndex = -1; // TODO: Get parent index from Python wrapper
+        // Get neutral transform from Python wrapper via DNACalib
+        FTransform NeutralTransform = FTransform::Identity;
+        TArray<float> TransformData = PythonWrapper->GetJointNeutralTransform(i);
+        if (TransformData.Num() >= 10)
+        {
+            NeutralTransform.SetTranslation(FVector(TransformData[0], TransformData[1], TransformData[2]));
+            NeutralTransform.SetRotation(FQuat(TransformData[3], TransformData[4], TransformData[5], TransformData[6]));
+            NeutralTransform.SetScale3D(FVector(TransformData[7], TransformData[8], TransformData[9]));
+        }
+        JointInfo.NeutralTransform = NeutralTransform;
+        JointInfo.ParentIndex = PythonWrapper->GetJointParentIndex(i);
         
         JointInfoCache.Add(JointInfo);
     }
@@ -550,14 +558,27 @@ bool UMetaHumanDNABridge::LoadDNAData()
         FDNABlendShapeInfo BlendShapeInfo;
         BlendShapeInfo.BlendShapeName = BlendShapeNames[i];
         BlendShapeInfo.BlendShapeIndex = i;
-        // TODO: Get target mesh and vertex count from Python wrapper
-        BlendShapeInfo.TargetMeshName = TEXT("");
-        BlendShapeInfo.VertexCount = 0;
+        // Get target mesh and vertex count from Python wrapper
+        BlendShapeInfo.TargetMeshName = PythonWrapper->GetBlendShapeTargetMesh(i);
+        BlendShapeInfo.VertexCount = PythonWrapper->GetBlendShapeVertexCount(i);
         
         BlendShapeInfoCache.Add(BlendShapeInfo);
     }
 
-    // TODO: Load mesh data from Python wrapper
+    // Load mesh data from Python wrapper
+    TArray<FString> MeshNames = PythonWrapper->GetMeshNames();
+    for (int32 i = 0; i < MeshNames.Num(); ++i)
+    {
+        FDNAMeshInfo MeshInfo;
+        MeshInfo.MeshName = MeshNames[i];
+        MeshInfo.MeshIndex = i;
+        MeshInfo.VertexCount = PythonWrapper->GetMeshVertexCount(i);
+        MeshInfo.FaceCount = PythonWrapper->GetMeshFaceCount(i);
+        MeshInfoCache.Add(MeshInfo);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("DNA data loaded: %d joints, %d blend shapes, %d meshes"),
+        JointInfoCache.Num(), BlendShapeInfoCache.Num(), MeshInfoCache.Num());
 
     return true;
 }
@@ -569,9 +590,37 @@ bool UMetaHumanDNABridge::ParseDNAVersion()
         return false;
     }
 
-    // TODO: Get DNA version from Python wrapper
-    // For now, assume DHI
-    DNAVersion = EDNAVersion::DHI;
+    // Detect DNA version from database name and structure
+    FString DatabaseName = PythonWrapper->GetDatabaseName();
+    int32 LODCount = PythonWrapper->GetLODCount();
+    int32 BlendShapeCount = PythonWrapper->GetBlendShapeCount();
+
+    if (DatabaseName.Contains(TEXT("DHI")) || DatabaseName.Contains(TEXT("dhi")))
+    {
+        DNAVersion = EDNAVersion::DHI;
+    }
+    else if (DatabaseName.Contains(TEXT("MH4")) || DatabaseName.Contains(TEXT("mh4")) ||
+             DatabaseName.Contains(TEXT("MetaHuman4")))
+    {
+        DNAVersion = EDNAVersion::MH4;
+    }
+    else
+    {
+        // Heuristic: DHI typically has more blend shapes and LODs
+        if (BlendShapeCount > 200 && LODCount >= 6)
+        {
+            DNAVersion = EDNAVersion::DHI;
+        }
+        else
+        {
+            DNAVersion = EDNAVersion::MH4;
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Detected DNA version: %s (DB: %s, LODs: %d, BlendShapes: %d)"),
+        DNAVersion == EDNAVersion::DHI ? TEXT("DHI") : TEXT("MH.4"),
+        *DatabaseName, LODCount, BlendShapeCount);
+
     return true;
 }
 
@@ -588,60 +637,171 @@ void UMetaHumanDNABridge::InitializeBlendShapeWeights()
 
 void UMetaHumanDNABridge::MapNeurochemicalToBlendShapes(const FNeurochemicalState& State, TMap<FString, float>& OutWeights)
 {
-    // Example mapping: Dopamine -> Smile intensity
-    // This is a simplified example; real mapping would be more complex
-    
+    // Comprehensive neurochemical-to-blend-shape mapping using FACS intermediary
+    // Delegates to MetaHumanDNARepairs for full implementation
     OutWeights.Empty();
 
-    // Map dopamine to smile/happiness blend shapes
-    float SmileIntensity = State.Dopamine * 0.8f + State.Serotonin * 0.5f;
+    // === DOPAMINE → JOY/REWARD EXPRESSION ===
+    float SmileIntensity = FMath::Clamp(State.Dopamine * 0.8f + State.Serotonin * 0.3f, 0.0f, 1.0f);
+    float CheekRaise = FMath::Clamp(State.Dopamine * 0.6f, 0.0f, 1.0f);
     OutWeights.Add(TEXT("Smile_L"), SmileIntensity);
     OutWeights.Add(TEXT("Smile_R"), SmileIntensity);
+    OutWeights.Add(TEXT("CheekRaise_L"), CheekRaise);
+    OutWeights.Add(TEXT("CheekRaise_R"), CheekRaise);
 
-    // Map cortisol to stress/tension blend shapes
-    float StressIntensity = State.Cortisol * 0.7f;
-    OutWeights.Add(TEXT("BrowTension_L"), StressIntensity);
-    OutWeights.Add(TEXT("BrowTension_R"), StressIntensity);
+    // === CORTISOL → STRESS/TENSION ===
+    float BrowFurrow = FMath::Clamp(State.Cortisol * 0.7f, 0.0f, 1.0f);
+    float LipDepress = FMath::Clamp(State.Cortisol * 0.4f, 0.0f, 1.0f);
+    float LidTighten = FMath::Clamp(State.Cortisol * 0.5f, 0.0f, 1.0f);
+    OutWeights.Add(TEXT("BrowDown_L"), BrowFurrow);
+    OutWeights.Add(TEXT("BrowDown_R"), BrowFurrow);
+    OutWeights.Add(TEXT("Frown_L"), LipDepress);
+    OutWeights.Add(TEXT("Frown_R"), LipDepress);
+    OutWeights.Add(TEXT("EyeSquint_L"), LidTighten);
+    OutWeights.Add(TEXT("EyeSquint_R"), LidTighten);
+    OutWeights.Add(TEXT("LipTighten"), FMath::Clamp(State.Cortisol * 0.3f, 0.0f, 1.0f));
 
-    // Map oxytocin to warmth/openness blend shapes
-    float WarmthIntensity = State.Oxytocin * 0.6f;
-    OutWeights.Add(TEXT("EyeWarmth_L"), WarmthIntensity);
-    OutWeights.Add(TEXT("EyeWarmth_R"), WarmthIntensity);
+    // === OXYTOCIN → WARMTH/SOCIAL BONDING ===
+    float WarmSmile = FMath::Clamp(State.Oxytocin * 0.7f, 0.0f, 1.0f);
+    float WarmCheeks = FMath::Clamp(State.Oxytocin * 0.5f, 0.0f, 1.0f);
+    OutWeights.Add(TEXT("EyeWarmth_L"), WarmCheeks);
+    OutWeights.Add(TEXT("EyeWarmth_R"), WarmCheeks);
+    OutWeights.Add(TEXT("LipsPart"), FMath::Clamp(State.Oxytocin * 0.3f, 0.0f, 1.0f));
+    // Accumulate smile from oxytocin
+    float* SmileL = OutWeights.Find(TEXT("Smile_L"));
+    if (SmileL) *SmileL = FMath::Clamp(*SmileL + WarmSmile, 0.0f, 1.0f);
+    float* SmileR = OutWeights.Find(TEXT("Smile_R"));
+    if (SmileR) *SmileR = FMath::Clamp(*SmileR + WarmSmile, 0.0f, 1.0f);
 
-    // Map norepinephrine to alertness blend shapes
-    float AlertnessIntensity = State.Norepinephrine * 0.5f;
+    // === NOREPINEPHRINE → ALERTNESS ===
+    float AlertnessIntensity = FMath::Clamp(State.Norepinephrine * 0.6f, 0.0f, 1.0f);
+    float BrowRaise = FMath::Clamp(State.Norepinephrine * 0.4f, 0.0f, 1.0f);
     OutWeights.Add(TEXT("EyeOpen_L"), AlertnessIntensity);
     OutWeights.Add(TEXT("EyeOpen_R"), AlertnessIntensity);
+    OutWeights.Add(TEXT("BrowRaiseOut_L"), BrowRaise);
+    OutWeights.Add(TEXT("BrowRaiseOut_R"), BrowRaise);
 
-    // TODO: Add more sophisticated mappings based on DNA version
+    // === SEROTONIN → CONTENTMENT ===
+    float ContentSmile = FMath::Clamp(State.Serotonin * 0.4f, 0.0f, 1.0f);
+    SmileL = OutWeights.Find(TEXT("Smile_L"));
+    if (SmileL) *SmileL = FMath::Clamp(*SmileL + ContentSmile, 0.0f, 1.0f);
+    SmileR = OutWeights.Find(TEXT("Smile_R"));
+    if (SmileR) *SmileR = FMath::Clamp(*SmileR + ContentSmile, 0.0f, 1.0f);
+
+    // === MELATONIN → DROWSINESS ===
+    if (State.Melatonin > 0.3f)
+    {
+        OutWeights.Add(TEXT("EyeBlink_L"), FMath::Clamp(State.Melatonin * 0.8f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("EyeBlink_R"), FMath::Clamp(State.Melatonin * 0.8f, 0.0f, 1.0f));
+    }
+
+    // === ADRENALINE → FIGHT/FLIGHT ===
+    if (State.Adrenaline > 0.2f)
+    {
+        float WideEyes = FMath::Clamp(State.Adrenaline * 0.9f, 0.0f, 1.0f);
+        float* EyeL = OutWeights.Find(TEXT("EyeOpen_L"));
+        if (EyeL) *EyeL = FMath::Clamp(*EyeL + WideEyes, 0.0f, 1.0f);
+        else OutWeights.Add(TEXT("EyeOpen_L"), WideEyes);
+        float* EyeR = OutWeights.Find(TEXT("EyeOpen_R"));
+        if (EyeR) *EyeR = FMath::Clamp(*EyeR + WideEyes, 0.0f, 1.0f);
+        else OutWeights.Add(TEXT("EyeOpen_R"), WideEyes);
+        OutWeights.Add(TEXT("BrowRaiseIn_L"), FMath::Clamp(State.Adrenaline * 0.6f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("BrowRaiseIn_R"), FMath::Clamp(State.Adrenaline * 0.6f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("MouthOpen"), FMath::Clamp(State.Adrenaline * 0.3f, 0.0f, 1.0f));
+    }
+
+    // === ENDORPHIN → BLISS ===
+    if (State.Endorphin > 0.2f)
+    {
+        float BlissSmile = FMath::Clamp(State.Endorphin * 0.5f, 0.0f, 1.0f);
+        SmileL = OutWeights.Find(TEXT("Smile_L"));
+        if (SmileL) *SmileL = FMath::Clamp(*SmileL + BlissSmile, 0.0f, 1.0f);
+        SmileR = OutWeights.Find(TEXT("Smile_R"));
+        if (SmileR) *SmileR = FMath::Clamp(*SmileR + BlissSmile, 0.0f, 1.0f);
+    }
 }
 
 void UMetaHumanDNABridge::MapEmotionalStateToBlendShapes(const FEmotionalState& Emotion, TMap<FString, float>& OutWeights)
 {
-    // Example mapping: Emotional state to facial expressions
-    // This is a simplified example; real mapping would be more complex
-    
+    // Comprehensive emotional state to blend shape mapping using dimensional model
     OutWeights.Empty();
 
-    // Map valence to smile/frown
-    if (Emotion.Valence > 0.0f)
+    float V = Emotion.Valence;    // [-1, 1]
+    float A = Emotion.Arousal;    // [0, 1]
+    float I = Emotion.Intensity;  // [0, 1]
+
+    // === VALENCE DIMENSION ===
+    if (V > 0.0f)
     {
-        OutWeights.Add(TEXT("Smile_L"), Emotion.Valence * Emotion.Intensity);
-        OutWeights.Add(TEXT("Smile_R"), Emotion.Valence * Emotion.Intensity);
+        // Positive valence: smile, cheek raise, eye sparkle
+        float SmileAmount = V * I;
+        OutWeights.Add(TEXT("Smile_L"), FMath::Clamp(SmileAmount, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("Smile_R"), FMath::Clamp(SmileAmount, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("CheekRaise_L"), FMath::Clamp(V * I * 0.7f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("CheekRaise_R"), FMath::Clamp(V * I * 0.7f, 0.0f, 1.0f));
+
+        // Duchenne smile (genuine) when high valence + moderate arousal
+        if (V > 0.5f && A > 0.3f && A < 0.7f)
+        {
+            OutWeights.Add(TEXT("EyeSquint_L"), FMath::Clamp(V * 0.4f, 0.0f, 1.0f));
+            OutWeights.Add(TEXT("EyeSquint_R"), FMath::Clamp(V * 0.4f, 0.0f, 1.0f));
+        }
     }
     else
     {
-        OutWeights.Add(TEXT("Frown_L"), -Emotion.Valence * Emotion.Intensity);
-        OutWeights.Add(TEXT("Frown_R"), -Emotion.Valence * Emotion.Intensity);
+        // Negative valence: frown, brow furrow, lip depress
+        float NegV = -V;
+        OutWeights.Add(TEXT("Frown_L"), FMath::Clamp(NegV * I, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("Frown_R"), FMath::Clamp(NegV * I, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("BrowDown_L"), FMath::Clamp(NegV * I * 0.6f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("BrowDown_R"), FMath::Clamp(NegV * I * 0.6f, 0.0f, 1.0f));
+
+        // Sadness: inner brow raise
+        if (A < 0.4f)
+        {
+            OutWeights.Add(TEXT("BrowRaiseIn_L"), FMath::Clamp(NegV * 0.5f, 0.0f, 1.0f));
+            OutWeights.Add(TEXT("BrowRaiseIn_R"), FMath::Clamp(NegV * 0.5f, 0.0f, 1.0f));
+        }
     }
 
-    // Map arousal to eye openness and brow raise
-    OutWeights.Add(TEXT("EyeOpen_L"), Emotion.Arousal * 0.5f);
-    OutWeights.Add(TEXT("EyeOpen_R"), Emotion.Arousal * 0.5f);
-    OutWeights.Add(TEXT("BrowRaise_L"), Emotion.Arousal * 0.3f);
-    OutWeights.Add(TEXT("BrowRaise_R"), Emotion.Arousal * 0.3f);
+    // === AROUSAL DIMENSION ===
+    // High arousal: wide eyes, raised brows, open mouth
+    OutWeights.Add(TEXT("EyeOpen_L"), FMath::Clamp(A * 0.6f, 0.0f, 1.0f));
+    OutWeights.Add(TEXT("EyeOpen_R"), FMath::Clamp(A * 0.6f, 0.0f, 1.0f));
+    OutWeights.Add(TEXT("BrowRaiseOut_L"), FMath::Clamp(A * 0.4f, 0.0f, 1.0f));
+    OutWeights.Add(TEXT("BrowRaiseOut_R"), FMath::Clamp(A * 0.4f, 0.0f, 1.0f));
+    OutWeights.Add(TEXT("LipsPart"), FMath::Clamp(A * 0.3f, 0.0f, 1.0f));
 
-    // TODO: Add more sophisticated mappings based on DNA version and emotional categories
+    // Very high arousal: jaw drop, nostril flare
+    if (A > 0.7f)
+    {
+        OutWeights.Add(TEXT("MouthOpen"), FMath::Clamp((A - 0.7f) * 2.0f * I, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("NoseWrinkle_L"), FMath::Clamp((A - 0.7f) * 0.5f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("NoseWrinkle_R"), FMath::Clamp((A - 0.7f) * 0.5f, 0.0f, 1.0f));
+    }
+
+    // === CATEGORICAL EMOTION OVERLAYS ===
+    // Surprise: high arousal + neutral/positive valence
+    if (A > 0.6f && V > -0.2f)
+    {
+        OutWeights.Add(TEXT("BrowRaiseIn_L"), FMath::Clamp(A * 0.6f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("BrowRaiseIn_R"), FMath::Clamp(A * 0.6f, 0.0f, 1.0f));
+    }
+
+    // Anger: high arousal + negative valence
+    if (A > 0.5f && V < -0.3f)
+    {
+        OutWeights.Add(TEXT("LipTighten"), FMath::Clamp(A * (-V) * 0.5f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("NoseWrinkle_L"), FMath::Clamp((-V) * 0.4f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("NoseWrinkle_R"), FMath::Clamp((-V) * 0.4f, 0.0f, 1.0f));
+    }
+
+    // Disgust: moderate arousal + negative valence
+    if (A > 0.3f && A < 0.7f && V < -0.4f)
+    {
+        OutWeights.Add(TEXT("UpperLipRaise_L"), FMath::Clamp((-V) * 0.5f, 0.0f, 1.0f));
+        OutWeights.Add(TEXT("UpperLipRaise_R"), FMath::Clamp((-V) * 0.5f, 0.0f, 1.0f));
+    }
 }
 
 TMap<FString, FString> UMetaHumanDNABridge::GetDHIBlendShapeNames() const
@@ -649,12 +809,64 @@ TMap<FString, FString> UMetaHumanDNABridge::GetDHIBlendShapeNames() const
     // DHI blend shape name mappings
     TMap<FString, FString> Mappings;
     
-    // TODO: Add comprehensive DHI blend shape mappings
-    Mappings.Add(TEXT("Smile_L"), TEXT("CTRL_L_mouth_smile"));
-    Mappings.Add(TEXT("Smile_R"), TEXT("CTRL_R_mouth_smile"));
-    Mappings.Add(TEXT("Frown_L"), TEXT("CTRL_L_mouth_frown"));
-    Mappings.Add(TEXT("Frown_R"), TEXT("CTRL_R_mouth_frown"));
-    
+    // Complete DHI blend shape mappings (MetaHuman DHI rig)
+    // === MOUTH ===
+    Mappings.Add(TEXT("Smile_L"), TEXT("CTRL_L_mouth_cornerPull"));
+    Mappings.Add(TEXT("Smile_R"), TEXT("CTRL_R_mouth_cornerPull"));
+    Mappings.Add(TEXT("Frown_L"), TEXT("CTRL_L_mouth_cornerDepress"));
+    Mappings.Add(TEXT("Frown_R"), TEXT("CTRL_R_mouth_cornerDepress"));
+    Mappings.Add(TEXT("MouthOpen"), TEXT("CTRL_C_jaw_open"));
+    Mappings.Add(TEXT("MouthPucker"), TEXT("CTRL_C_mouth_pucker"));
+    Mappings.Add(TEXT("MouthFunnel"), TEXT("CTRL_C_mouth_lipsFunnel"));
+    Mappings.Add(TEXT("LipStretch_L"), TEXT("CTRL_L_mouth_stretch"));
+    Mappings.Add(TEXT("LipStretch_R"), TEXT("CTRL_R_mouth_stretch"));
+    Mappings.Add(TEXT("LipPress"), TEXT("CTRL_C_mouth_lipsPress"));
+    Mappings.Add(TEXT("LipTighten"), TEXT("CTRL_C_mouth_lipsTighten"));
+    Mappings.Add(TEXT("LipsPart"), TEXT("CTRL_C_mouth_lipsPart"));
+    Mappings.Add(TEXT("LipSuck"), TEXT("CTRL_C_mouth_lipsSuck"));
+    Mappings.Add(TEXT("UpperLipRaise_L"), TEXT("CTRL_L_mouth_upperLipRaise"));
+    Mappings.Add(TEXT("UpperLipRaise_R"), TEXT("CTRL_R_mouth_upperLipRaise"));
+    Mappings.Add(TEXT("LowerLipDepress_L"), TEXT("CTRL_L_mouth_lowerLipDepress"));
+    Mappings.Add(TEXT("LowerLipDepress_R"), TEXT("CTRL_R_mouth_lowerLipDepress"));
+    Mappings.Add(TEXT("ChinRaise"), TEXT("CTRL_C_mouth_chinRaise"));
+    Mappings.Add(TEXT("Dimple_L"), TEXT("CTRL_L_mouth_dimple"));
+    Mappings.Add(TEXT("Dimple_R"), TEXT("CTRL_R_mouth_dimple"));
+    Mappings.Add(TEXT("SharpCornerPull_L"), TEXT("CTRL_L_mouth_cornerSharpPull"));
+    Mappings.Add(TEXT("SharpCornerPull_R"), TEXT("CTRL_R_mouth_cornerSharpPull"));
+    // === BROW ===
+    Mappings.Add(TEXT("BrowRaiseIn_L"), TEXT("CTRL_L_brow_raiseIn"));
+    Mappings.Add(TEXT("BrowRaiseIn_R"), TEXT("CTRL_R_brow_raiseIn"));
+    Mappings.Add(TEXT("BrowRaiseOut_L"), TEXT("CTRL_L_brow_raiseOut"));
+    Mappings.Add(TEXT("BrowRaiseOut_R"), TEXT("CTRL_R_brow_raiseOut"));
+    Mappings.Add(TEXT("BrowDown_L"), TEXT("CTRL_L_brow_down"));
+    Mappings.Add(TEXT("BrowDown_R"), TEXT("CTRL_R_brow_down"));
+    Mappings.Add(TEXT("BrowTension_L"), TEXT("CTRL_L_brow_lateral"));
+    Mappings.Add(TEXT("BrowTension_R"), TEXT("CTRL_R_brow_lateral"));
+    // === EYES ===
+    Mappings.Add(TEXT("EyeOpen_L"), TEXT("CTRL_L_eye_openUpperLid"));
+    Mappings.Add(TEXT("EyeOpen_R"), TEXT("CTRL_R_eye_openUpperLid"));
+    Mappings.Add(TEXT("EyeBlink_L"), TEXT("CTRL_L_eye_blink"));
+    Mappings.Add(TEXT("EyeBlink_R"), TEXT("CTRL_R_eye_blink"));
+    Mappings.Add(TEXT("EyeSquint_L"), TEXT("CTRL_L_eye_squintInner"));
+    Mappings.Add(TEXT("EyeSquint_R"), TEXT("CTRL_R_eye_squintInner"));
+    Mappings.Add(TEXT("CheekRaise_L"), TEXT("CTRL_L_eye_cheekRaise"));
+    Mappings.Add(TEXT("CheekRaise_R"), TEXT("CTRL_R_eye_cheekRaise"));
+    Mappings.Add(TEXT("EyeWarmth_L"), TEXT("CTRL_L_eye_cheekRaise"));
+    Mappings.Add(TEXT("EyeWarmth_R"), TEXT("CTRL_R_eye_cheekRaise"));
+    // === NOSE ===
+    Mappings.Add(TEXT("NoseWrinkle_L"), TEXT("CTRL_L_nose_wrinkleUpper"));
+    Mappings.Add(TEXT("NoseWrinkle_R"), TEXT("CTRL_R_nose_wrinkleUpper"));
+    Mappings.Add(TEXT("NasolabialDeepen_L"), TEXT("CTRL_L_mouth_nasolabialDeepen"));
+    Mappings.Add(TEXT("NasolabialDeepen_R"), TEXT("CTRL_R_mouth_nasolabialDeepen"));
+    // === JAW ===
+    Mappings.Add(TEXT("JawOpen"), TEXT("CTRL_C_jaw_open"));
+    Mappings.Add(TEXT("JawLeft"), TEXT("CTRL_C_jaw_left"));
+    Mappings.Add(TEXT("JawRight"), TEXT("CTRL_C_jaw_right"));
+    Mappings.Add(TEXT("JawFwd"), TEXT("CTRL_C_jaw_fwd"));
+    // === NECK ===
+    Mappings.Add(TEXT("NeckStretch_L"), TEXT("CTRL_L_neck_stretch"));
+    Mappings.Add(TEXT("NeckStretch_R"), TEXT("CTRL_R_neck_stretch"));
+
     return Mappings;
 }
 
@@ -663,11 +875,53 @@ TMap<FString, FString> UMetaHumanDNABridge::GetMH4BlendShapeNames() const
     // MH.4 blend shape name mappings
     TMap<FString, FString> Mappings;
     
-    // TODO: Add comprehensive MH.4 blend shape mappings
+    // Complete MH.4 blend shape mappings (MetaHuman 4.x rig)
+    // === MOUTH ===
     Mappings.Add(TEXT("Smile_L"), TEXT("CTRL_L_mouth_smile"));
     Mappings.Add(TEXT("Smile_R"), TEXT("CTRL_R_mouth_smile"));
     Mappings.Add(TEXT("Frown_L"), TEXT("CTRL_L_mouth_frown"));
     Mappings.Add(TEXT("Frown_R"), TEXT("CTRL_R_mouth_frown"));
-    
+    Mappings.Add(TEXT("MouthOpen"), TEXT("CTRL_C_jaw_open"));
+    Mappings.Add(TEXT("MouthPucker"), TEXT("CTRL_C_mouth_pucker"));
+    Mappings.Add(TEXT("MouthFunnel"), TEXT("CTRL_C_mouth_funnel"));
+    Mappings.Add(TEXT("LipStretch_L"), TEXT("CTRL_L_mouth_lipStretch"));
+    Mappings.Add(TEXT("LipStretch_R"), TEXT("CTRL_R_mouth_lipStretch"));
+    Mappings.Add(TEXT("LipPress"), TEXT("CTRL_C_mouth_press"));
+    Mappings.Add(TEXT("LipTighten"), TEXT("CTRL_C_mouth_tighten"));
+    Mappings.Add(TEXT("LipsPart"), TEXT("CTRL_C_mouth_lipsPart"));
+    Mappings.Add(TEXT("LipSuck"), TEXT("CTRL_C_mouth_suck"));
+    Mappings.Add(TEXT("UpperLipRaise_L"), TEXT("CTRL_L_mouth_upperLipRaise"));
+    Mappings.Add(TEXT("UpperLipRaise_R"), TEXT("CTRL_R_mouth_upperLipRaise"));
+    Mappings.Add(TEXT("LowerLipDepress_L"), TEXT("CTRL_L_mouth_lowerLipDepress"));
+    Mappings.Add(TEXT("LowerLipDepress_R"), TEXT("CTRL_R_mouth_lowerLipDepress"));
+    Mappings.Add(TEXT("ChinRaise"), TEXT("CTRL_C_mouth_chinRaise"));
+    Mappings.Add(TEXT("Dimple_L"), TEXT("CTRL_L_mouth_dimple"));
+    Mappings.Add(TEXT("Dimple_R"), TEXT("CTRL_R_mouth_dimple"));
+    // === BROW ===
+    Mappings.Add(TEXT("BrowRaiseIn_L"), TEXT("CTRL_L_brow_raiseIn"));
+    Mappings.Add(TEXT("BrowRaiseIn_R"), TEXT("CTRL_R_brow_raiseIn"));
+    Mappings.Add(TEXT("BrowRaiseOut_L"), TEXT("CTRL_L_brow_raiseOut"));
+    Mappings.Add(TEXT("BrowRaiseOut_R"), TEXT("CTRL_R_brow_raiseOut"));
+    Mappings.Add(TEXT("BrowDown_L"), TEXT("CTRL_L_brow_down"));
+    Mappings.Add(TEXT("BrowDown_R"), TEXT("CTRL_R_brow_down"));
+    // === EYES ===
+    Mappings.Add(TEXT("EyeOpen_L"), TEXT("CTRL_L_eye_openUpperLid"));
+    Mappings.Add(TEXT("EyeOpen_R"), TEXT("CTRL_R_eye_openUpperLid"));
+    Mappings.Add(TEXT("EyeBlink_L"), TEXT("CTRL_L_eye_blink"));
+    Mappings.Add(TEXT("EyeBlink_R"), TEXT("CTRL_R_eye_blink"));
+    Mappings.Add(TEXT("EyeSquint_L"), TEXT("CTRL_L_eye_squint"));
+    Mappings.Add(TEXT("EyeSquint_R"), TEXT("CTRL_R_eye_squint"));
+    Mappings.Add(TEXT("CheekRaise_L"), TEXT("CTRL_L_eye_cheekRaise"));
+    Mappings.Add(TEXT("CheekRaise_R"), TEXT("CTRL_R_eye_cheekRaise"));
+    Mappings.Add(TEXT("EyeWarmth_L"), TEXT("CTRL_L_eye_cheekRaise"));
+    Mappings.Add(TEXT("EyeWarmth_R"), TEXT("CTRL_R_eye_cheekRaise"));
+    // === NOSE ===
+    Mappings.Add(TEXT("NoseWrinkle_L"), TEXT("CTRL_L_nose_wrinkle"));
+    Mappings.Add(TEXT("NoseWrinkle_R"), TEXT("CTRL_R_nose_wrinkle"));
+    // === JAW ===
+    Mappings.Add(TEXT("JawOpen"), TEXT("CTRL_C_jaw_open"));
+    Mappings.Add(TEXT("JawLeft"), TEXT("CTRL_C_jaw_left"));
+    Mappings.Add(TEXT("JawRight"), TEXT("CTRL_C_jaw_right"));
+
     return Mappings;
 }
