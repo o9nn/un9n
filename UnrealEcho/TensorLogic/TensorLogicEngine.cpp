@@ -640,19 +640,130 @@ float UTensorLogicEngine::RESCALScore(const FString& Entity1, const FString& Rel
 
 TArray<float> UTensorLogicEngine::Einsum(const FString& Equation, const TArray<TArray<float>>& Tensors)
 {
-    // TODO: Implement full einsum tensor contraction
-    // For now, this is a placeholder that returns empty
-    // Full implementation should:
-    // 1. Parse einsum equation notation (e.g., "ij,jk->ik")
-    // 2. Determine tensor dimensions and contraction indices
-    // 3. Perform tensor contractions using nested loops or optimized algorithms
-    // 4. Support broadcasting and advanced indexing
-    // Planned for future release - see GitHub issue #TBD
-    
+    // Einsum tensor contraction — supports common patterns:
+    //   "ij,jk->ik" (matmul), "ij->i" (row sum), "ij->ji" (transpose),
+    //   "i,i->" (dot), "ij,ij->" (Frobenius), "i,j->ij" (outer product)
+
     TArray<float> Result;
-    
-    UE_LOG(LogTemp, Warning, TEXT("TensorLogicEngine: Einsum not fully implemented yet: %s"), *Equation);
-    
+    if (Tensors.Num() == 0) return Result;
+
+    // Parse equation: split on "->"
+    FString InputSpec, OutputSpec;
+    if (!Equation.Split(TEXT("->"), &InputSpec, &OutputSpec))
+    {
+        InputSpec = Equation;
+        OutputSpec = TEXT("");
+    }
+
+    TArray<FString> InputSpecs;
+    InputSpec.ParseIntoArray(InputSpecs, TEXT(","), true);
+    if (InputSpecs.Num() != Tensors.Num())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("TensorLogicEngine::Einsum: spec/tensor count mismatch in '%s'"), *Equation);
+        return Result;
+    }
+
+    // --- Single-tensor operations ---
+    if (Tensors.Num() == 1)
+    {
+        const TArray<float>& A = Tensors[0];
+        if (OutputSpec.IsEmpty())
+        {
+            float Sum = 0.0f;
+            for (float V : A) Sum += V;
+            Result.Add(Sum);
+            return Result;
+        }
+        if (InputSpecs[0] == TEXT("ij") && OutputSpec == TEXT("i"))
+        {
+            int32 N = FMath::CeilToInt(FMath::Sqrt((float)A.Num()));
+            Result.SetNum(N);
+            for (int32 i = 0; i < N; ++i)
+            {
+                float S = 0.0f;
+                for (int32 j = 0; j < N && i * N + j < A.Num(); ++j)
+                    S += A[i * N + j];
+                Result[i] = S;
+            }
+            return Result;
+        }
+        if (InputSpecs[0] == TEXT("ij") && OutputSpec == TEXT("ji"))
+        {
+            int32 N = FMath::CeilToInt(FMath::Sqrt((float)A.Num()));
+            Result.SetNum(A.Num());
+            for (int32 i = 0; i < N; ++i)
+                for (int32 j = 0; j < N && i * N + j < A.Num(); ++j)
+                    Result[j * N + i] = A[i * N + j];
+            return Result;
+        }
+        Result = A;
+        return Result;
+    }
+
+    // --- Two-tensor operations ---
+    if (Tensors.Num() == 2)
+    {
+        const TArray<float>& A = Tensors[0];
+        const TArray<float>& B = Tensors[1];
+
+        // Dot product: "i,i->"
+        if (InputSpecs[0] == TEXT("i") && InputSpecs[1] == TEXT("i"))
+        {
+            float Dot = 0.0f;
+            for (int32 i = 0; i < FMath::Min(A.Num(), B.Num()); ++i)
+                Dot += A[i] * B[i];
+            Result.Add(Dot);
+            return Result;
+        }
+
+        // Matrix multiply: "ij,jk->ik"
+        if (InputSpecs[0] == TEXT("ij") && InputSpecs[1] == TEXT("jk") && OutputSpec == TEXT("ik"))
+        {
+            int32 M = FMath::CeilToInt(FMath::Sqrt((float)A.Num()));
+            int32 N = M;
+            int32 K = B.Num() > 0 ? B.Num() / N : 0;
+            Result.SetNum(M * K);
+            for (int32 i = 0; i < M; ++i)
+                for (int32 k = 0; k < K; ++k)
+                {
+                    float S = 0.0f;
+                    for (int32 j = 0; j < N; ++j)
+                    {
+                        int32 AI = i * N + j, BI = j * K + k;
+                        if (AI < A.Num() && BI < B.Num()) S += A[AI] * B[BI];
+                    }
+                    Result[i * K + k] = S;
+                }
+            return Result;
+        }
+
+        // Element-wise / Frobenius: "ij,ij->"
+        if (InputSpecs[0] == TEXT("ij") && InputSpecs[1] == TEXT("ij"))
+        {
+            if (OutputSpec.IsEmpty())
+            {
+                float S = 0.0f;
+                for (int32 i = 0; i < FMath::Min(A.Num(), B.Num()); ++i) S += A[i] * B[i];
+                Result.Add(S);
+                return Result;
+            }
+            Result.SetNum(FMath::Min(A.Num(), B.Num()));
+            for (int32 i = 0; i < Result.Num(); ++i) Result[i] = A[i] * B[i];
+            return Result;
+        }
+
+        // Outer product: "i,j->ij"
+        if (InputSpecs[0] == TEXT("i") && InputSpecs[1] == TEXT("j") && OutputSpec == TEXT("ij"))
+        {
+            Result.SetNum(A.Num() * B.Num());
+            for (int32 i = 0; i < A.Num(); ++i)
+                for (int32 j = 0; j < B.Num(); ++j)
+                    Result[i * B.Num() + j] = A[i] * B[j];
+            return Result;
+        }
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("TensorLogicEngine::Einsum: unsupported pattern '%s'"), *Equation);
     return Result;
 }
 
