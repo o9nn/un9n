@@ -240,13 +240,21 @@ void UUnrealAvatarCognition::ProcessEchobeatsState(const FEchobeatsFullState& Ec
 
 void UUnrealAvatarCognition::ProcessSys6State(const FSys6FullState& Sys6State)
 {
-    State.CurrentSys6Step = Sys6State.CurrentStep;
-    State.EntelechyLevel = Sys6State.Entelechy;
+    State.CurrentSys6Step = Sys6State.GlobalStep;
 
-    // Update extended cognition based on sys6 state
-    State.E4State.Add(TEXT("Extended"), Sys6State.Coherence);
+    // Entelechy: purposeful direction rises through the 30-step cycle
+    // (stage progress within the pentadic structure, 1.0 at cycle completion).
+    const float CycleProgress = FMath::Clamp(
+        (float)Sys6State.GlobalStep / 30.0f, 0.0f, 1.0f);
+    State.EntelechyLevel = CycleProgress;
 
-    OnCognitiveStateChanged.Broadcast(TEXT("Sys6Step"), (float)Sys6State.CurrentStep);
+    // Extended cognition coherence: synchronization density relative to the
+    // expected ~42 sync events per full cycle.
+    const float SyncCoherence = FMath::Clamp(
+        (float)Sys6State.SyncEventCount / 42.0f, 0.0f, 1.0f);
+    State.E4State.Add(TEXT("Extended"), SyncCoherence);
+
+    OnCognitiveStateChanged.Broadcast(TEXT("Sys6Step"), (float)Sys6State.GlobalStep);
 }
 
 void UUnrealAvatarCognition::Update4EState(const TMap<FString, float>& E4Values)
@@ -360,7 +368,10 @@ void UUnrealAvatarCognition::BlendExpressionStates(float DeltaTime)
     State.FacialExpression.JawClench = FMath::Lerp(State.FacialExpression.JawClench, TargetFacialExpression.JawClench, BlendAlpha);
 
     // Blend body schema
-    State.BodySchema.HeadOrientation = FMath::Lerp(State.BodySchema.HeadOrientation, TargetBodySchema.HeadOrientation, BlendAlpha);
+    State.BodySchema.HeadOrientation = FRotator(
+        FMath::Lerp(State.BodySchema.HeadOrientation.Pitch, TargetBodySchema.HeadOrientation.Pitch, BlendAlpha),
+        FMath::Lerp(State.BodySchema.HeadOrientation.Yaw, TargetBodySchema.HeadOrientation.Yaw, BlendAlpha),
+        FMath::Lerp(State.BodySchema.HeadOrientation.Roll, TargetBodySchema.HeadOrientation.Roll, BlendAlpha));
     State.BodySchema.SpineCurvature = FMath::Lerp(State.BodySchema.SpineCurvature, TargetBodySchema.SpineCurvature, BlendAlpha);
     State.BodySchema.ShoulderTension = FMath::Lerp(State.BodySchema.ShoulderTension, TargetBodySchema.ShoulderTension, BlendAlpha);
     State.BodySchema.ArmOpenness = FMath::Lerp(State.BodySchema.ArmOpenness, TargetBodySchema.ArmOpenness, BlendAlpha);
@@ -395,23 +406,20 @@ void UUnrealAvatarCognition::ApplyExpressionToAvatar()
     UAnimInstance* AnimInstance = SkeletalMesh->GetAnimInstance();
     if (AnimInstance)
     {
-        // Head orientation via look-at IK
+                // Head orientation via look-at IK
         AnimInstance->SetRootMotionMode(ERootMotionMode::RootMotionFromEverything);
 
-        // Spine curvature drives posture blend space
+#if WITH_ENGINE_REFLECTION
+        // Set animation blueprint float parameters for body schema via UE5
+        // reflection (FFloatProperty; UProperty was removed in UE 4.25+).
         FName SpineCurveParam = TEXT("SpineCurvature");
-        AnimInstance->Montage_SetPlayRate(nullptr, 1.0f);
-
-        // Set animation blueprint float parameters for body schema
-        UProperty* SpineProp = AnimInstance->GetClass()->FindPropertyByName(SpineCurveParam);
-        if (SpineProp)
+        if (FFloatProperty* SpineProp = FindFProperty<FFloatProperty>(
+                AnimInstance->GetClass(), SpineCurveParam))
         {
-            float* SpineValue = SpineProp->ContainerPtrToValuePtr<float>(AnimInstance);
-            if (SpineValue)
-            {
-                *SpineValue = State.BodySchema.SpineCurvature;
-            }
+            SpineProp->SetPropertyValue_InContainer(
+                AnimInstance, State.BodySchema.SpineCurvature);
         }
+#endif
     }
 
     // Apply MetaHuman-compatible morph targets for body schema

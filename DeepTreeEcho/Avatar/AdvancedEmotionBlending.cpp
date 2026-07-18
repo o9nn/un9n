@@ -312,9 +312,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         JoyRule.Priority = 10;
         JoyRule.bIsEnabled = true;
 
-        JoyRule.ExpressionTarget.FacialExpression.Happiness = 0.9f;
+        JoyRule.ExpressionTarget.FacialExpression.Smile = 0.9f;
         JoyRule.ExpressionTarget.FacialExpression.EyeOpenness = 0.8f;
-        JoyRule.ExpressionTarget.BodySchema.Posture = 0.8f;
+        JoyRule.ExpressionTarget.BodySchema.ArmOpenness = 0.8f;
         JoyRule.ExpressionTarget.AuraColor = FLinearColor(1.0f, 0.9f, 0.3f, 1.0f);
         JoyRule.ExpressionTarget.AuraIntensity = 0.7f;
 
@@ -332,9 +332,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         SadRule.Priority = 10;
         SadRule.bIsEnabled = true;
 
-        SadRule.ExpressionTarget.FacialExpression.Sadness = 0.8f;
+        SadRule.ExpressionTarget.FacialExpression.BrowRaise = 0.8f;
         SadRule.ExpressionTarget.FacialExpression.EyeOpenness = 0.4f;
-        SadRule.ExpressionTarget.BodySchema.Posture = 0.3f;
+        SadRule.ExpressionTarget.BodySchema.ArmOpenness = 0.3f;
         SadRule.ExpressionTarget.AuraColor = FLinearColor(0.3f, 0.4f, 0.7f, 1.0f);
         SadRule.ExpressionTarget.AuraIntensity = 0.4f;
 
@@ -353,9 +353,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         AngerRule.Priority = 15;
         AngerRule.bIsEnabled = true;
 
-        AngerRule.ExpressionTarget.FacialExpression.Anger = 0.9f;
+        AngerRule.ExpressionTarget.FacialExpression.BrowFurrow = 0.9f;
         AngerRule.ExpressionTarget.FacialExpression.BrowFurrow = 0.8f;
-        AngerRule.ExpressionTarget.BodySchema.Tension = 0.9f;
+        AngerRule.ExpressionTarget.BodySchema.ShoulderTension = 0.9f;
         AngerRule.ExpressionTarget.AuraColor = FLinearColor(0.9f, 0.2f, 0.1f, 1.0f);
         AngerRule.ExpressionTarget.AuraIntensity = 0.8f;
 
@@ -374,9 +374,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         FearRule.Priority = 15;
         FearRule.bIsEnabled = true;
 
-        FearRule.ExpressionTarget.FacialExpression.Fear = 0.9f;
+        FearRule.ExpressionTarget.FacialExpression.EyeOpenness = 0.9f;
         FearRule.ExpressionTarget.FacialExpression.EyeOpenness = 1.0f;
-        FearRule.ExpressionTarget.BodySchema.Tension = 0.8f;
+        FearRule.ExpressionTarget.BodySchema.ShoulderTension = 0.8f;
         FearRule.ExpressionTarget.AuraColor = FLinearColor(0.5f, 0.3f, 0.6f, 1.0f);
         FearRule.ExpressionTarget.AuraIntensity = 0.6f;
 
@@ -394,7 +394,7 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         SurpriseRule.Priority = 12;
         SurpriseRule.bIsEnabled = true;
 
-        SurpriseRule.ExpressionTarget.FacialExpression.Surprise = 0.9f;
+        SurpriseRule.ExpressionTarget.FacialExpression.MouthOpenness = 0.9f;
         SurpriseRule.ExpressionTarget.FacialExpression.EyeOpenness = 1.0f;
         SurpriseRule.ExpressionTarget.FacialExpression.BrowRaise = 0.9f;
         SurpriseRule.ExpressionTarget.AuraColor = FLinearColor(0.8f, 0.8f, 1.0f, 1.0f);
@@ -415,9 +415,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         CuriosityRule.Priority = 8;
         CuriosityRule.bIsEnabled = true;
 
-        CuriosityRule.ExpressionTarget.FacialExpression.Interest = 0.8f;
+        CuriosityRule.ExpressionTarget.FacialExpression.CheekRaise = 0.8f;
         CuriosityRule.ExpressionTarget.FacialExpression.EyeOpenness = 0.7f;
-        CuriosityRule.ExpressionTarget.BodySchema.Posture = 0.7f;
+        CuriosityRule.ExpressionTarget.BodySchema.ArmOpenness = 0.7f;
         CuriosityRule.ExpressionTarget.AuraColor = FLinearColor(0.4f, 0.8f, 0.9f, 1.0f);
         CuriosityRule.ExpressionTarget.AuraIntensity = 0.5f;
 
@@ -435,9 +435,9 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         ContemplationRule.Priority = 5;
         ContemplationRule.bIsEnabled = true;
 
-        ContemplationRule.ExpressionTarget.FacialExpression.Contemplation = 0.7f;
+        ContemplationRule.ExpressionTarget.FacialExpression.LipTension = 0.7f;
         ContemplationRule.ExpressionTarget.FacialExpression.EyeOpenness = 0.5f;
-        ContemplationRule.ExpressionTarget.BodySchema.Posture = 0.5f;
+        ContemplationRule.ExpressionTarget.BodySchema.ArmOpenness = 0.5f;
         ContemplationRule.ExpressionTarget.AuraColor = FLinearColor(0.6f, 0.6f, 0.8f, 1.0f);
         ContemplationRule.ExpressionTarget.AuraIntensity = 0.4f;
 
@@ -454,8 +454,8 @@ void UAdvancedEmotionBlending::InitializeDefaultRules()
         NeutralRule.Priority = 0;
         NeutralRule.bIsEnabled = true;
 
-        NeutralRule.ExpressionTarget.FacialExpression.Neutral = 1.0f;
-        NeutralRule.ExpressionTarget.BodySchema.Posture = 0.5f;
+        NeutralRule.ExpressionTarget.FacialExpression.EyeOpenness = 1.0f;
+        NeutralRule.ExpressionTarget.BodySchema.ArmOpenness = 0.5f;
         NeutralRule.ExpressionTarget.AuraColor = FLinearColor(0.7f, 0.7f, 0.7f, 1.0f);
         NeutralRule.ExpressionTarget.AuraIntensity = 0.3f;
 
@@ -501,48 +501,36 @@ FEmotionVector UAdvancedEmotionBlending::NamedEmotionToVector(EAvatarEmotionStat
         Result.Dominance = 0.0f;
         break;
 
-    case EAvatarEmotionState::Happy:
+    case EAvatarEmotionState::Joy:
         Result.Valence = 0.8f * Intensity;
         Result.Arousal = 0.7f * Intensity;
         Result.Approach = 0.5f * Intensity;
         Result.Agency = 0.3f * Intensity;
         break;
 
-    case EAvatarEmotionState::Sad:
+    case EAvatarEmotionState::Concern:
         Result.Valence = -0.7f * Intensity;
         Result.Arousal = 0.3f * Intensity;
         Result.Approach = -0.3f * Intensity;
         Result.Agency = -0.2f * Intensity;
         break;
 
-    case EAvatarEmotionState::Angry:
+    case EAvatarEmotionState::Determination:
         Result.Valence = -0.6f * Intensity;
         Result.Arousal = 0.9f * Intensity;
         Result.Dominance = 0.7f * Intensity;
         Result.Approach = 0.5f * Intensity;
         break;
 
-    case EAvatarEmotionState::Fearful:
-        Result.Valence = -0.5f * Intensity;
-        Result.Arousal = 0.8f * Intensity;
-        Result.Dominance = -0.7f * Intensity;
-        Result.Approach = -0.8f * Intensity;
-        Result.Certainty = 0.2f;
-        break;
 
-    case EAvatarEmotionState::Surprised:
+    case EAvatarEmotionState::Wonder:
         Result.Arousal = 0.8f * Intensity;
         Result.Novelty = 0.9f * Intensity;
         Result.Certainty = 0.2f;
         break;
 
-    case EAvatarEmotionState::Disgusted:
-        Result.Valence = -0.6f * Intensity;
-        Result.Arousal = 0.5f * Intensity;
-        Result.Approach = -0.9f * Intensity;
-        break;
 
-    case EAvatarEmotionState::Curious:
+    case EAvatarEmotionState::Curiosity:
         Result.Valence = 0.3f * Intensity;
         Result.Arousal = 0.6f * Intensity;
         Result.Novelty = 0.7f * Intensity;
@@ -550,26 +538,26 @@ FEmotionVector UAdvancedEmotionBlending::NamedEmotionToVector(EAvatarEmotionStat
         Result.Temporal = 0.3f * Intensity;
         break;
 
-    case EAvatarEmotionState::Contemplative:
+    case EAvatarEmotionState::Contemplation:
         Result.Arousal = 0.4f * Intensity;
         Result.Temporal = -0.3f * Intensity;
         Result.Agency = 0.5f * Intensity;
         break;
 
-    case EAvatarEmotionState::Excited:
+    case EAvatarEmotionState::Excitement:
         Result.Valence = 0.7f * Intensity;
         Result.Arousal = 0.95f * Intensity;
         Result.Approach = 0.7f * Intensity;
         Result.Temporal = 0.5f * Intensity;
         break;
 
-    case EAvatarEmotionState::Calm:
+    case EAvatarEmotionState::Serenity:
         Result.Valence = 0.2f * Intensity;
         Result.Arousal = 0.2f * Intensity;
         Result.Certainty = 0.7f * Intensity;
         break;
 
-    case EAvatarEmotionState::Focused:
+    case EAvatarEmotionState::Focus:
         Result.Arousal = 0.6f * Intensity;
         Result.Certainty = 0.8f * Intensity;
         Result.Agency = 0.6f * Intensity;
@@ -586,17 +574,17 @@ EAvatarEmotionState UAdvancedEmotionBlending::GetClosestNamedEmotion(const FEmot
 
     TArray<EAvatarEmotionState> AllStates = {
         EAvatarEmotionState::Neutral,
-        EAvatarEmotionState::Happy,
-        EAvatarEmotionState::Sad,
-        EAvatarEmotionState::Angry,
-        EAvatarEmotionState::Fearful,
-        EAvatarEmotionState::Surprised,
-        EAvatarEmotionState::Disgusted,
-        EAvatarEmotionState::Curious,
-        EAvatarEmotionState::Contemplative,
-        EAvatarEmotionState::Excited,
-        EAvatarEmotionState::Calm,
-        EAvatarEmotionState::Focused
+        EAvatarEmotionState::Joy,
+        EAvatarEmotionState::Concern,
+        EAvatarEmotionState::Determination,
+        EAvatarEmotionState::Concern,
+        EAvatarEmotionState::Wonder,
+        EAvatarEmotionState::Concern,
+        EAvatarEmotionState::Curiosity,
+        EAvatarEmotionState::Contemplation,
+        EAvatarEmotionState::Excitement,
+        EAvatarEmotionState::Serenity,
+        EAvatarEmotionState::Focus
     };
 
     for (EAvatarEmotionState State : AllStates)
@@ -825,7 +813,7 @@ void UAdvancedEmotionBlending::BlendLayers()
                 if (Layer.bIsActive)
                 {
                     float PhaseOffset = (float)i / State.ActiveLayers.Num();
-                    float LayerPhase = FMath::Sin((Time + PhaseOffset * 2.0f * PI) * 2.0f) * 0.5f + 0.5f;
+                    float LayerPhase = FMath::Sin((Time + PhaseOffset * 2.0f * FMath::PI) * 2.0f) * 0.5f + 0.5f;
                     float ModulatedWeight = Layer.Weight * LayerPhase;
 
                     BlendedEmotion = BlendedEmotion + Layer.Emotion * ModulatedWeight;
@@ -1047,19 +1035,19 @@ FExpressionTarget UAdvancedEmotionBlending::BlendExpressionTargets(const TArray<
         float NormWeight = Weights[i] / TotalWeight;
         const FExpressionTarget& Target = Targets[i];
 
-        Result.FacialExpression.Happiness += Target.FacialExpression.Happiness * NormWeight;
-        Result.FacialExpression.Sadness += Target.FacialExpression.Sadness * NormWeight;
-        Result.FacialExpression.Anger += Target.FacialExpression.Anger * NormWeight;
-        Result.FacialExpression.Fear += Target.FacialExpression.Fear * NormWeight;
-        Result.FacialExpression.Surprise += Target.FacialExpression.Surprise * NormWeight;
-        Result.FacialExpression.Disgust += Target.FacialExpression.Disgust * NormWeight;
-        Result.FacialExpression.Neutral += Target.FacialExpression.Neutral * NormWeight;
+        Result.FacialExpression.Smile += Target.FacialExpression.Smile * NormWeight;
+        Result.FacialExpression.BrowRaise += Target.FacialExpression.BrowRaise * NormWeight;
+        Result.FacialExpression.BrowFurrow += Target.FacialExpression.BrowFurrow * NormWeight;
+        Result.FacialExpression.EyeOpenness += Target.FacialExpression.EyeOpenness * NormWeight;
+        Result.FacialExpression.MouthOpenness += Target.FacialExpression.MouthOpenness * NormWeight;
+        Result.FacialExpression.NoseWrinkle += Target.FacialExpression.NoseWrinkle * NormWeight;
+        Result.FacialExpression.EyeOpenness += Target.FacialExpression.EyeOpenness * NormWeight;
         Result.FacialExpression.EyeOpenness += Target.FacialExpression.EyeOpenness * NormWeight;
         Result.FacialExpression.BrowRaise += Target.FacialExpression.BrowRaise * NormWeight;
         Result.FacialExpression.BrowFurrow += Target.FacialExpression.BrowFurrow * NormWeight;
 
-        Result.BodySchema.Posture += Target.BodySchema.Posture * NormWeight;
-        Result.BodySchema.Tension += Target.BodySchema.Tension * NormWeight;
+        Result.BodySchema.ArmOpenness += Target.BodySchema.ArmOpenness * NormWeight;
+        Result.BodySchema.ShoulderTension += Target.BodySchema.ShoulderTension * NormWeight;
 
         Result.AuraColor += Target.AuraColor * NormWeight;
         Result.AuraIntensity += Target.AuraIntensity * NormWeight;

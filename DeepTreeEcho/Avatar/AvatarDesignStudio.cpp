@@ -557,7 +557,7 @@ void UAvatarDesignStudio::GenerateChaoticExpression(float ChaosLevel)
     if (!DNABridge) return;
 
     // Use the Lorenz attractor to generate a unique expression
-    FVector LState = DNABridge->LorenzState;
+    FVector LState = DNABridge->GetLorenzState();
 
     // Map chaotic state to expression parameters
     float Lx = FMath::Frac(FMath::Abs(LState.X * 0.05f));
@@ -653,14 +653,13 @@ void UAvatarDesignStudio::ResetChaoticAttractor()
 {
     if (DNABridge)
     {
-        DNABridge->LorenzState = FVector(0.1f, 0.0f, 0.0f);
-        DNABridge->TrajectoryHistory.Empty();
+        DNABridge->ResetChaoticState(FVector(0.1f, 0.0f, 0.0f));
     }
 }
 
 TArray<FVector> UAvatarDesignStudio::GetAttractorTrajectory() const
 {
-    return DNABridge ? DNABridge->TrajectoryHistory : TArray<FVector>();
+    return DNABridge ? DNABridge->GetTrajectoryHistory() : TArray<FVector>();
 }
 
 // ============================================================================
@@ -894,7 +893,7 @@ FExpressionAnimationSequence UAvatarDesignStudio::GenerateAnimationFromCognitive
             Key.ActionUnitValues.Add(FName("AU6"), 0.8f * EmotionIntensity);
             Key.ActionUnitValues.Add(FName("AU12"), 1.0f * EmotionIntensity);
             break;
-        case EAvatarEmotionState::Sadness:
+        case EAvatarEmotionState::Concern:
             Key.ActionUnitValues.Add(FName("AU1"), 0.7f * EmotionIntensity);
             Key.ActionUnitValues.Add(FName("AU4"), 0.5f * EmotionIntensity);
             Key.ActionUnitValues.Add(FName("AU15"), 0.8f * EmotionIntensity);
@@ -1303,7 +1302,7 @@ float UAvatarDesignStudio::ApplyEasing(float Alpha, uint8 EasingType)
         if (Alpha == 0.0f || Alpha == 1.0f) return Alpha;
         float P = 0.3f;
         return FMath::Pow(2.0f, -10.0f * Alpha) *
-               FMath::Sin((Alpha - P / 4.0f) * (2.0f * PI) / P) + 1.0f;
+               FMath::Sin((Alpha - P / 4.0f) * (2.0f * FMath::PI) / P) + 1.0f;
     }
     default:
         return Alpha;

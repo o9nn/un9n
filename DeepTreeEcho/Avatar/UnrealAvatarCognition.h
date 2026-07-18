@@ -10,7 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Sound/SoundBase.h"
 #include "../Echobeats/EchobeatsStreamEngine.h"
-#include "../Core/Sys6AvatarIntegration.h"
+#include "Sys6AvatarIntegration.h"
 #include "UnrealAvatarCognition.generated.h"
 
 /**

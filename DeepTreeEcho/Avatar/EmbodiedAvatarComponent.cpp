@@ -466,8 +466,8 @@ void UEmbodiedAvatarComponent::UpdateBreathing(float DeltaTime)
 float UEmbodiedAvatarComponent::GetChestExpansion() const
 {
     // Sinusoidal breathing pattern
-    float Phase = BreathPhase * 2.0f * PI;
-    float Expansion = (FMath::Sin(Phase - PI * 0.5f) + 1.0f) * 0.5f;
+    float Phase = BreathPhase * 2.0f * FMath::PI;
+    float Expansion = (FMath::Sin(Phase - FMath::PI * 0.5f) + 1.0f) * 0.5f;
 
     return Expansion * BreathingDepth;
 }

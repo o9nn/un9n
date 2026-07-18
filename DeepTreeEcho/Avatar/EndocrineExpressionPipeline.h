@@ -17,7 +17,7 @@
 
 /** Cognitive mode detected from hormone state */
 UENUM(BlueprintType)
-enum class ECognitiveMode : uint8
+enum class EEndocrineCognitiveMode : uint8
 {
     Resting        UMETA(DisplayName = "Resting - Low arousal, neutral valence"),
     Focused        UMETA(DisplayName = "Focused - Moderate arousal, positive valence"),
@@ -85,7 +85,7 @@ struct FHormoneBusState
 
     /** Current cognitive mode */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    ECognitiveMode CurrentMode = ECognitiveMode::Resting;
+    EEndocrineCognitiveMode CurrentMode = EEndocrineCognitiveMode::Resting;
 
     /** Valence (-1 to +1, negative to positive) */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -145,7 +145,7 @@ struct FCognitiveEvent
 // Delegates
 // ============================================================================
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCognitiveModeChanged, ECognitiveMode, OldMode, ECognitiveMode, NewMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCognitiveModeChanged, EEndocrineCognitiveMode, OldMode, EEndocrineCognitiveMode, NewMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHormoneSpike, FName, HormoneName, float, Level);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnValenceArousalChanged, float, Valence, float, Arousal);
 
@@ -196,7 +196,7 @@ public:
 
     /** Get current cognitive mode */
     UFUNCTION(BlueprintPure, Category = "Endocrine Pipeline")
-    ECognitiveMode GetCognitiveMode() const { return BusState.CurrentMode; }
+    EEndocrineCognitiveMode GetCognitiveMode() const { return BusState.CurrentMode; }
 
     /** Get valence-arousal state */
     UFUNCTION(BlueprintPure, Category = "Endocrine Pipeline")
@@ -278,7 +278,7 @@ protected:
     void UpdateHormoneDecay(float DeltaTime);
 
     /** Detect cognitive mode from current hormone state */
-    ECognitiveMode DetectCognitiveMode() const;
+    EEndocrineCognitiveMode DetectCognitiveMode() const;
 
     /** Compute valence-arousal from hormone state */
     void ComputeValenceArousal(float& OutValence, float& OutArousal) const;

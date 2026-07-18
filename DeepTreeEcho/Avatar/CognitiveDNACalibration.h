@@ -136,7 +136,7 @@ struct FCalibrationSnapshot
     FString Description;
 
     UPROPERTY(BlueprintReadOnly)
-    TMap<FName, float> NeutralPoseOffsets;
+    TMap<FName, FVector> NeutralPoseOffsets;
 
     UPROPERTY(BlueprintReadOnly)
     FAestheticOverlay AestheticState;

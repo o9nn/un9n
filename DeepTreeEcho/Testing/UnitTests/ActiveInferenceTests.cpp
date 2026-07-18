@@ -93,6 +93,30 @@ struct FGenerativeModel {
     int NumObservations = 4;
     int NumActions = 3;
     
+    void Rebuild() {
+        // (Re)initialize matrices to match current dimensions
+        A.assign(NumObservations, Vector(NumStates, 0.25));
+        B.assign(NumStates, Vector(NumStates * NumActions, 0.0));
+        C.assign(NumObservations, 0.0);
+        D.assign(NumStates, 1.0 / std::max(1, NumStates));
+
+        // Set up simple observation model (identity-ish)
+        for (int i = 0; i < NumObservations; i++) {
+            for (int j = 0; j < NumStates; j++) {
+                A[i][j] = (i == j) ? 0.7 : 0.1;
+            }
+        }
+
+        // Normalize columns
+        for (int j = 0; j < NumStates; j++) {
+            double sum = 0.0;
+            for (int i = 0; i < NumObservations; i++) sum += A[i][j];
+            if (sum > 1e-10) {
+                for (int i = 0; i < NumObservations; i++) A[i][j] /= sum;
+            }
+        }
+    }
+
     FGenerativeModel() {
         // Initialize with default dimensions
         A.resize(NumObservations, Vector(NumStates, 0.25));
@@ -131,11 +155,20 @@ public:
     
     void Initialize(const FGenerativeModel& model) {
         Model = model;
-        
-        // Initialize beliefs
-        CurrentBelief.StateBelief = model.D;
-        CurrentBelief.ActionBelief.resize(model.NumActions, 1.0 / model.NumActions);
-        CurrentBelief.PredictedObs.resize(model.NumObservations, 0.0);
+
+        // Ensure model matrices match declared dimensions (dims may have been
+        // changed after construction, e.g. by MockAXIOMActiveInference)
+        if ((int)Model.A.size() != Model.NumObservations ||
+            (Model.A.size() > 0 && (int)Model.A[0].size() != Model.NumStates) ||
+            (int)Model.D.size() != Model.NumStates ||
+            (int)Model.C.size() != Model.NumObservations) {
+            Model.Rebuild();
+        }
+
+        // Initialize beliefs (use the possibly-rebuilt Model)
+        CurrentBelief.StateBelief = Model.D;
+        CurrentBelief.ActionBelief.resize(Model.NumActions, 1.0 / Model.NumActions);
+        CurrentBelief.PredictedObs.resize(Model.NumObservations, 0.0);
         
         bInitialized = true;
     }
@@ -146,10 +179,11 @@ public:
         if (!bInitialized) return;
         
         // Bayesian belief update: Q(s) ∝ P(o|s) * Q(s)
+        const int numObs = std::min<int>(Model.NumObservations, (int)observation.size());
         Vector likelihood(Model.NumStates);
         for (int s = 0; s < Model.NumStates; s++) {
             likelihood[s] = 1.0;
-            for (int o = 0; o < Model.NumObservations; o++) {
+            for (int o = 0; o < numObs; o++) {
                 if (observation[o] > 0.5) {
                     likelihood[s] *= Model.A[o][s];
                 }
@@ -179,9 +213,10 @@ public:
         double negEntropy = -MathUtils::Entropy(CurrentBelief.StateBelief);
         
         double expectedLogLikelihood = 0.0;
+        const int numObsFE = std::min<int>(Model.NumObservations, (int)observation.size());
         for (int s = 0; s < Model.NumStates; s++) {
             double logLik = 0.0;
-            for (int o = 0; o < Model.NumObservations; o++) {
+            for (int o = 0; o < numObsFE; o++) {
                 if (observation[o] > 0.5 && Model.A[o][s] > 1e-10) {
                     logLik += std::log(Model.A[o][s]);
                 }
@@ -941,7 +976,4 @@ TEST(ActiveInferencePerformanceTest, ActionSelectionPerformance) {
 // Main Entry Point
 // ============================================================================
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+// main() provided by GTest::gtest_main (single test binary links all suites)

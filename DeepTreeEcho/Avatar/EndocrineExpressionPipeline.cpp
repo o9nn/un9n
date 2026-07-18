@@ -34,7 +34,7 @@ void UEndocrineExpressionPipeline::TickComponent(float DeltaTime, ELevelTick Tic
     UpdateHormoneDecay(DeltaTime);
 
     // 2. Detect cognitive mode
-    ECognitiveMode OldMode = BusState.CurrentMode;
+    EEndocrineCognitiveMode OldMode = BusState.CurrentMode;
     BusState.CurrentMode = DetectCognitiveMode();
     if (OldMode != BusState.CurrentMode)
     {
@@ -168,7 +168,7 @@ void UEndocrineExpressionPipeline::UpdateHormoneDecay(float DeltaTime)
     }
 }
 
-ECognitiveMode UEndocrineExpressionPipeline::DetectCognitiveMode() const
+EEndocrineCognitiveMode UEndocrineExpressionPipeline::DetectCognitiveMode() const
 {
     float Cortisol = GetHormoneLevel(FName("Cortisol"));
     float DopamineTonic = GetHormoneLevel(FName("Dopamine_Tonic"));
@@ -182,41 +182,41 @@ ECognitiveMode UEndocrineExpressionPipeline::DetectCognitiveMode() const
 
     // Flow state: optimal dopamine + moderate NE + low cortisol + high serotonin
     if (DopamineTonic > 0.4f && NE > 0.15f && NE < 0.4f && Cortisol < 0.2f && Serotonin > 0.4f)
-        return ECognitiveMode::Flow;
+        return EEndocrineCognitiveMode::Flow;
 
     // Transcendent: all positive hormones high, stress low
     if (DopamineTonic > 0.5f && Serotonin > 0.5f && Oxytocin > 0.3f && Cortisol < 0.15f)
-        return ECognitiveMode::Transcendent;
+        return EEndocrineCognitiveMode::Transcendent;
 
     // Stressed: high cortisol
     if (Cortisol > 0.4f)
-        return ECognitiveMode::Stressed;
+        return EEndocrineCognitiveMode::Stressed;
 
     // Alert: high norepinephrine
     if (NE > 0.4f)
-        return ECognitiveMode::Alert;
+        return EEndocrineCognitiveMode::Alert;
 
     // Creative: edge of chaos dopamine + moderate NE
     if (DopaminePhasic > 0.3f && NE > 0.2f && T3T4 > 0.5f)
-        return ECognitiveMode::Creative;
+        return EEndocrineCognitiveMode::Creative;
 
     // Social: high oxytocin
     if (Oxytocin > 0.3f)
-        return ECognitiveMode::Social;
+        return EEndocrineCognitiveMode::Social;
 
     // Contemplative: high serotonin, low arousal
     if (Serotonin > 0.5f && NE < 0.15f)
-        return ECognitiveMode::Contemplative;
+        return EEndocrineCognitiveMode::Contemplative;
 
     // Playful: high anandamide
     if (Anandamide > 0.3f && DopamineTonic > 0.3f)
-        return ECognitiveMode::Playful;
+        return EEndocrineCognitiveMode::Playful;
 
     // Focused: moderate dopamine + NE
     if (DopamineTonic > 0.3f && NE > 0.1f)
-        return ECognitiveMode::Focused;
+        return EEndocrineCognitiveMode::Focused;
 
-    return ECognitiveMode::Resting;
+    return EEndocrineCognitiveMode::Resting;
 }
 
 void UEndocrineExpressionPipeline::ComputeValenceArousal(float& OutValence, float& OutArousal) const

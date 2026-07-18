@@ -39,7 +39,7 @@ struct FExpressionTelemetry
 
     /** Current cognitive mode from endocrine system */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    ECognitiveMode CognitiveMode = ECognitiveMode::Resting;
+    EEndocrineCognitiveMode CognitiveMode = EEndocrineCognitiveMode::Resting;
 
     /** Current ontogenetic stage */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

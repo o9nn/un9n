@@ -7,13 +7,13 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Echobeats/EchobeatsStreamEngine.h"
 #include "UnrealAvatarEmbodiment.generated.h"
 
 // Forward declarations
 class USkeletalMeshComponent;
 class UCognitiveCycleManager;
 class UEmbodied4ECognition;
-class UEchobeatsStreamEngine;
 
 /**
  * Body Part State - Physical state of a body part in the body schema
@@ -404,7 +404,7 @@ protected:
 
     // Event Handlers
     UFUNCTION()
-    void HandleCognitiveStepChanged(int32 NewStep, EEchobeatStepType StepType, EEchobeatMode Mode);
+    void HandleCognitiveStepChanged(int32 OldStep, int32 NewStep);
     
     UFUNCTION()
     void HandleRelevanceRealized(int32 Step, float Relevance);

@@ -162,7 +162,7 @@ TMap<FName, float> UDeepTreeEchoExpressionSystem::GenerateChaoticMicroExpression
     if (!DNABridge || !DNABridge->bEnableChaoticAttractor) return Result;
 
     // Use Lorenz attractor state for micro-expression generation
-    FVector LState = DNABridge->LorenzState;
+    FVector LState = DNABridge->GetLorenzState();
     float ChaosIntensity = DNABridge->ChaoticDynamics.ChaosIntensity;
     float MicroFreq = DNABridge->Aesthetics.MicroExpressionFrequency;
 

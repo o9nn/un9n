@@ -1,29 +1,10 @@
-// Kismet/GameplayStatics.h - Stub for standalone compilation testing
+// Stub for standalone compilation. Production uses the real UE header.
 #pragma once
 #include "CoreMinimal.h"
-
-class UGameplayStatics {
-public:
-    static AActor* GetPlayerPawn(const UObject* WorldContextObject, int32 PlayerIndex) { return nullptr; }
-    static APlayerController* GetPlayerController(const UObject* WorldContextObject, int32 PlayerIndex) { return nullptr; }
-    static UWorld* GetWorld(const UObject* WorldContextObject) { return nullptr; }
-    static float GetTimeSeconds(const UObject* WorldContextObject) { return 0.0f; }
-    static float GetRealTimeSeconds(const UObject* WorldContextObject) { return 0.0f; }
-    static void SetGamePaused(const UObject* WorldContextObject, bool bPaused) {}
-    static bool IsGamePaused(const UObject* WorldContextObject) { return false; }
-    
-    static AActor* SpawnActor(UClass* Class, const FTransform& Transform) { return nullptr; }
-    
-    template<typename T>
-    static T* SpawnActorDeferred(UClass* Class, const FTransform& Transform) { return nullptr; }
-    
-    static void PlaySound2D(const UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier = 1.0f) {}
-    static void PlaySoundAtLocation(const UObject* WorldContextObject, class USoundBase* Sound, FVector Location) {}
-    
-    static TArray<AActor*> GetAllActorsOfClass(const UObject* WorldContextObject, UClass* ActorClass) { return TArray<AActor*>(); }
-    
-    template<typename T>
-    static void GetAllActorsOfClass(const UObject* WorldContextObject, TArray<T*>& OutActors) {}
+struct UGameplayStatics {
+    static class APawn* GetPlayerPawn(const UObject*, int32) { return nullptr; }
+    static class AActor* GetPlayerCharacter(const UObject*, int32) { return nullptr; }
+    static float GetWorldDeltaSeconds(const UObject*) { return 0.016f; }
+    static float GetTimeSeconds(const UObject*) { return 0.0f; }
+    static void GetAllActorsInRadius(class UWorld*, const FVector&, float, TArray<class AActor*>& OutActors) { OutActors.Empty(); }
 };
-
-class USoundBase : public UObject {};

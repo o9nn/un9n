@@ -123,12 +123,14 @@ void UUnrealAvatarEmbodiment::FindComponentReferences()
     Embodied4ECognition = Owner->FindComponentByClass<UEmbodied4ECognition>();
     EchobeatsEngine = Owner->FindComponentByClass<UEchobeatsStreamEngine>();
     
-    // Bind to cognitive events
-    if (CognitiveCycleManager)
+    // Bind to cognitive events. Step-change and relevance-realization events
+    // are owned by the Echobeats stream engine (12-step cycle), not the
+    // cognitive cycle manager.
+    if (EchobeatsEngine)
     {
-        CognitiveCycleManager->OnStepChanged.AddDynamic(
+        EchobeatsEngine->OnStepChanged.AddDynamic(
             this, &UUnrealAvatarEmbodiment::HandleCognitiveStepChanged);
-        CognitiveCycleManager->OnRelevanceRealized.AddDynamic(
+        EchobeatsEngine->OnRelevanceRealized.AddDynamic(
             this, &UUnrealAvatarEmbodiment::HandleRelevanceRealized);
     }
 }
@@ -220,10 +222,11 @@ void UUnrealAvatarEmbodiment::UpdateEmbodiedState(float DeltaTime)
         UpdateBodySchemaFromMesh();
     }
     
-    // Update arousal based on cognitive activity
-    if (CognitiveCycleManager)
+    // Update arousal based on cognitive activity (inter-stream coherence is
+    // the engine's measure of synchronization quality)
+    if (EchobeatsEngine)
     {
-        float CognitiveLoad = CognitiveCycleManager->GetSyncQuality();
+        float CognitiveLoad = EchobeatsEngine->GetOverallCoherence();
         EmbodiedState.ArousalLevel = FMath::Lerp(EmbodiedState.ArousalLevel, 
                                                    CognitiveLoad, 
                                                    0.1f * DeltaTime);
@@ -574,7 +577,7 @@ void UUnrealAvatarEmbodiment::ApplyExpressionToAvatar(float DeltaTime)
     // Update aura based on cognitive state
     if (CognitiveCycleManager)
     {
-        float SyncQuality = CognitiveCycleManager->GetSyncQuality();
+        float SyncQuality = EchobeatsEngine ? EchobeatsEngine->GetOverallCoherence() : 0.5f;
         ExpressionState.AuraPulseRate = 0.5f + SyncQuality * 1.5f;
         
         // Blend aura color based on valence
@@ -658,10 +661,19 @@ void UUnrealAvatarEmbodiment::CompleteCurrentAction()
 // Event Handlers
 // ============================================================================
 
-void UUnrealAvatarEmbodiment::HandleCognitiveStepChanged(int32 NewStep, 
-                                                          EEchobeatStepType StepType,
-                                                          EEchobeatMode Mode)
+void UUnrealAvatarEmbodiment::HandleCognitiveStepChanged(int32 OldStep, int32 NewStep)
 {
+    // Derive step type and cognitive mode from the engine's step configuration
+    // (FOnEchobeatStepChanged only carries the step numbers)
+    EEchobeatStepType StepType = EEchobeatStepType::Pivotal;
+    ECognitiveMode Mode = ECognitiveMode::Expressive;
+    if (EchobeatsEngine)
+    {
+        const FEchobeatStepConfig StepConfig = EchobeatsEngine->GetCurrentStepConfig();
+        StepType = StepConfig.StepType;
+        Mode = StepConfig.Mode;
+    }
+
     // Adjust expression based on cognitive step
     if (StepType == EEchobeatStepType::Pivotal)
     {
@@ -677,7 +689,7 @@ void UUnrealAvatarEmbodiment::HandleCognitiveStepChanged(int32 NewStep,
     }
     
     // Update cognitive mode display
-    ExpressionState.CognitiveMode = Mode == EEchobeatMode::Expressive 
+    ExpressionState.CognitiveMode = Mode == ECognitiveMode::Expressive 
         ? TEXT("Expressive") 
         : TEXT("Reflective");
 }

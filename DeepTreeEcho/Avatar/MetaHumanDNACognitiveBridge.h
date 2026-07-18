@@ -245,6 +245,18 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "MetaHuman|Events")
     FOnChaoticTransition OnChaoticTransition;
 
+    /** Get the phase space trajectory history */
+    UFUNCTION(BlueprintPure, Category = "MetaHuman|Chaos")
+    const TArray<FVector>& GetTrajectoryHistory() const { return TrajectoryHistory; }
+
+    /** Get the current chaotic attractor state (Lorenz system) */
+    UFUNCTION(BlueprintPure, Category = "MetaHuman|Chaos")
+    FVector GetLorenzState() const { return LorenzState; }
+
+    /** Reset the chaotic attractor to a seed state and clear the trajectory */
+    UFUNCTION(BlueprintCallable, Category = "MetaHuman|Chaos")
+    void ResetChaoticState(const FVector& SeedState) { LorenzState = SeedState; TrajectoryHistory.Empty(); }
+
 protected:
     /** Reference to avatar cognition component */
     UPROPERTY()

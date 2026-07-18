@@ -16,6 +16,9 @@
 #include <vector>
 #include <chrono>
 #include <random>
+#include <thread>
+#include <array>
+#include <string>
 
 // Mock Unreal Engine types for standalone testing
 #ifndef WITH_UNREAL_ENGINE
@@ -678,7 +681,4 @@ TEST(PerformanceTest, CycleProcessingPerformance) {
 // Main Entry Point
 // ============================================================================
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+// main() provided by GTest::gtest_main (single test binary links all suites)

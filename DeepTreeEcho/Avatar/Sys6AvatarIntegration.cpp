@@ -110,17 +110,17 @@ void USys6AvatarIntegration::InitializeExpressionStates()
     CognitiveState.ExpressionStates.Empty();
 
     // Initialize all expression channels
-    TArray<EAvatarExpressionChannel> Channels = {
-        EAvatarExpressionChannel::Facial,
-        EAvatarExpressionChannel::Body,
-        EAvatarExpressionChannel::Gesture,
-        EAvatarExpressionChannel::Gaze,
-        EAvatarExpressionChannel::Posture,
-        EAvatarExpressionChannel::Breathing,
-        EAvatarExpressionChannel::Aura
+    TArray<ESys6ExpressionChannel> Channels = {
+        ESys6ExpressionChannel::Facial,
+        ESys6ExpressionChannel::Body,
+        ESys6ExpressionChannel::Gesture,
+        ESys6ExpressionChannel::Gaze,
+        ESys6ExpressionChannel::Posture,
+        ESys6ExpressionChannel::Breathing,
+        ESys6ExpressionChannel::Aura
     };
 
-    for (EAvatarExpressionChannel Channel : Channels)
+    for (ESys6ExpressionChannel Channel : Channels)
     {
         FSys6ExpressionState State;
         State.Channel = Channel;
@@ -414,7 +414,7 @@ void USys6AvatarIntegration::ProcessEmbeddedCognition(float DeltaTime)
                 
                 // Surface angle affects posture through body schema
                 Element.EnvironmentalCoupling = FMath::Clamp(
-                    1.0f - (SurfaceAngle / PI), 0.0f, 1.0f);
+                    1.0f - (SurfaceAngle / FMath::PI), 0.0f, 1.0f);
             }
 
             // Proximity detection for social space awareness
@@ -544,7 +544,7 @@ void USys6AvatarIntegration::ComputeEntelechy()
 }
 
 // Expression state queries
-FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(EAvatarExpressionChannel Channel) const
+FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(ESys6ExpressionChannel Channel) const
 {
     for (const FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -556,7 +556,7 @@ FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(EAvatarExpressio
     return FSys6ExpressionState();
 }
 
-void USys6AvatarIntegration::SetExpressionIntensity(EAvatarExpressionChannel Channel, float Intensity)
+void USys6AvatarIntegration::SetExpressionIntensity(ESys6ExpressionChannel Channel, float Intensity)
 {
     for (FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -569,7 +569,7 @@ void USys6AvatarIntegration::SetExpressionIntensity(EAvatarExpressionChannel Cha
     }
 }
 
-void USys6AvatarIntegration::SetExpressionValence(EAvatarExpressionChannel Channel, float Valence)
+void USys6AvatarIntegration::SetExpressionValence(ESys6ExpressionChannel Channel, float Valence)
 {
     for (FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -655,7 +655,7 @@ void USys6AvatarIntegration::MapConvolutionToSensorimotor(const FTriadicConvolut
 }
 
 // State queries
-FAvatarCognitiveState USys6AvatarIntegration::GetCognitiveState() const
+FSys6AvatarCognitiveState USys6AvatarIntegration::GetCognitiveState() const
 {
     return CognitiveState;
 }

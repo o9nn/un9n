@@ -1,0 +1,39 @@
+# Avatar Module Verification CI
+# Standalone syntax verification of the DeepTreeEcho Avatar module
+# (MetaHuman DNA bridge, Rig Logic, FACS mapping, 4E embodiment,
+# endocrine expression pipeline) against the UE-compat shim headers.
+name: Avatar Module CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'claude/**']
+    paths:
+      - 'DeepTreeEcho/Avatar/**'
+      - 'Source/DeepTreeEcho/**'
+      - 'Scripts/verify-avatar-module.sh'
+      - '.github/workflows/ci-avatar-module.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'DeepTreeEcho/Avatar/**'
+      - 'Source/DeepTreeEcho/**'
+      - 'Scripts/verify-avatar-module.sh'
+      - '.github/workflows/ci-avatar-module.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-avatar-module:
+    name: Verify Avatar Module (standalone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++
+
+      - name: Verify Avatar module syntax
+        run: |
+          chmod +x Scripts/verify-avatar-module.sh
+          ./Scripts/verify-avatar-module.sh

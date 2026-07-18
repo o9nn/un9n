@@ -949,7 +949,4 @@ TEST(AnimationPerformanceTest, BlendShapeComputePerformance) {
 // Main Entry Point
 // ============================================================================
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+// main() provided by GTest::gtest_main (single test binary links all suites)

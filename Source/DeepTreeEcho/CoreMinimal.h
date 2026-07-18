@@ -64,6 +64,16 @@ public:
     bool Contains(const TCHAR* SubStr) const { return find(SubStr) != std::string::npos; }
     bool Contains(const FString& SubStr) const { return find(SubStr) != std::string::npos; }
     
+    bool StartsWith(const TCHAR* Prefix) const { return rfind(Prefix, 0) == 0; }
+    bool StartsWith(const FString& Prefix) const { return rfind(Prefix, 0) == 0; }
+    bool EndsWith(const TCHAR* Suffix) const {
+        const std::string Suf(Suffix);
+        return length() >= Suf.length() && compare(length() - Suf.length(), Suf.length(), Suf) == 0;
+    }
+    bool EndsWith(const FString& Suffix) const {
+        return length() >= Suffix.length() && compare(length() - Suffix.length(), Suffix.length(), Suffix) == 0;
+    }
+    
     int32 Find(const TCHAR* SubStr) const {
         size_t pos = find(SubStr);
         return pos != std::string::npos ? static_cast<int32>(pos) : -1;
@@ -88,8 +98,64 @@ public:
     bool IsNone() const { return Name.empty(); }
     FString ToString() const { return Name; }
     
+    bool operator==(const FName& Other) const { return Name == Other.Name; }
+    bool operator!=(const FName& Other) const { return Name != Other.Name; }
+    bool operator<(const FName& Other) const { return static_cast<const std::string&>(Name) < static_cast<const std::string&>(Other.Name); }
+    
 private:
     FString Name;
+};
+
+static const FName NAME_None;
+
+
+// Globally-unique identifier stub
+struct FGuid {
+    static bool Parse(const FString& GuidString, FGuid& OutGuid);
+
+    uint32 A = 0, B = 0, C = 0, D = 0;
+    FGuid() = default;
+    FGuid(uint32 InA, uint32 InB, uint32 InC, uint32 InD) : A(InA), B(InB), C(InC), D(InD) {}
+    static FGuid NewGuid() {
+        static std::atomic<uint32> Counter{1};
+        uint32 N = Counter++;
+        return FGuid(N, N * 2654435761u, N ^ 0x9E3779B9u, ~N);
+    }
+    bool IsValid() const { return A | B | C | D; }
+    void Invalidate() { A = B = C = D = 0; }
+    FString ToString() const {
+        char Buf[40];
+        std::snprintf(Buf, sizeof(Buf), "%08X%08X%08X%08X", A, B, C, D);
+        return FString(Buf);
+    }
+    bool operator==(const FGuid& O) const { return A == O.A && B == O.B && C == O.C && D == O.D; }
+    bool operator!=(const FGuid& O) const { return !(*this == O); }
+    bool operator<(const FGuid& O) const {
+        if (A != O.A) return A < O.A;
+        if (B != O.B) return B < O.B;
+        if (C != O.C) return C < O.C;
+        return D < O.D;
+    }
+};
+inline bool FGuid::Parse(const FString& GuidString, FGuid& OutGuid) {
+    (void)GuidString; OutGuid = FGuid(); return true;
+}
+
+
+// Sentinel index for "not found" (UE parity)
+constexpr int32 INDEX_NONE = -1;
+
+// Root motion mode (UE parity)
+namespace ERootMotionMode { enum Type { NoRootMotionExtraction, IgnoreRootMotion, RootMotionFromEverything, RootMotionFromMontagesOnly }; }
+
+// End-play reason enum used by EndPlay overrides
+namespace EEndPlayReason { enum Type { Destroyed, LevelTransition, EndPlayInEditor, RemovedFromWorld, Quit }; }
+
+// Timer handle stub
+struct FTimerHandle {
+    int32 Handle = 0;
+    bool IsValid() const { return Handle != 0; }
+    void Invalidate() { Handle = 0; }
 };
 
 class FText {
@@ -121,6 +187,11 @@ public:
     }
     void Empty() { this->clear(); }
     void Reset() { this->clear(); }
+    template<typename Predicate>
+    bool ContainsByPredicate(Predicate Pred) const {
+        for (const T& Item : *this) { if (Pred(Item)) return true; }
+        return false;
+    }
     bool Contains(const T& Item) const {
         return std::find(this->begin(), this->end(), Item) != this->end();
     }
@@ -131,6 +202,11 @@ public:
     void RemoveAt(int32 Index) {
         if (Index >= 0 && Index < static_cast<int32>(this->size())) {
             this->erase(this->begin() + Index);
+        }
+    }
+    void RemoveAt(int32 Index, int32 Count) {
+        if (Index >= 0 && Count > 0 && Index + Count <= static_cast<int32>(this->size())) {
+            this->erase(this->begin() + Index, this->begin() + Index + Count);
         }
     }
     T& Last() { return this->back(); }
@@ -164,6 +240,24 @@ public:
         return Count;
     }
     
+    // Predicate-based RemoveAll (UE parity)
+    template<typename Predicate,
+             typename = decltype(std::declval<Predicate>()(std::declval<const T&>()))>
+    int32 RemoveAll(Predicate Pred) {
+        auto newEnd = std::remove_if(this->begin(), this->end(), Pred);
+        int32 Count = static_cast<int32>(this->end() - newEnd);
+        this->erase(newEnd, this->end());
+        return Count;
+    }
+    
+    T Pop(bool /*bAllowShrinking*/ = true) {
+        T Value = this->back();
+        this->pop_back();
+        return Value;
+    }
+    void Push(const T& Item) { this->push_back(Item); }
+    void Insert(const T& Item, int32 Index) { this->insert(this->begin() + Index, Item); }
+    
     void Append(const TArray<T>& Other) {
         this->insert(this->end(), Other.begin(), Other.end());
     }
@@ -185,9 +279,9 @@ template<typename KeyType, typename ValueType>
 class TMap {
 private:
     std::map<KeyType, ValueType> InternalMap;
-    
 public:
     TMap() = default;
+    TMap(std::initializer_list<std::pair<const KeyType, ValueType>> InitList) : InternalMap(InitList) {}
     
     int32 Num() const { return static_cast<int32>(InternalMap.size()); }
     void Add(const KeyType& Key, const ValueType& Value) { InternalMap[Key] = Value; }
@@ -201,7 +295,37 @@ public:
         return it != InternalMap.end() ? &it->second : nullptr;
     }
     void Empty() { InternalMap.clear(); }
+    void Reset() { InternalMap.clear(); }
     bool Remove(const KeyType& Key) { return InternalMap.erase(Key) > 0; }
+    void Reserve(int32) { /* std::map does not pre-allocate */ }
+    
+    ValueType& FindOrAdd(const KeyType& Key) { return InternalMap[Key]; }
+    ValueType& FindOrAdd(const KeyType& Key, const ValueType& Default) {
+        auto it = InternalMap.find(Key);
+        if (it == InternalMap.end()) it = InternalMap.emplace(Key, Default).first;
+        return it->second;
+    }
+    ValueType FindRef(const KeyType& Key) const {
+        auto it = InternalMap.find(Key);
+        return it != InternalMap.end() ? it->second : ValueType();
+    }
+    template<typename... Args>
+    ValueType& Emplace(const KeyType& Key, Args&&... args) {
+        return InternalMap[Key] = ValueType(std::forward<Args>(args)...);
+    }
+    void GetKeys(TArray<KeyType>& OutKeys) const {
+        OutKeys.Empty();
+        for (const auto& P : InternalMap) OutKeys.Add(P.first);
+    }
+    TArray<KeyType> GetKeysArray() const {
+        TArray<KeyType> Keys;
+        GetKeys(Keys);
+        return Keys;
+    }
+    void GenerateValueArray(TArray<ValueType>& OutValues) const {
+        OutValues.Empty();
+        for (const auto& P : InternalMap) OutValues.Add(P.second);
+    }
     
     ValueType& operator[](const KeyType& Key) { return InternalMap[Key]; }
     const ValueType& operator[](const KeyType& Key) const { return InternalMap.at(Key); }
@@ -211,15 +335,23 @@ public:
     public:
         using MapIterator = typename std::map<KeyType, ValueType>::iterator;
         MapIterator It;
-        Iterator(MapIterator it) : It(it) {}
-        bool operator!=(const Iterator& Other) const { return It != Other.It; }
-        Iterator& operator++() { ++It; return *this; }
+        // Reference-semantics pair: `for (auto& Pair : Map)` binds to this cached
+        // proxy, and writes to Pair.Value flow through into the map (UE parity).
         struct Pair {
-            KeyType Key;
-            ValueType Value;
-            Pair(const KeyType& K, const ValueType& V) : Key(K), Value(V) {}
+            const KeyType& Key;
+            ValueType& Value;
+            Pair(const KeyType& K, ValueType& V) : Key(K), Value(V) {}
         };
-        Pair operator*() const { return Pair(It->first, It->second); }
+        mutable std::unique_ptr<Pair> Current;
+        Iterator(MapIterator it) : It(it) {}
+        Iterator(const Iterator& Other) : It(Other.It) {}
+        Iterator& operator=(const Iterator& Other) { It = Other.It; Current.reset(); return *this; }
+        bool operator!=(const Iterator& Other) const { return It != Other.It; }
+        Iterator& operator++() { ++It; Current.reset(); return *this; }
+        Pair& operator*() const {
+            Current = std::make_unique<Pair>(It->first, It->second);
+            return *Current;
+        }
     };
     
     class ConstIterator {
@@ -259,8 +391,18 @@ public:
 // SMART POINTERS
 // =============================================================================
 
+// TSharedPtr — thin subclass of std::shared_ptr adding UE-parity members
+// (ToSharedRef, IsValid). Constructible from shared_ptr for interop.
 template<typename T>
-using TSharedPtr = std::shared_ptr<T>;
+class TSharedPtr : public std::shared_ptr<T> {
+public:
+    using std::shared_ptr<T>::shared_ptr;
+    TSharedPtr() = default;
+    TSharedPtr(const std::shared_ptr<T>& In) : std::shared_ptr<T>(In) {}
+    TSharedPtr(std::shared_ptr<T>&& In) : std::shared_ptr<T>(std::move(In)) {}
+    bool IsValid() const { return this->get() != nullptr; }
+    std::shared_ptr<T> ToSharedRef() const { return *this; }
+};
 
 template<typename T>
 using TWeakPtr = std::weak_ptr<T>;
@@ -271,6 +413,15 @@ using TUniquePtr = std::unique_ptr<T>;
 template<typename T, typename... Args>
 TSharedPtr<T> MakeShared(Args&&... args) {
     return std::make_shared<T>(std::forward<Args>(args)...);
+}
+
+// TSharedRef — non-null shared pointer; approximated by shared_ptr in the shim
+template<typename T>
+using TSharedRef = std::shared_ptr<T>;
+
+template<typename T>
+TSharedPtr<T> MakeShareable(T* Ptr) {
+    return TSharedPtr<T>(Ptr);
 }
 
 template<typename T, typename... Args>
@@ -307,11 +458,19 @@ struct FVector {
     FVector operator-(const FVector& V) const { return FVector(X - V.X, Y - V.Y, Z - V.Z); }
     FVector operator*(float Scale) const { return FVector(X * Scale, Y * Scale, Z * Scale); }
     FVector operator/(float Scale) const { return FVector(X / Scale, Y / Scale, Z / Scale); }
+    FVector& operator+=(const FVector& V) { X += V.X; Y += V.Y; Z += V.Z; return *this; }
+    FVector& operator-=(const FVector& V) { X -= V.X; Y -= V.Y; Z -= V.Z; return *this; }
+    FVector& operator*=(float Scale) { X *= Scale; Y *= Scale; Z *= Scale; return *this; }
+    FVector& operator/=(float Scale) { X /= Scale; Y /= Scale; Z /= Scale; return *this; }
+    bool operator==(const FVector& V) const { return X == V.X && Y == V.Y && Z == V.Z; }
+    bool operator!=(const FVector& V) const { return !(*this == V); }
     
     friend FVector operator*(float Scale, const FVector& V) { return FVector(V.X * Scale, V.Y * Scale, V.Z * Scale); }
     
     float Size() const { return std::sqrt(X*X + Y*Y + Z*Z); }
+    struct FRotator Rotation() const;
     float SizeSquared() const { return X*X + Y*Y + Z*Z; }
+    FVector operator-() const { return FVector(-X, -Y, -Z); }
     FVector GetSafeNormal() const {
         float S = Size();
         return S > 0.0001f ? (*this) / S : FVector();
@@ -372,6 +531,7 @@ struct FVector2D {
 
 struct FRotator {
     float Pitch = 0.0f, Yaw = 0.0f, Roll = 0.0f;
+    // (extended below)
     
     FRotator() = default;
     FRotator(float InPitch, float InYaw, float InRoll) : Pitch(InPitch), Yaw(InYaw), Roll(InRoll) {}
@@ -384,12 +544,19 @@ struct FRotator {
 
 inline const FRotator FRotator::ZeroRotator(0.0f, 0.0f, 0.0f);
 
+
+inline FRotator FVector::Rotation() const {
+    const float YawRad = std::atan2(Y, X);
+    const float PitchRad = std::atan2(Z, std::sqrt(X*X + Y*Y));
+    return FRotator(PitchRad * (180.0f / 3.14159265358979323846f),
+                    YawRad * (180.0f / 3.14159265358979323846f), 0.0f);
+}
+
 struct FQuat {
     float X = 0.0f, Y = 0.0f, Z = 0.0f, W = 1.0f;
-    
     FQuat() = default;
     FQuat(float InX, float InY, float InZ, float InW) : X(InX), Y(InY), Z(InZ), W(InW) {}
-    
+    explicit FQuat(const FRotator& R); // defined out-of-line below
     FQuat operator*(const FQuat& Q) const;
     FVector RotateVector(const FVector& V) const { return V; }
     
@@ -397,6 +564,17 @@ struct FQuat {
 };
 
 inline const FQuat FQuat::Identity(0.0f, 0.0f, 0.0f, 1.0f);
+
+inline FQuat::FQuat(const FRotator& R) {
+    const float DEG2RAD = 3.14159265358979323846f / 180.0f;
+    const float CP = std::cos(R.Pitch * DEG2RAD * 0.5f), SP = std::sin(R.Pitch * DEG2RAD * 0.5f);
+    const float CY = std::cos(R.Yaw   * DEG2RAD * 0.5f), SY = std::sin(R.Yaw   * DEG2RAD * 0.5f);
+    const float CR = std::cos(R.Roll  * DEG2RAD * 0.5f), SR = std::sin(R.Roll  * DEG2RAD * 0.5f);
+    X = CR * SP * SY - SR * CP * CY;
+    Y = -CR * SP * CY - SR * CP * SY;
+    Z = CR * CP * SY - SR * SP * CY;
+    W = CR * CP * CY + SR * SP * SY;
+}
 
 struct FTransform {
     FVector Translation;
@@ -406,12 +584,17 @@ struct FTransform {
     FTransform() = default;
     FTransform(const FRotator& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
         : Translation(InTranslation), Scale3D(InScale3D) {}
+    FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
+        : Translation(InTranslation), Rotation(InRotation), Scale3D(InScale3D) {}
     
     FVector GetLocation() const { return Translation; }
+    FVector TransformPosition(const FVector& V) const { return Translation + V; }
+    FVector InverseTransformPosition(const FVector& V) const { return V - Translation; }
     FRotator GetRotation() const { return FRotator(); }
     FVector GetScale3D() const { return Scale3D; }
     
     void SetLocation(const FVector& NewLocation) { Translation = NewLocation; }
+    void SetRotation(const FQuat& NewRotation) { Rotation = NewRotation; }
     
     static const FTransform Identity;
 };
@@ -424,6 +607,9 @@ struct FLinearColor {
     FLinearColor() = default;
     FLinearColor(float InR, float InG, float InB, float InA = 1.0f) : R(InR), G(InG), B(InB), A(InA) {}
     
+    FLinearColor& operator+=(const FLinearColor& C) { R += C.R; G += C.G; B += C.B; A += C.A; return *this; }
+    FLinearColor& operator*=(float S) { R *= S; G *= S; B *= S; A *= S; return *this; }
+    
     static const FLinearColor White;
     static const FLinearColor Black;
     static const FLinearColor Red;
@@ -434,6 +620,33 @@ struct FLinearColor {
     static const FLinearColor Magenta;
     static const FLinearColor Orange;
     static const FLinearColor Gray;
+    
+    // HSV construction (H,S,V as bytes 0-255, UE parity)
+    static FLinearColor MakeFromHSV8(uint8 H, uint8 S, uint8 V) {
+        const float Hue = H / 255.0f * 360.0f;
+        const float Sat = S / 255.0f;
+        const float Val = V / 255.0f;
+        const float C = Val * Sat;
+        const float Hp = Hue / 60.0f;
+        const float Xc = C * (1.0f - std::abs(std::fmod(Hp, 2.0f) - 1.0f));
+        float R1 = 0, G1 = 0, B1 = 0;
+        if (Hp < 1)      { R1 = C;  G1 = Xc; }
+        else if (Hp < 2) { R1 = Xc; G1 = C; }
+        else if (Hp < 3) { G1 = C;  B1 = Xc; }
+        else if (Hp < 4) { G1 = Xc; B1 = C; }
+        else if (Hp < 5) { R1 = Xc; B1 = C; }
+        else             { R1 = C;  B1 = Xc; }
+        const float M = Val - C;
+        return FLinearColor(R1 + M, G1 + M, B1 + M, 1.0f);
+    }
+    
+    static FLinearColor LerpUsingHSV(const FLinearColor& A, const FLinearColor& B, float Alpha) {
+        return FLinearColor(A.R + Alpha * (B.R - A.R), A.G + Alpha * (B.G - A.G),
+                            A.B + Alpha * (B.B - A.B), A.A + Alpha * (B.A - A.A));
+    }
+    
+    FLinearColor operator*(float Scale) const { return FLinearColor(R * Scale, G * Scale, B * Scale, A * Scale); }
+    FLinearColor operator+(const FLinearColor& O) const { return FLinearColor(R + O.R, G + O.G, B + O.B, A + O.A); }
 };
 
 inline const FLinearColor FLinearColor::White(1.0f, 1.0f, 1.0f, 1.0f);
@@ -474,6 +687,7 @@ inline const FColor FColor::Cyan(0, 255, 255, 255);
 inline const FColor FColor::Magenta(255, 0, 255, 255);
 inline const FColor FColor::Orange(255, 165, 0, 255);
 
+
 // =============================================================================
 // MATH UTILITIES
 // =============================================================================
@@ -507,6 +721,24 @@ struct FMath {
     static int32 Min3(int32 A, int32 B, int32 C) { return Min(Min(A, B), C); }
     
     static float Lerp(float A, float B, float Alpha) { return A + Alpha * (B - A); }
+    static FVector Lerp(const FVector& A, const FVector& B, float Alpha) {
+        return FVector(A.X + Alpha * (B.X - A.X), A.Y + Alpha * (B.Y - A.Y), A.Z + Alpha * (B.Z - A.Z));
+    }
+    static FRotator Lerp(const FRotator& A, const FRotator& B, float Alpha) {
+        return FRotator(A.Pitch + Alpha * (B.Pitch - A.Pitch), A.Yaw + Alpha * (B.Yaw - A.Yaw), A.Roll + Alpha * (B.Roll - A.Roll));
+    }
+    static FLinearColor Lerp(const FLinearColor& A, const FLinearColor& B, float Alpha) {
+        return FLinearColor(A.R + Alpha * (B.R - A.R), A.G + Alpha * (B.G - A.G),
+                            A.B + Alpha * (B.B - A.B), A.A + Alpha * (B.A - A.A));
+    }
+    static FQuat Lerp(const FQuat& A, const FQuat& B, float Alpha) {
+        // Normalized lerp (nlerp) approximation of slerp
+        FQuat Q(A.X + Alpha * (B.X - A.X), A.Y + Alpha * (B.Y - A.Y),
+                A.Z + Alpha * (B.Z - A.Z), A.W + Alpha * (B.W - A.W));
+        const float M = std::sqrt(Q.X*Q.X + Q.Y*Q.Y + Q.Z*Q.Z + Q.W*Q.W);
+        if (M > 1e-8f) { Q.X /= M; Q.Y /= M; Q.Z /= M; Q.W /= M; }
+        return Q;
+    }
     static float FInterpTo(float Current, float Target, float DeltaTime, float InterpSpeed) {
         if (InterpSpeed <= 0.0f) return Target;
         float Dist = Target - Current;
@@ -535,6 +767,25 @@ struct FMath {
     static float Tanh(float A) { return std::tanh(A); }
     static float Sinh(float A) { return std::sinh(A); }
     static float Cosh(float A) { return std::cosh(A); }
+    
+    static float GetMappedRangeValueClamped(const FVector2D& InputRange, const FVector2D& OutputRange, float Value) {
+        const float Pct = GetRangePct(InputRange.X, InputRange.Y, Value);
+        const float ClampedPct = Clamp(Pct, 0.0f, 1.0f);
+        return OutputRange.X + ClampedPct * (OutputRange.Y - OutputRange.X);
+    }
+    static float Frac(float Value) { return Value - std::floor(Value); }
+    static float Fmod(float X, float Y) { return std::fmod(X, Y); }
+    static float GetRangePct(float MinValue, float MaxValue, float Value) {
+        const float Divisor = MaxValue - MinValue;
+        if (IsNearlyZero(Divisor)) return Value >= MaxValue ? 1.0f : 0.0f;
+        return (Value - MinValue) / Divisor;
+    }
+    static float SmoothStep(float A, float B, float X) {
+        if (X < A) return 0.0f;
+        if (X >= B) return 1.0f;
+        const float T = Clamp((X - A) / (B - A), 0.0f, 1.0f);
+        return T * T * (3.0f - 2.0f * T);
+    }
     
     static float Square(float A) { return A * A; }
     static int32 Square(int32 A) { return A * A; }
@@ -574,14 +825,62 @@ public:
     FName GetFName() const { return FName(); }
 };
 
+// NewObject / CreateDefaultSubobject stubs.
+// NOTE (standalone shim): objects are heap-allocated and intentionally leaked —
+// UE's garbage collector owns UObjects in production; the shim mirrors that
+// ownership model so calling code needs no #ifdef changes.
+template<typename T>
+T* NewObject(UObject* /*Outer*/ = nullptr) { return new T(); }
+
+template<typename T>
+T* NewObject(UObject* /*Outer*/, UClass* /*Class*/) { return new T(); }
+
+template<typename T>
+T* CreateDefaultSubobject(const FName& /*SubobjectName*/) { return new T(); }
+
+// Material interface stub
+class UMaterialInterface : public UObject {
+public:
+    FString GetName() const { return FString(); }
+};
+
+// Collision/trace support stubs
+class AActor;
+
+struct FHitResult {
+    bool bBlockingHit = false;
+    FVector Location;
+    FVector ImpactPoint;
+    FVector ImpactNormal;
+    FVector Normal;
+    float Distance = 0.0f;
+    AActor* HitActor = nullptr;
+    AActor* GetActor() const { return HitActor; }
+};
+
+struct FCollisionQueryParams {
+    bool bTraceComplex = false;
+    FCollisionQueryParams() = default;
+    FCollisionQueryParams(FName /*TraceTag*/, bool bInTraceComplex = false, const UObject* /*IgnoreActor*/ = nullptr)
+        : bTraceComplex(bInTraceComplex) {}
+    void AddIgnoredActor(const AActor*) {}
+};
+
+enum ECollisionChannel : int {
+    ECC_WorldStatic, ECC_WorldDynamic, ECC_Pawn, ECC_Visibility,
+    ECC_Camera, ECC_PhysicsBody, ECC_Vehicle, ECC_Destructible
+};
+
 class AActor : public UObject {
 public:
     virtual void BeginPlay() {}
     virtual void Tick(float DeltaTime) {}
-    virtual void EndPlay(int EndPlayReason) {}
+    virtual void EndPlay(EEndPlayReason::Type EndPlayReason) { (void)EndPlayReason; }
     
     FVector GetActorLocation() const { return FVector(); }
     FRotator GetActorRotation() const { return FRotator(); }
+    FTransform GetActorTransform() const { return FTransform(); }
+    FVector GetVelocity() const { return FVector(); }
     void SetActorLocation(const FVector& NewLocation) {}
     void SetActorRotation(const FRotator& NewRotation) {}
     
@@ -597,6 +896,9 @@ public:
     template<typename T>
     TArray<T*> GetComponentsByClass() const { return TArray<T*>(); }
 };
+
+// Ticking group constants (ETickingGroup)
+enum ETickingGroup : int { TG_PrePhysics, TG_StartPhysics, TG_DuringPhysics, TG_EndPhysics, TG_PostPhysics, TG_PostUpdateWork, TG_LastDemotable, TG_NewlySpawned };
 
 // Tick types definition
 enum ELevelTick : int { LEVELTICK_TimeOnly, LEVELTICK_ViewportsOnly, LEVELTICK_All, LEVELTICK_PauseTick };
@@ -654,11 +956,12 @@ public:
         bool bCanEverTick = false;
         bool bStartWithTickEnabled = true;
         float TickInterval = 0.0f;
+        int TickGroup = 0; // ETickingGroup
     } PrimaryComponentTick;
     
     virtual void BeginPlay() {}
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {}
-    virtual void EndPlay(int EndPlayReason) {}
+    virtual void EndPlay(EEndPlayReason::Type EndPlayReason) { (void)EndPlayReason; }
     
     AActor* GetOwner() const { return nullptr; }
     void SetComponentTickEnabled(bool bEnabled) {}
@@ -700,8 +1003,23 @@ class APlayerController : public AController {
 public:
 };
 
+class FTimerManager {
+public:
+    template<typename... Args>
+    void SetTimer(Args&&...) {}
+    template<typename... Args>
+    void ClearTimer(Args&&...) {}
+    bool IsTimerActive(const struct FTimerHandle&) const { return false; }
+};
+
 class UWorld : public UObject {
 public:
+    FTimerManager& GetTimerManager() { static FTimerManager TM; return TM; }
+    bool LineTraceSingleByChannel(struct FHitResult& OutHit, const FVector& Start, const FVector& End,
+                                  int TraceChannel, const struct FCollisionQueryParams& Params = {}) {
+        (void)OutHit; (void)Start; (void)End; (void)TraceChannel; (void)Params;
+        return false;
+    }
     float GetTimeSeconds() const { return 0.0f; }
     float GetDeltaSeconds() const { return 0.0f; }
 };
@@ -716,7 +1034,16 @@ public:
     void Broadcast(ParamTypes... Params) {}
     void AddLambda(std::function<void(ParamTypes...)> Lambda) {}
     void AddUObject(UObject* Object, void (UObject::*Method)(ParamTypes...)) {}
+    // AddDynamic/RemoveDynamic are UE macros resolving to __Internal_AddDynamic;
+    // for the standalone shim we accept any object/method pair and discard it.
+    template<typename UserClass, typename MethodType>
+    void AddDynamic(UserClass* Object, MethodType Method) { (void)Object; (void)Method; }
+    template<typename UserClass, typename MethodType>
+    void RemoveDynamic(UserClass* Object, MethodType Method) { (void)Object; (void)Method; }
+    template<typename UserClass, typename MethodType>
+    void AddUniqueDynamic(UserClass* Object, MethodType Method) { (void)Object; (void)Method; }
     void RemoveAll(UObject* Object) {}
+    void Clear() {}
     bool IsBound() const { return false; }
 };
 
@@ -809,7 +1136,11 @@ enum class ELogVerbosity { NoLogging, Fatal, Error, Warning, Display, Log, Verbo
 #define WITH_EDITORONLY_DATA 0
 
 // API export macros
+#ifndef WITH_ENGINE_REFLECTION
+#define WITH_ENGINE_REFLECTION 0
+#endif
 #define DEEPTREEECHO_API
+#define UNREALECHO_API
 #define CORE_API
 #define ENGINE_API
 
@@ -888,6 +1219,13 @@ TFuture<ResultType> Async(int ExecutionType, std::function<ResultType()> Functio
 // JSON
 class FJsonObject {
 public:
+    /** Field map (UE parity: TMap<FString, TSharedPtr<FJsonValue>>) */
+    TMap<FString, TSharedPtr<class FJsonValue>> Values;
+
+    int32 GetIntegerField(const FString& FieldName) const { return 0; }
+    bool TryGetObjectField(const FString& FieldName, const TSharedPtr<FJsonObject>*& OutObject) const { OutObject = nullptr; return false; }
+    bool TryGetStringField(const FString& FieldName, FString& OutString) const { return false; }
+    bool TryGetNumberField(const FString& FieldName, double& OutNumber) const { return false; }
     TSharedPtr<FJsonObject> GetObjectField(const FString& FieldName) const { return nullptr; }
     TArray<TSharedPtr<class FJsonValue>> GetArrayField(const FString& FieldName) const { return {}; }
     FString GetStringField(const FString& FieldName) const { return FString(); }
@@ -909,6 +1247,46 @@ public:
     FString AsString() const { return FString(); }
     double AsNumber() const { return 0.0; }
     bool AsBool() const { return false; }
+};
+
+// JSON serialization (parity stubs)
+template<typename CharType = TCHAR>
+class TJsonWriter {
+public:
+    void Close() {}
+};
+
+template<typename CharType = TCHAR>
+class TJsonWriterFactory {
+public:
+    static TSharedRef<TJsonWriter<CharType>> Create(FString* OutString) {
+        (void)OutString;
+        return MakeShared<TJsonWriter<CharType>>();
+    }
+};
+
+template<typename CharType = TCHAR>
+class TJsonReader {
+public:
+};
+
+template<typename CharType = TCHAR>
+class TJsonReaderFactory {
+public:
+    static TSharedRef<TJsonReader<CharType>> Create(const FString& InString) {
+        (void)InString;
+        return MakeShared<TJsonReader<CharType>>();
+    }
+};
+
+struct FJsonSerializer {
+    template<typename CharType>
+    static bool Serialize(TSharedRef<FJsonObject> Object, TSharedRef<TJsonWriter<CharType>> Writer) { return true; }
+    template<typename CharType>
+    static bool Deserialize(TSharedRef<TJsonReader<CharType>> Reader, TSharedPtr<FJsonObject>& OutObject) {
+        OutObject = MakeShared<FJsonObject>();
+        return true;
+    }
 };
 
 // File utilities

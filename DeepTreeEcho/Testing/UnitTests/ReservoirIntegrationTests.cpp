@@ -76,8 +76,15 @@ public:
             W *= config.SpectralRadius / currentRadius;
         }
         
-        // Output weights (to be trained)
+        // Output weights: seed with small random readout so untrained
+        // reservoirs still propagate distinct signals through the cascade
+        // (ridge-regression training in Train() overwrites these weights)
         Wout = Matrix::Zero(config.OutputDim, config.ReservoirSize);
+        for (int i = 0; i < config.OutputDim; i++) {
+            for (int j = 0; j < config.ReservoirSize; j++) {
+                Wout(i, j) = 0.1 * dist(gen);
+            }
+        }
         
         // Initial state
         State = Vector::Zero(config.ReservoirSize);
@@ -831,7 +838,4 @@ TEST(ReservoirIntegrationTest, FullCognitivePipeline) {
 // Main Entry Point
 // ============================================================================
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+// main() provided by GTest::gtest_main (single test binary links all suites)
