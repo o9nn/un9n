@@ -21,16 +21,16 @@ UENUM(BlueprintType)
 enum class ECubismEyeBlinkPhase : uint8
 {
 	/** Eyes are fully open, waiting for next blink. */
-	Idle UMETA(DisplayName = "Idle", ToolTip = "Eyes fully open, waiting for next blink."),
+	Idle UMETA(DisplayName = "Idle"),
 	
 	/** Eyes are closing. */
-	Closing UMETA(DisplayName = "Closing", ToolTip = "Eyes are in the process of closing."),
+	Closing UMETA(DisplayName = "Closing"),
 	
 	/** Eyes are fully closed. */
-	Closed UMETA(DisplayName = "Closed", ToolTip = "Eyes are fully closed."),
+	Closed UMETA(DisplayName = "Closed"),
 	
 	/** Eyes are opening. */
-	Opening UMETA(DisplayName = "Opening", ToolTip = "Eyes are in the process of opening."),
+	Opening UMETA(DisplayName = "Opening"),
 };
 
 /**
