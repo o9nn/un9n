@@ -7,6 +7,7 @@
 // Unreal Engine CoreMinimal.h will be used instead.
 
 #pragma once
+#define DTE_SHIM_COREMINIMAL_ACTIVE 1
 
 #ifndef COREMINIMAL_STUB_H
 #define COREMINIMAL_STUB_H
@@ -904,46 +905,7 @@ enum ETickingGroup : int { TG_PrePhysics, TG_StartPhysics, TG_DuringPhysics, TG_
 enum ELevelTick : int { LEVELTICK_TimeOnly, LEVELTICK_ViewportsOnly, LEVELTICK_All, LEVELTICK_PauseTick };
 struct FActorComponentTickFunction { bool bCanEverTick = false; };
 
-// Forward declarations for cognitive state types
-struct FDeepTreeEchoCognitiveState {
-    float Arousal = 0.5f;
-    float Valence = 0.5f;
-    float Dominance = 0.5f;
-    float Attention = 0.5f;
-    float Focus = 0.5f;
-    float WisdomScore = 0.0f;
-    TMap<FString, float> StateValues;
-};
 
-struct FEmotionalState {
-    float Joy = 0.0f;
-    float Sadness = 0.0f;
-    float Anger = 0.0f;
-    float Fear = 0.0f;
-    float Surprise = 0.0f;
-    float Disgust = 0.0f;
-    float Trust = 0.0f;
-    float Anticipation = 0.0f;
-    float Arousal = 0.5f;
-    float Valence = 0.5f;
-};
-
-struct FCognitiveState {
-    float Attention = 0.5f;
-    float Arousal = 0.5f;
-    float Valence = 0.5f;
-    float Focus = 0.5f;
-    float Dominance = 0.5f;
-    float Creativity = 0.5f;
-    float WisdomScore = 0.0f;
-    float ExecutiveFunction = 0.5f;
-    float MotorReadiness = 0.5f;
-    float EmotionalResonance = 0.5f;
-    float SensoryIntegration = 0.5f;
-    float ProprioceptiveAwareness = 0.5f;
-    float ProcessingLoad = 0.0f;
-    TMap<FString, float> StateValues;
-};
 
 // Note: Super is typically defined per-class in UE via GENERATED_BODY()
 // For standalone compilation, we'll handle Super calls differently
@@ -1316,3 +1278,8 @@ public:
     static ModuleClass ModuleName##_Instance;
 
 #endif // COREMINIMAL_STUB_H
+
+// Cognitive state types: canonical reflected definitions live in
+// DeepTreeEchoCognitiveTypes.h (USTRUCTs). In standalone builds the UE
+// macros are no-ops, so the same header serves both build modes.
+#include "DeepTreeEchoCognitiveTypes.h"

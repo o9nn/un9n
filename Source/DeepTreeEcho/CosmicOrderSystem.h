@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "DeepTreeEcho.h"
+#include "DeepTreeEchoCognitiveTypes.h"
 #include "CosmicOrderSystem.generated.h"
 
 // ============================================================================
