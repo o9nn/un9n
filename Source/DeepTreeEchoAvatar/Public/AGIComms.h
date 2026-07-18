@@ -90,7 +90,7 @@ struct FGlobalContext
 };
 
 USTRUCT(BlueprintType)
-struct FCognitiveState
+struct FAGICognitiveState
 {
 	GENERATED_BODY()
 
@@ -110,7 +110,7 @@ struct FAGIStateUpdateMessage
 	float Timestamp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGI")
-	FCognitiveState CognitiveState;
+	FAGICognitiveState CognitiveState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PCG")
 	TArray<FPCGCommand> PCGCommands;
