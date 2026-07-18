@@ -64,11 +64,32 @@ jobs:
           # UHT executes as the first stage of an editor-target UBT
           # invocation; -SkipBuild stops after header generation so we
           # get a pure reflection validation pass.
+          #
+          # Note: even with -SkipBuild, UBT resolves runtime dependencies
+          # after UHT succeeds. The proprietary Live2D Cubism Core native
+          # library (libLive2DCubismCore.so) cannot be committed to the
+          # repo, so that post-UHT stage is expected to fail. The gate's
+          # pass criterion is therefore UHT itself: reflection code was
+          # generated with zero errors.
+          set +e
           "$DOTNET" "$UBT_DLL" \
             UnrealEngineCogEditor Linux Development \
             -Project="$PROJECT" \
             -SkipBuild \
             -NoHotReload 2>&1 | tee /tmp/uht.log
+          UBT_EXIT=$?
+          set -e
+
+          if grep -qE "Reflection code generated for" /tmp/uht.log && \
+             ! grep -qE "\): Error:" /tmp/uht.log; then
+            echo "UHT PASS: reflection code generated with zero errors."
+            if [ "$UBT_EXIT" -ne 0 ]; then
+              echo "(Post-UHT UBT stage failed as expected without the proprietary Live2D Cubism Core binary; not a reflection failure.)"
+            fi
+            exit 0
+          fi
+          echo "UHT FAILED (exit $UBT_EXIT): reflection errors above."
+          exit 1
 
       - name: Upload UHT log
         if: always()
