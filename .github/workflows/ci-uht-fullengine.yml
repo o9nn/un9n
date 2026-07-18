@@ -1,0 +1,69 @@
+name: Full-Engine UHT Validation
+
+# Runs UnrealHeaderTool over all project modules inside the official
+# Epic Games UE 5.3 dev container. This is the authoritative reflection
+# validation pass; Scripts/uht_parity_check.py is the fast local proxy.
+#
+# Requires repository/org secret GHCR_EPIC_PAT: a PAT belonging to a
+# GitHub account with EpicGames org membership (grants pull access to
+# ghcr.io/epicgames/unreal-engine).
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'DeepTreeEcho/Avatar/**'
+      - 'Source/**'
+      - 'UnrealEcho/**'
+      - 'UnrealEngineCog.uproject'
+      - '.github/workflows/ci-uht-fullengine.yml'
+
+jobs:
+  uht-parity:
+    name: UHT-Parity Static Check (fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run UHT-parity validator
+        run: python3 Scripts/uht_parity_check.py
+
+  uht-fullengine:
+    name: UnrealHeaderTool (UE 5.3 container)
+    needs: uht-parity
+    runs-on: ubuntu-latest
+    # Skip gracefully when the secret is not configured (e.g. forks).
+    if: ${{ vars.ENABLE_FULL_UHT == 'true' }}
+    container:
+      image: ghcr.io/epicgames/unreal-engine:dev-slim-5.3.2
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_EPIC_PAT }}
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: project
+
+      - name: Generate project files & run UHT via UBT
+        shell: bash
+        run: |
+          set -euo pipefail
+          UE_ROOT=/home/ue4/UnrealEngine
+          PROJECT="$GITHUB_WORKSPACE/project/UnrealEngineCog.uproject"
+
+          # UHT executes as the first stage of an editor-target UBT
+          # invocation; -SkipBuild stops after header generation so we
+          # get a pure reflection validation pass.
+          "$UE_ROOT/Engine/Build/BatchFiles/RunUBT.sh" \
+            UnrealEngineCogEditor Linux Development \
+            -Project="$PROJECT" \
+            -SkipBuild \
+            -NoHotReload 2>&1 | tee /tmp/uht.log
+
+      - name: Upload UHT log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uht-log
+          path: /tmp/uht.log

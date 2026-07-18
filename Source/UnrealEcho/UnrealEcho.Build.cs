@@ -23,7 +23,6 @@ public class UnrealEcho : ModuleRules
 				Path.Combine(UnrealEchoRoot, "Character"),
 				Path.Combine(UnrealEchoRoot, "Consciousness"),
 				Path.Combine(UnrealEchoRoot, "Cosmetics"),
-				Path.Combine(UnrealEchoRoot, "DeepTreeEchoAvatar/Public"),
 				Path.Combine(UnrealEchoRoot, "Environment"),
 				Path.Combine(UnrealEchoRoot, "Interaction"),
 				Path.Combine(UnrealEchoRoot, "Live2DCubism"),
@@ -41,7 +40,6 @@ public class UnrealEcho : ModuleRules
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				Path.Combine(UnrealEchoRoot, "DeepTreeEchoAvatar/Private"),
 			}
 		);
 

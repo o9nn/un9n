@@ -40,7 +40,7 @@ struct FBodyPartState
  * Embodied State - Physical body state for 4E cognition
  */
 USTRUCT(BlueprintType)
-struct FEmbodiedState
+struct F4EEmbodiedState
 {
     GENERATED_BODY()
 
@@ -64,7 +64,7 @@ struct FEmbodiedState
  * Embedded State - Environmental coupling state
  */
 USTRUCT(BlueprintType)
-struct FEmbeddedState
+struct F4EEmbeddedState
 {
     GENERATED_BODY()
 
@@ -85,7 +85,7 @@ struct FEmbeddedState
  * Enacted State - Sensorimotor contingency state
  */
 USTRUCT(BlueprintType)
-struct FEnactedState
+struct F4EEnactedState
 {
     GENERATED_BODY()
 
@@ -127,7 +127,7 @@ struct FToolState
  * Extended State - Tool integration state
  */
 USTRUCT(BlueprintType)
-struct FExtendedState
+struct F4EExtendedState
 {
     GENERATED_BODY()
 
@@ -424,10 +424,10 @@ private:
     UEchobeatsStreamEngine* EchobeatsEngine = nullptr;
 
     // 4E States
-    FEmbodiedState EmbodiedState;
-    FEmbeddedState EmbeddedState;
-    FEnactedState EnactedState;
-    FExtendedState ExtendedState;
+    F4EEmbodiedState EmbodiedState;
+    F4EEmbeddedState EmbeddedState;
+    F4EEnactedState EnactedState;
+    F4EExtendedState ExtendedState;
 
     // Visual States
     FVisualCouplingState VisualState;
