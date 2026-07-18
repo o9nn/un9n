@@ -123,7 +123,7 @@ struct FCubismDrawable
  * Uses real UCubismModelComponent for all SDK operations.
  */
 UCLASS()
-class DEEPTREECHO_API UCubismSDKIntegration : public UObject
+class UNREALECHO_API UCubismSDKIntegration : public UObject
 {
     GENERATED_BODY()
 
@@ -240,7 +240,7 @@ private:
  * Implements super-hot-girl aesthetic and hyper-chaotic behaviors
  */
 UCLASS()
-class DEEPTREECHO_API UCubismEnhancedFeatures : public UObject
+class UNREALECHO_API UCubismEnhancedFeatures : public UObject
 {
     GENERATED_BODY()
 

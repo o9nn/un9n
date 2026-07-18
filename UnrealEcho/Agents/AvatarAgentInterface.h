@@ -337,7 +337,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSwarmGoalUpdated, const FString&
  *     └── collective_memory
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatarAgentInterface : public UActorComponent
+class UNREALECHO_API UAvatarAgentInterface : public UActorComponent
 {
     GENERATED_BODY()
 

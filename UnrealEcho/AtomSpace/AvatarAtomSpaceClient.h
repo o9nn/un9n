@@ -353,7 +353,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectionStateChanged, bool, bCo
  *         (NumberNode 0.85)))
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatarAtomSpaceClient : public UActorComponent
+class UNREALECHO_API UAvatarAtomSpaceClient : public UActorComponent
 {
     GENERATED_BODY()
 

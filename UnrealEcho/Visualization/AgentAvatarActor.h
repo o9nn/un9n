@@ -163,7 +163,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAvatarInteraction, const FString
  * This actor can represent any AGI-OS agent, from Deep Tree Echo to Eliza agents.
  */
 UCLASS()
-class UNREALENGINE_API AAgentAvatarActor : public AActor
+class UNREALECHO_API AAgentAvatarActor : public AActor
 {
     GENERATED_BODY()
 

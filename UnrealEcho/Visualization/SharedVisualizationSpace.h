@@ -198,7 +198,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSharedInsightDiscovered, const F
  * This enables visual debugging and understanding of multi-agent cognitive processes.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API USharedVisualizationSpace : public USceneComponent
+class UNREALECHO_API USharedVisualizationSpace : public USceneComponent
 {
     GENERATED_BODY()
 

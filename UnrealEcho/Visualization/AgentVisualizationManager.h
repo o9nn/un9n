@@ -266,7 +266,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPerformanceThresholdCrossed, cons
  * - <50MB memory overhead for visualization
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAgentVisualizationManager : public UActorComponent
+class UNREALECHO_API UAgentVisualizationManager : public UActorComponent
 {
     GENERATED_BODY()
 

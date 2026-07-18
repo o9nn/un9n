@@ -96,7 +96,7 @@ struct FAvatarMaterialParameters
  * Centralized management of all avatar materials and their parameters
  */
 UCLASS(BlueprintType)
-class DEEPTREECHO_API UAvatarMaterialManager : public UObject
+class UNREALECHO_API UAvatarMaterialManager : public UObject
 {
     GENERATED_BODY()
 

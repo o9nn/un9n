@@ -71,7 +71,7 @@ struct FPhysicsGroup
 };
 
 UCLASS(Blueprintable)
-class DEEPTREECHO_API UPhysicsDeformer : public UObject
+class UNREALECHO_API UPhysicsDeformer : public UObject
 {
     GENERATED_BODY()
 

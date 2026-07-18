@@ -269,7 +269,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnConversationStateChanged, const 
  * DeltaChat/Dovecot <- 9P Interface <- Avatar Communication Manager
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatarCommunicationManager : public UActorComponent
+class UNREALECHO_API UAvatarCommunicationManager : public UActorComponent
 {
     GENERATED_BODY()
 

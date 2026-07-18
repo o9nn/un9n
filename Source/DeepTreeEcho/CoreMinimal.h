@@ -1141,6 +1141,7 @@ enum class ELogVerbosity { NoLogging, Fatal, Error, Warning, Display, Log, Verbo
 #endif
 #define DEEPTREEECHO_API
 #define UNREALECHO_API
+#define DEEPTREEECHOAVATAR_API
 #define CORE_API
 #define ENGINE_API
 

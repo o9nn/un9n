@@ -25,7 +25,7 @@ class UParticleEffectManager;
  * This component creates an immersive virtual environment for AGI avatar interactions.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UVirtualEnvironmentManager : public UActorComponent
+class UNREALECHO_API UVirtualEnvironmentManager : public UActorComponent
 {
     GENERATED_BODY()
 

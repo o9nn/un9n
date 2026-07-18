@@ -290,3 +290,87 @@ void USuperHotGirlPersonality::ApplyCognitivePersonality(UAvatar3DComponent* Ava
         CognitiveViz->TriggerThoughtProcess(StartPosition, EndPosition);
     }
 }
+
+// ── MLGamer skill application ────────────────────────────────────────────────
+
+void USuperHotGirlPersonality::ApplySkills(UAvatar3DComponent* Avatar)
+{
+    if (!Avatar)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SuperHotGirlPersonality::ApplySkills - Invalid Avatar"));
+        return;
+    }
+
+    // Skills modulate the gameplay-facing subsystems. Aim precision and
+    // reflexes tighten gesture timing; strategy raises cognitive activity;
+    // mechanics scales overall animation responsiveness.
+    if (Avatar->GestureSystem)
+    {
+        const float Responsiveness = FMath::Lerp(0.6f, 1.5f, (Skills.Reflexes + Skills.Mechanics) * 0.5f);
+        Avatar->GestureSystem->TriggerGesture(EGestureType::Confident, Responsiveness);
+    }
+
+    if (Avatar->CognitiveViz)
+    {
+        const float Intensity = FMath::Lerp(0.6f, 1.4f, Skills.Strategy);
+        Avatar->CognitiveViz->SetCognitiveActivity(ECognitiveActivityType::Analyzing, Intensity);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("MLGamer skills applied (Aim: %.2f, Reflexes: %.2f, Strategy: %.2f, Mechanics: %.2f)"),
+        Skills.AimPrecision, Skills.Reflexes, Skills.Strategy, Skills.Mechanics);
+}
+
+// ── Single source of truth: cognitive-state → traits + skills ───────────────
+// Exact parity with C# AvatarEmbodimentService.DeriveBaselineTraits.
+
+void USuperHotGirlPersonality::DeriveBaselineTraits(float AutonomyLevel, float Coherence,
+                                                    const FDTECognitiveBaseline& Baseline,
+                                                    FSuperHotGirlTraits& OutTraits,
+                                                    FMLGamerSkills& OutSkills)
+{
+    // Higher autonomy → more confidence and wit
+    // Higher coherence → more charm
+    // Higher curiosity → more playfulness
+    // Higher chaos → more sass
+    OutTraits.Confidence  = FMath::Clamp(0.6f + AutonomyLevel * 0.1f  + Coherence * 0.1f, 0.0f, 1.0f);
+    OutTraits.Charm       = FMath::Clamp(0.7f + Coherence * 0.2f,                          0.0f, 1.0f);
+    OutTraits.Playfulness = FMath::Clamp(0.5f + Baseline.Curiosity * 0.4f,                 0.0f, 1.0f);
+    OutTraits.Wit         = FMath::Clamp(0.6f + AutonomyLevel * 0.15f,                     0.0f, 1.0f);
+    OutTraits.Sass        = FMath::Clamp(0.4f + Baseline.Chaos * 0.4f,                     0.0f, 1.0f);
+
+    OutSkills.AimPrecision = FMath::Clamp(0.5f + AutonomyLevel * 0.2f  + Coherence * 0.2f,           0.0f, 1.0f);
+    OutSkills.Reflexes     = FMath::Clamp(0.5f + AutonomyLevel * 0.25f + Baseline.Endorphin * 0.15f, 0.0f, 1.0f);
+    OutSkills.Strategy     = FMath::Clamp(0.5f + Coherence * 0.3f      + OutTraits.Wit * 0.2f,       0.0f, 1.0f);
+    OutSkills.Mechanics    = FMath::Clamp(0.5f + OutTraits.Confidence * 0.2f + OutTraits.Playfulness * 0.2f, 0.0f, 1.0f);
+}
+
+FDTECognitiveBaseline USuperHotGirlPersonality::GetColdStartBaseline()
+{
+    // Parity with C# ColdStartNeuro: (Curiosity 0.5, Endorphin 0.5, Chaos 0.75, Homeostasis 0.6)
+    FDTECognitiveBaseline Baseline;
+    Baseline.Curiosity   = 0.5f;
+    Baseline.Endorphin   = 0.5f;
+    Baseline.Chaos       = 0.75f;
+    Baseline.Homeostasis = 0.6f;
+    return Baseline;
+}
+
+// ── Cold-start bootstrap ─────────────────────────────────────────────────────
+
+void USuperHotGirlPersonality::ApplyColdStart(UAvatar3DComponent* Avatar)
+{
+    if (!Avatar)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SuperHotGirlPersonality::ApplyColdStart - Invalid Avatar"));
+        return;
+    }
+
+    DeriveBaselineTraits(ColdStartAutonomy, ColdStartCoherence, GetColdStartBaseline(), Traits, Skills);
+
+    UE_LOG(LogTemp, Log, TEXT("Cold-start bootstrap: baseline traits derived (Confidence: %.2f, Charm: %.2f, Playfulness: %.2f, Wit: %.2f, Sass: %.2f | Aim: %.2f, Reflexes: %.2f, Strategy: %.2f, Mechanics: %.2f)"),
+        Traits.Confidence, Traits.Charm, Traits.Playfulness, Traits.Wit, Traits.Sass,
+        Skills.AimPrecision, Skills.Reflexes, Skills.Strategy, Skills.Mechanics);
+
+    ApplyPersonality(Avatar);
+    ApplySkills(Avatar);
+}

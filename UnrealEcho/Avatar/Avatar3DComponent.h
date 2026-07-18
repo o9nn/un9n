@@ -11,7 +11,7 @@ class UEmotionalAuraComponent;
 class UCognitiveVisualizationComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UAvatar3DComponent : public USkeletalMeshComponent
+class UNREALECHO_API UAvatar3DComponent : public USkeletalMeshComponent
 {
     GENERATED_BODY()
 

@@ -226,7 +226,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQualityAssessed, const FLivingStr
  * - Pattern application to improve avatar quality
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UPatternLanguageSystem : public UActorComponent
+class UNREALECHO_API UPatternLanguageSystem : public UActorComponent
 {
     GENERATED_BODY()
 

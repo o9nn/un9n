@@ -22,7 +22,7 @@ enum class EAvatarEmotionalState : uint8
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAudioManagerComponent : public UActorComponent
+class UNREALECHO_API UAudioManagerComponent : public UActorComponent
 {
     GENERATED_BODY()
 

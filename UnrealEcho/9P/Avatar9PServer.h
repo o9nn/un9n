@@ -233,7 +233,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOn9PClientDisconnected, int32, Clie
  *     └── results
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatar9PServer : public UActorComponent
+class UNREALECHO_API UAvatar9PServer : public UActorComponent
 {
     GENERATED_BODY()
 

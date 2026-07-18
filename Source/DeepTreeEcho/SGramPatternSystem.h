@@ -290,10 +290,11 @@ struct FSGramPatternMatch
  * - Mapping patterns to cognitive loop steps
  * - Integrating with the triadic consciousness architecture
  */
-UCLASS(BlueprintType, Blueprintable)
-class DEEPTREEECHO_API USGramPatternSystem : public UObject
+// Plain C++ class: lives inside namespace DeepTreeEcho::SGram, which
+// UnrealHeaderTool cannot reflect. Expose via a reflected facade in the
+// module root namespace if Blueprint access is ever required.
+class DEEPTREEECHO_API USGramPatternSystem
 {
-    GENERATED_BODY()
 
 public:
     USGramPatternSystem();
@@ -304,11 +305,9 @@ public:
     //-------------------------------------------------------------------------
     
     /** Initialize the S-Gram system with specified maximum order */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     void Initialize(int32 MaxOrder = 11);
     
     /** Reset the system to initial state */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     void Reset();
 
     //-------------------------------------------------------------------------
@@ -316,15 +315,12 @@ public:
     //-------------------------------------------------------------------------
     
     /** Generate an S-Gram of specified order */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     FSGram GenerateSGram(int32 Order);
     
     /** Get a pre-generated S-Gram by order */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     FSGram GetSGram(int32 Order) const;
     
     /** Generate all S-Grams up to MaxOrder */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     void GenerateAllSGrams();
 
     //-------------------------------------------------------------------------
@@ -332,15 +328,12 @@ public:
     //-------------------------------------------------------------------------
     
     /** Match an input sequence against all S-Gram patterns */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     TArray<FSGramPatternMatch> MatchPattern(const TArray<int32>& InputSequence);
     
     /** Find the best matching S-Gram for a cyclic pattern */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     FSGramPatternMatch FindBestMatch(const TArray<int32>& InputSequence);
     
     /** Check if a sequence matches a specific S-Gram pattern */
-    UFUNCTION(BlueprintCallable, Category = "SGram")
     bool MatchesPattern(const TArray<int32>& InputSequence, int32 SGramOrder, int32 PatternIndex);
 
     //-------------------------------------------------------------------------
@@ -348,23 +341,18 @@ public:
     //-------------------------------------------------------------------------
     
     /** Map S-Gram patterns to the 12-step cognitive loop */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Cognitive")
     void MapToCognitiveLoop();
     
     /** Get the cognitive stream mapping for a given stream index */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Cognitive")
     FCognitiveStreamMapping GetStreamMapping(int32 StreamIndex) const;
     
     /** Get the active pattern for current cognitive step */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Cognitive")
     int32 GetActivePatternAtStep(int32 GlobalStep, int32 StreamIndex) const;
     
     /** Advance the cognitive loop by one step */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Cognitive")
     void AdvanceCognitiveStep();
     
     /** Get current cognitive loop step */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Cognitive")
     int32 GetCurrentCognitiveStep() const { return CurrentCognitiveStep; }
 
     //-------------------------------------------------------------------------
@@ -372,15 +360,12 @@ public:
     //-------------------------------------------------------------------------
     
     /** Convert S-Gram vertex to 3M₂ coordinate */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Coordinates")
     F3M2Coordinate VertexTo3M2(const FNGramVertex& Vertex) const;
     
     /** Convert cognitive state to 4M₃ tetrahedral coordinate */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Coordinates")
     F4M3Coordinate StateTo4M3(const TArray<float>& StreamActivations) const;
     
     /** Get the zero-sum coordinate for current cognitive state */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Coordinates")
     F4M3Coordinate GetCurrentStateCoordinate() const;
 
     //-------------------------------------------------------------------------
@@ -388,11 +373,9 @@ public:
     //-------------------------------------------------------------------------
     
     /** Get vertices for drawing an S-Gram */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Visualization")
     TArray<FVector2D> GetSGramVertices(int32 Order, float Radius = 100.0f) const;
     
     /** Get edges for drawing an S-Gram */
-    UFUNCTION(BlueprintCallable, Category = "SGram|Visualization")
     TArray<TPair<FVector2D, FVector2D>> GetSGramEdges(int32 Order, float Radius = 100.0f) const;
 
     //-------------------------------------------------------------------------
@@ -401,12 +384,10 @@ public:
     
     /** Called when a pattern is recognized */
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPatternRecognized, const FSGramPatternMatch&, Match);
-    UPROPERTY(BlueprintAssignable, Category = "SGram|Events")
     FOnPatternRecognized OnPatternRecognized;
     
     /** Called when cognitive step advances */
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCognitiveStepAdvanced, int32, NewStep, int32, ActiveStream);
-    UPROPERTY(BlueprintAssignable, Category = "SGram|Events")
     FOnCognitiveStepAdvanced OnCognitiveStepAdvanced;
 
 protected:
@@ -415,7 +396,6 @@ protected:
     //-------------------------------------------------------------------------
     
     /** Maximum S-Gram order to generate */
-    UPROPERTY()
     int32 MaxSGramOrder;
     
     /** Pre-generated S-Grams */
@@ -425,7 +405,6 @@ protected:
     TArray<FCognitiveStreamMapping> StreamMappings;
     
     /** Current step in the 12-step cognitive loop */
-    UPROPERTY()
     int32 CurrentCognitiveStep;
     
     /** Stream activations for current state */

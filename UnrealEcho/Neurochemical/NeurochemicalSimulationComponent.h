@@ -110,7 +110,7 @@ struct FEmotionalChemistry
  * Simulates brain chemistry and its effects on behavior and emotion
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UNeurochemicalSimulationComponent : public UActorComponent
+class UNREALECHO_API UNeurochemicalSimulationComponent : public UActorComponent
 {
     GENERATED_BODY()
 

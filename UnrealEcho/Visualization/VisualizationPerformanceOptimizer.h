@@ -216,7 +216,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBudgetExceeded, const FString&, 
  * Target: 60+ FPS with 5+ agents, <50MB memory overhead
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UVisualizationPerformanceOptimizer : public UActorComponent
+class UNREALECHO_API UVisualizationPerformanceOptimizer : public UActorComponent
 {
     GENERATED_BODY()
 

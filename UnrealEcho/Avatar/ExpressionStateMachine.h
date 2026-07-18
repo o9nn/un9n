@@ -133,7 +133,7 @@ struct FExpressionSequence
 };
 
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UExpressionStateMachine : public UActorComponent
+class UNREALECHO_API UExpressionStateMachine : public UActorComponent
 {
     GENERATED_BODY()
 

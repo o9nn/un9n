@@ -135,7 +135,7 @@ struct FMontageEntry
  * A library of animation montages.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UMontageLibraryDataAsset : public UDataAsset
+class UNREALECHO_API UMontageLibraryDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
@@ -214,7 +214,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageNotify, FName, MontageId,
  * - Montage library support
  */
 UCLASS(ClassGroup = (DeepTreeEcho), meta = (BlueprintSpawnableComponent))
-class UNREALENGINE_API UAnimationMontageSystem : public UActorComponent
+class UNREALECHO_API UAnimationMontageSystem : public UActorComponent
 {
 	GENERATED_BODY()
 

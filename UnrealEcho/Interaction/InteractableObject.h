@@ -100,7 +100,7 @@ struct FInteractionData
  * Data asset defining properties of an interactable object.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UInteractableDataAsset : public UDataAsset
+class UNREALECHO_API UInteractableDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
@@ -160,7 +160,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionAvailable, AActor*, In
  * cognitive and personality systems.
  */
 UCLASS(Blueprintable)
-class UNREALENGINE_API AInteractableObject : public AActor
+class UNREALECHO_API AInteractableObject : public AActor
 {
 	GENERATED_BODY()
 
@@ -249,7 +249,7 @@ protected:
  * An interactable object that can contain other items.
  */
 UCLASS(Blueprintable)
-class UNREALENGINE_API AInteractableContainer : public AInteractableObject
+class UNREALECHO_API AInteractableContainer : public AInteractableObject
 {
 	GENERATED_BODY()
 
@@ -287,7 +287,7 @@ protected:
  * Furniture that the avatar can sit on, sleep on, etc.
  */
 UCLASS(Blueprintable)
-class UNREALENGINE_API AInteractableFurniture : public AInteractableObject
+class UNREALECHO_API AInteractableFurniture : public AInteractableObject
 {
 	GENERATED_BODY()
 
@@ -335,7 +335,7 @@ protected:
  * An NPC that can be interacted with for conversation, etc.
  */
 UCLASS(Blueprintable)
-class UNREALENGINE_API AInteractableNPC : public AInteractableObject
+class UNREALECHO_API AInteractableNPC : public AInteractableObject
 {
 	GENERATED_BODY()
 

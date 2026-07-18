@@ -20,7 +20,7 @@ struct FPersonalityState;
  * - Neurochemical state (energy levels, coordination)
  */
 UCLASS()
-class UNREALENGINE_API UDeepTreeEchoMovementComponent : public UCharacterMovementComponent
+class UNREALECHO_API UDeepTreeEchoMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 
