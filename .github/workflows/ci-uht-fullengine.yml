@@ -52,10 +52,19 @@ jobs:
           UE_ROOT=/home/ue4/UnrealEngine
           PROJECT="$GITHUB_WORKSPACE/project/UnrealEngineCog.uproject"
 
+          # The dev-slim image ships a prebuilt UnrealBuildTool.dll but not
+          # BuildUBT.sh (which RunUBT.sh delegates to), so invoke the
+          # prebuilt UBT assembly directly with the engine-bundled dotnet.
+          UBT_DLL="$UE_ROOT/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll"
+          DOTNET="$(find "$UE_ROOT/Engine/Binaries/ThirdParty/DotNet" -maxdepth 4 -name dotnet -type f 2>/dev/null | head -1 || true)"
+          [ -n "$DOTNET" ] || DOTNET="$(command -v dotnet || true)"
+          echo "UBT_DLL=$UBT_DLL"; echo "DOTNET=$DOTNET"
+          [ -f "$UBT_DLL" ] || { echo 'UBT dll not found; listing candidates:'; find "$UE_ROOT/Engine/Binaries/DotNET" -maxdepth 2 -name 'UnrealBuildTool*' 2>/dev/null; exit 1; }
+
           # UHT executes as the first stage of an editor-target UBT
           # invocation; -SkipBuild stops after header generation so we
           # get a pure reflection validation pass.
-          "$UE_ROOT/Engine/Build/BatchFiles/RunUBT.sh" \
+          "$DOTNET" "$UBT_DLL" \
             UnrealEngineCogEditor Linux Development \
             -Project="$PROJECT" \
             -SkipBuild \
