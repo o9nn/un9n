@@ -24,7 +24,7 @@ jobs:
     name: UHT-Parity Static Check (fast)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run UHT-parity validator
         run: python3 Scripts/uht_parity_check.py
 
@@ -41,7 +41,7 @@ jobs:
         password: ${{ secrets.GHCR_EPIC_PAT }}
       options: --user 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: project
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload UHT log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: uht-log
           path: /tmp/uht.log
