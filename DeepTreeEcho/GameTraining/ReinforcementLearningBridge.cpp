@@ -103,6 +103,22 @@ FString UReinforcementLearningBridge::StateToKey(const TArray<float>& State) con
         int32 Bucket = FMath::RoundToInt(State[i] * 10);
         Key += FString::Printf(TEXT("%d_"), Bucket);
     }
+
+    // Fold the tail (entity slots and, with bUseReservoirIntegration, the appended echo memory)
+    // into coarse pooled buckets. Truncating at 20 elements made states differing only in their
+    // reservoir tail collapse onto one key, so the echo memory had no effect on the tabular
+    // policy at all. Pooling keeps the key space bounded while letting the tail differentiate.
+    for (int32 i = 20; i < State.Num(); i += 10)
+    {
+        float Sum = 0.0f;
+        const int32 End = FMath::Min(i + 10, State.Num());
+        for (int32 j = i; j < End; ++j)
+        {
+            Sum += State[j];
+        }
+        Key += FString::Printf(TEXT("p%d_"), FMath::RoundToInt(Sum * 2.0f));
+    }
+
     return Key;
 }
 
@@ -368,7 +384,10 @@ FRLAction UReinforcementLearningBridge::SelectSoftmax(const TArray<float>& State
     for (int32 i = 0; i < NumActions; ++i)
     {
         Cumulative += Probs[i];
-        if (Roll <= Cumulative)
+        // The final iteration always selects: float rounding can leave the cumulative sum
+        // slightly below Roll (FRand can return exactly 1.0), and an all-zero Probs array
+        // (Sum==0 guard) would otherwise fall through to a default-constructed action.
+        if (Roll <= Cumulative || i == NumActions - 1)
         {
             Action.ActionIndex = i;
             Action.Probability = Probs[i];
@@ -556,14 +575,23 @@ float UReinforcementLearningBridge::PerformBatchUpdate()
     {
         if (Algorithm == ELearningAlgorithm::QLearning || Algorithm == ELearningAlgorithm::DQN)
         {
-            ApplyQLearningUpdate(Transition);
+            // Measure the TD error BEFORE the update moves Q toward the target - measuring
+            // after under-reports the loss by the learning-rate factor. Use the same
+            // intrinsic-augmented reward the update itself applies, so the reported loss
+            // reflects the actual optimization target.
+            const TArray<float> PreQValues = GetQValues(Transition.State);
+            if (PreQValues.IsValidIndex(Transition.Action.ActionIndex))
+            {
+                const float PreQ = PreQValues[Transition.Action.ActionIndex];
+                const float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
+                const float IntrinsicReward = ComputeIntrinsicReward(Transition.State, Transition.Action.ActionIndex);
+                const float Target = Transition.Reward + CurrentModulation.Curiosity * IntrinsicReward +
+                                     DiscountFactor * MaxNextQ;
+                const float TDError = Target - PreQ;
+                TotalLoss += TDError * TDError;
+            }
 
-            // Compute loss (TD error squared)
-            float CurrentQ = GetQValues(Transition.State)[Transition.Action.ActionIndex];
-            float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
-            float Target = Transition.Reward + DiscountFactor * MaxNextQ;
-            float TDError = Target - CurrentQ;
-            TotalLoss += TDError * TDError;
+            ApplyQLearningUpdate(Transition);
         }
         else if (Algorithm == ELearningAlgorithm::SARSA)
         {
@@ -583,6 +611,13 @@ void UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Trans
 {
     FString StateKey = StateToKey(Transition.State);
     TArray<float> QValues = GetOrCreateQValues(StateKey);
+
+    // RecordTransition is BlueprintCallable with an arbitrary caller-supplied FRLAction, so the
+    // index must be validated before touching an array sized to NumActions.
+    if (!QValues.IsValidIndex(Transition.Action.ActionIndex))
+    {
+        return;
+    }
 
     float CurrentQ = QValues[Transition.Action.ActionIndex];
     float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
@@ -609,6 +644,12 @@ void UReinforcementLearningBridge::ApplySARSAUpdate(const FTransition& Transitio
 {
     FString StateKey = StateToKey(Transition.State);
     TArray<float> QValues = GetOrCreateQValues(StateKey);
+
+    // Same BlueprintCallable-supplied index hazard as ApplyQLearningUpdate.
+    if (!QValues.IsValidIndex(Transition.Action.ActionIndex))
+    {
+        return;
+    }
 
     float CurrentQ = QValues[Transition.Action.ActionIndex];
 

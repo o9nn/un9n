@@ -458,6 +458,7 @@ protected:
     // Combo tracking
     TMap<FString, FInputSequence> RegisteredCombos;
     TArray<TPair<FString, float>> RecentActions;  // (ActionName, Timestamp) - each entry aged independently
+    TSet<FString> PreviouslyActiveActions;        // actions active last tick, for edge-gating RecentActions
     float LastActionTime = 0.0f;
 
     /** Window (seconds) after which a recent-action entry is discarded */

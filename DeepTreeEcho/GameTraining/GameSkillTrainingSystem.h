@@ -475,11 +475,6 @@ protected:
     TMap<FString, FGameSkill> Skills;
     int32 SkillIDCounter = 0;
 
-    /** Maps this component's generated SkillID to the corresponding skill's ID in
-     *  UOnlineLearningSystem's own registry (populated via AcquireSkill at registration time),
-     *  since the two components maintain independent ID namespaces. */
-    TMap<FString, FString> GameSkillIDToLearningSkillID;
-
     // Attempt history
     TArray<FSkillAttempt> RecentAttempts;
 

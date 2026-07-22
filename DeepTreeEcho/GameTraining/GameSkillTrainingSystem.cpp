@@ -191,19 +191,6 @@ FGameSkill UGameSkillTrainingSystem::RegisterSkill(const FString& SkillName, EGa
 
     Skills.Add(Skill.SkillID, Skill);
 
-    // Mirror this skill into OnlineLearningSystem's own registry so that PracticeSkill calls
-    // (see BroadcastToLearningSystem) resolve to a real entry there. This component's generated
-    // SKILL_N id is meaningless to OnlineLearningSystem, which maintains its own independent
-    // id-space populated only through its own AcquireSkill().
-    if (LearningSystem)
-    {
-        FAcquiredSkill LearningSkill = LearningSystem->AcquireSkill(SkillName, SkillName, Prerequisites);
-        if (!LearningSkill.SkillID.IsEmpty())
-        {
-            GameSkillIDToLearningSkillID.Add(Skill.SkillID, LearningSkill.SkillID);
-        }
-    }
-
     // Check if unlocked (prerequisites met)
     if (ArePrerequisitesMet(Skill.SkillID))
     {
@@ -601,12 +588,21 @@ void UGameSkillTrainingSystem::BroadcastToLearningSystem(const FGameSkill& Skill
         false
     );
 
-    // Practice the corresponding cognitive skill, using OnlineLearningSystem's OWN id-space.
-    // This component's SKILL_N id means nothing there and was previously passed directly,
-    // silently no-opping (UOnlineLearningSystem::PracticeSkill returns early on unknown IDs).
-    if (const FString* LearningSkillID = GameSkillIDToLearningSkillID.Find(Skill.SkillID))
+    // Practice the corresponding cognitive skill in OnlineLearningSystem's OWN id-space,
+    // resolved lazily BY NAME at practice time. Eager id-mirroring at registration proved
+    // fragile in two ways: UOnlineLearningSystem::BeginPlay wipes its registry (so a mirror
+    // created before its BeginPlay ran pointed at deleted entries, order-dependent), and its
+    // AcquireSkill rejects skills whose prerequisites aren't at Beginner level yet (so every
+    // prerequisite-bearing skill failed to mirror at all). Prerequisites are deliberately NOT
+    // forwarded - this component already gates unlocks itself via ArePrerequisitesMet.
+    FAcquiredSkill LearningSkill = LearningSystem->GetSkillByName(Skill.SkillName);
+    if (LearningSkill.SkillID.IsEmpty())
     {
-        LearningSystem->PracticeSkill(*LearningSkillID, Attempt.Quality);
+        LearningSkill = LearningSystem->AcquireSkill(Skill.SkillName, Skill.SkillName, TArray<FString>());
+    }
+    if (!LearningSkill.SkillID.IsEmpty())
+    {
+        LearningSystem->PracticeSkill(LearningSkill.SkillID, Attempt.Quality);
     }
 
     // Update sensorimotor contingency
@@ -1068,9 +1064,6 @@ void UGameSkillTrainingSystem::LoadSkillPresets(EGameGenre Genre)
 {
     Skills.Empty();
     SkillIDCounter = 0;
-    // Clear the cross-system mapping too, or entries would point at SKILL_N ids that no longer
-    // exist in Skills after this reload.
-    GameSkillIDToLearningSkillID.Empty();
 
     RegisterMovementSkills();
 

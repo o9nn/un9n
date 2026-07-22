@@ -134,6 +134,17 @@ void UGameControllerInterface::TickComponent(float DeltaTime, ELevelTick TickTyp
     // Poll input
     PollControllerInput();
 
+    // Apply queued AI output BEFORE edge detection: ExecuteQueuedOutput writes the command's
+    // DesiredState into CurrentState, and press edges (which feed ButtonHoldStartTimes and
+    // therefore hold-gated actions) are only observable if that write happens before
+    // ProcessButtonEvents compares CurrentState against PreviousState. Running it at the end of
+    // the tick meant AI-injected presses were copied into PreviousState before ever being
+    // edge-detected, so hold-gated actions could never fire in AI output mode.
+    if (bAIOutputMode)
+    {
+        ProcessOutputQueue(DeltaTime);
+    }
+
     // Update buffer
     UpdateInputBuffer(DeltaTime);
 
@@ -143,12 +154,6 @@ void UGameControllerInterface::TickComponent(float DeltaTime, ELevelTick TickTyp
 
     // Detect and broadcast actions
     DetectAndBroadcastActions();
-
-    // Process AI output if enabled
-    if (bAIOutputMode)
-    {
-        ProcessOutputQueue(DeltaTime);
-    }
 
     // Broadcast state change
     if (!CurrentState.ToActionString().Equals(PreviousState.ToActionString()))
@@ -349,9 +354,21 @@ void UGameControllerInterface::DetectAndBroadcastActions()
     {
         OnActionDetected.Broadcast(Action);
 
-        // Track for combo detection - each entry ages independently by its own timestamp
-        RecentActions.Add(TPair<FString, float>(Action, CurrentTime));
-        LastActionTime = CurrentTime;
+        // Track for combo detection, RISING EDGES ONLY: DetectCurrentActions is level-based
+        // (an action stays "detected" every tick its input is held), so unconditional appends
+        // would record one entry per tick of a held press - falsely matching repeated-action
+        // combos against a single press and burying real sequences in duplicates.
+        if (!PreviouslyActiveActions.Contains(Action))
+        {
+            RecentActions.Add(TPair<FString, float>(Action, CurrentTime));
+            LastActionTime = CurrentTime;
+        }
+    }
+
+    PreviouslyActiveActions.Reset();
+    for (const FString& Action : DetectedActions)
+    {
+        PreviouslyActiveActions.Add(Action);
     }
 
     // Drop entries older than the window, regardless of whether new actions are still arriving.
@@ -365,6 +382,12 @@ void UGameControllerInterface::DetectAndBroadcastActions()
     for (const FString& Combo : Combos)
     {
         OnComboDetected.Broadcast(Combo);
+    }
+    if (Combos.Num() > 0)
+    {
+        // Consume the history on a match, or the same combo would re-fire every tick until its
+        // entries age out of the window.
+        RecentActions.Empty();
     }
 
     // Record for imitation learning
@@ -575,32 +598,35 @@ TArray<FString> UGameControllerInterface::DetectCombos() const
             continue;
         }
 
-        // Check whether the most recent Len entries in RecentActions match the combo's
-        // action sequence in order, each within MaxTimeBetweenInputs of the previous one.
-        bool bMatch = true;
-        const int32 StartIdx = RecentActions.Num() - Len;
-        for (int32 i = 0; i < Len; ++i)
+        // Ordered-subsequence scan: the combo's actions must appear in order, each within
+        // MaxTimeBetweenInputs of the previously matched one, but OTHER concurrently active
+        // actions (movement, camera - active almost constantly in real play) may be interleaved
+        // between them. A strict "last Len entries" suffix match would be broken by any such
+        // interleaving.
+        int32 MatchIdx = 0;
+        float LastMatchTime = 0.0f;
+        for (const TPair<FString, float>& Entry : RecentActions)
         {
-            const TPair<FString, float>& Entry = RecentActions[StartIdx + i];
-            if (Entry.Key != Combo.ActionNames[i])
+            if (Entry.Key != Combo.ActionNames[MatchIdx])
             {
-                bMatch = false;
-                break;
+                continue;
             }
-            if (i > 0)
+            if (MatchIdx > 0 && Entry.Value - LastMatchTime > Combo.MaxTimeBetweenInputs)
             {
-                const float Gap = Entry.Value - RecentActions[StartIdx + i - 1].Value;
-                if (Gap > Combo.MaxTimeBetweenInputs)
+                // Chain broken by too large a gap - this entry can still start a new attempt.
+                MatchIdx = 0;
+                if (Entry.Key != Combo.ActionNames[0])
                 {
-                    bMatch = false;
-                    break;
+                    continue;
                 }
             }
-        }
-
-        if (bMatch)
-        {
-            DetectedCombos.Add(Combo.SequenceName);
+            LastMatchTime = Entry.Value;
+            ++MatchIdx;
+            if (MatchIdx == Len)
+            {
+                DetectedCombos.Add(Combo.SequenceName);
+                break;
+            }
         }
     }
 

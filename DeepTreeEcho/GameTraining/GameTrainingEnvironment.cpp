@@ -127,7 +127,7 @@ FString FGameStateObservation::GetStateHash() const
 
 void FRewardBreakdown::ComputeTotal()
 {
-    Total = Progress + Survival + Combat + Exploration + Efficiency + SkillExecution + Penalty;
+    Total = Progress + Survival + Combat + Exploration + Efficiency + SkillExecution + Penalty + TerminalShaping;
 }
 
 // ============================================================================
@@ -193,6 +193,16 @@ void UGameTrainingEnvironment::InitializeEnvironment()
 
 FGameStateObservation UGameTrainingEnvironment::Reset()
 {
+    // A freshly (auto-)reset episode that hasn't taken a single step yet IS the state a caller
+    // wants from Reset(). This is the standard gym pattern colliding with bAutoReset: Step
+    // returns bDone=true, the auto-reset has already started episode N+1, and the trainer then
+    // calls Reset() - ending that pristine episode here would push a phantom 0-step entry into
+    // history and inflate the episode statistics.
+    if (bEpisodeActive && CurrentStep == 0 && AccumulatedReward == 0.0f)
+    {
+        return CurrentObservation;
+    }
+
     // End previous episode if active. bTriggerAutoReset=false: EndEpisode's own auto-reset would
     // otherwise re-enter Reset() a second time (once here, once from inside EndEpisodeInternal),
     // incrementing Stats.TotalEpisodes twice and silently dropping the intermediate episode.
@@ -286,7 +296,12 @@ void UGameTrainingEnvironment::Step(const TArray<float>& Action, FGameStateObser
 
     if (bDone)
     {
-        Reward += ComputeTerminalRewardShaping(TermReason);
+        const float Shaping = ComputeTerminalRewardShaping(TermReason);
+        Reward += Shaping;
+        // Keep the broadcast breakdown consistent with the shaped Reward: OnRewardReceived
+        // (breakdown) and OnStepCompleted (scalar) must report the same terminal-step value.
+        RewardBreakdown.TerminalShaping = Shaping;
+        RewardBreakdown.Total += Shaping;
     }
 
     AccumulatedReward += Reward;
@@ -353,7 +368,15 @@ void UGameTrainingEnvironment::EndEpisodeInternal(EEpisodeTermination Reason, bo
     // AccumulatedReward (Step does this itself so the shaping reaches its Reward out-param).
     if (bApplyTerminalShaping)
     {
-        AccumulatedReward += ComputeTerminalRewardShaping(Reason);
+        const float Shaping = ComputeTerminalRewardShaping(Reason);
+        AccumulatedReward += Shaping;
+
+        // Deliver the shaping and the episode boundary to the learning system as well. The Step
+        // terminal path records its own shaped, bTerminal=true experience (and passes
+        // bApplyTerminalShaping=false here); tick-detected and manually-signaled terminations
+        // would otherwise leave the learner's experience stream unshaped with the boundary
+        // unmarked.
+        ApplyRewardToLearning(Shaping, TEXT("Terminal"), /*bTerminal=*/true);
     }
     if (Reason == EEpisodeTermination::Success)
     {

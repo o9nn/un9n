@@ -185,6 +185,10 @@ struct FRewardBreakdown
     UPROPERTY(BlueprintReadWrite)
     float Penalty = 0.0f;
 
+    /** Success/death shaping applied on the episode-ending step (zero on non-terminal steps) */
+    UPROPERTY(BlueprintReadWrite)
+    float TerminalShaping = 0.0f;
+
     void ComputeTotal();
 };
 
