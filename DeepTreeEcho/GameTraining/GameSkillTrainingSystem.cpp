@@ -19,8 +19,6 @@ void FGameSkill::UpdateSuccessRate()
 
 void FGameSkill::UpdateMastery()
 {
-    ESkillMastery PreviousMastery = Mastery;
-
     if (Proficiency < 0.2f)
     {
         Mastery = ESkillMastery::Learning;
@@ -103,9 +101,19 @@ void UGameSkillTrainingSystem::UpdateSkillDecay(float DeltaTime)
 
             if (HoursSincePractice > 1.0f)
             {
-                float Decay = SkillDecayRate * (HoursSincePractice - 1.0f) * DeltaTime;
+                // SkillDecayRate is documented as "per hour"; DeltaTime here is in SECONDS
+                // (this component ticks once per second), so it must be converted to hours -
+                // without this the skill lost the full per-hour rate every second, ~3600x too
+                // fast.
+                const ESkillMastery PreviousMastery = Skill.Mastery;
+                float Decay = SkillDecayRate * (HoursSincePractice - 1.0f) * (DeltaTime / 3600.0f);
                 Skill.Proficiency = FMath::Max(Skill.Proficiency - Decay, DecayThreshold);
                 Skill.UpdateMastery();
+
+                if (Skill.Mastery != PreviousMastery)
+                {
+                    OnSkillMasteryChanged.Broadcast(Skill.SkillID, Skill.Mastery);
+                }
             }
         }
     }
@@ -125,10 +133,13 @@ void UGameSkillTrainingSystem::CheckCurriculumProgress()
     }
 
     // Check if all skills in stage meet requirements
+    // SkillsToLearn holds skill NAMES (see LoadPresetCurriculum), while Skills is keyed by
+    // generated SKILL_N IDs - resolve by name, not by treating the name as a map key (otherwise
+    // this lookup always fails and no curriculum stage can ever complete).
     bool bAllMet = true;
-    for (const FString& SkillID : CurrentStage.SkillsToLearn)
+    for (const FString& SkillName : CurrentStage.SkillsToLearn)
     {
-        if (FGameSkill* Skill = Skills.Find(SkillID))
+        if (const FGameSkill* Skill = FindSkillByNamePtr(SkillName))
         {
             if (Skill->Proficiency < CurrentStage.RequiredProficiency ||
                 Skill->PracticeCount < CurrentStage.MinPracticeAttempts)
@@ -180,6 +191,19 @@ FGameSkill UGameSkillTrainingSystem::RegisterSkill(const FString& SkillName, EGa
 
     Skills.Add(Skill.SkillID, Skill);
 
+    // Mirror this skill into OnlineLearningSystem's own registry so that PracticeSkill calls
+    // (see BroadcastToLearningSystem) resolve to a real entry there. This component's generated
+    // SKILL_N id is meaningless to OnlineLearningSystem, which maintains its own independent
+    // id-space populated only through its own AcquireSkill().
+    if (LearningSystem)
+    {
+        FAcquiredSkill LearningSkill = LearningSystem->AcquireSkill(SkillName, SkillName, Prerequisites);
+        if (!LearningSkill.SkillID.IsEmpty())
+        {
+            GameSkillIDToLearningSkillID.Add(Skill.SkillID, LearningSkill.SkillID);
+        }
+    }
+
     // Check if unlocked (prerequisites met)
     if (ArePrerequisitesMet(Skill.SkillID))
     {
@@ -187,6 +211,18 @@ FGameSkill UGameSkillTrainingSystem::RegisterSkill(const FString& SkillName, EGa
     }
 
     return Skill;
+}
+
+const FGameSkill* UGameSkillTrainingSystem::FindSkillByNamePtr(const FString& SkillName) const
+{
+    for (const auto& Pair : Skills)
+    {
+        if (Pair.Value.SkillName == SkillName)
+        {
+            return &Pair.Value;
+        }
+    }
+    return nullptr;
 }
 
 FGameSkill UGameSkillTrainingSystem::RegisterSkillWithPattern(const FString& SkillName, EGameSkillCategory Category,
@@ -201,6 +237,10 @@ FGameSkill UGameSkillTrainingSystem::RegisterSkillWithPattern(const FString& Ski
         StoredSkill->InputPattern = InputPattern;
         StoredSkill->TimingWindow = TimingWindow;
         StoredSkill->bIsCombo = InputPattern.Num() > 1;
+
+        // Return the fully-updated stored skill, not the earlier local copy - which still has
+        // an empty InputPattern, default TimingWindow, and bIsCombo=false.
+        Skill = *StoredSkill;
     }
 
     return Skill;
@@ -271,9 +311,12 @@ bool UGameSkillTrainingSystem::ArePrerequisitesMet(const FString& SkillID) const
         return false;
     }
 
-    for (const FString& PrereqID : Skill->Prerequisites)
+    for (const FString& PrereqName : Skill->Prerequisites)
     {
-        const FGameSkill* Prereq = Skills.Find(PrereqID);
+        // Prerequisites are stored as skill NAMES (see RegisterMovementSkills/
+        // RegisterCombatSkills/LoadSkillPresets), while Skills is keyed by generated SKILL_N
+        // IDs - resolve by name, not by treating the name as a map key.
+        const FGameSkill* Prereq = FindSkillByNamePtr(PrereqName);
         if (!Prereq || Prereq->Mastery < ESkillMastery::Competent)
         {
             return false;
@@ -317,6 +360,15 @@ FSkillAttempt UGameSkillTrainingSystem::RecordAttempt(const FString& SkillID, bo
     if (Skill && Skill->InputPattern.Num() > 0)
     {
         Attempt.InputAccuracy = GetPatternMatchQuality(SkillID, ActualInputs);
+
+        // Timing accuracy: how far the actual input span deviates from the skill's timing
+        // window, normalized to [-1, 1] with 0 = perfect (per FSkillAttempt::TimingAccuracy).
+        if (Skill->TimingWindow > 0.0f && ActualInputs.Num() > 1)
+        {
+            const float ActualSpan = ActualInputs.Last().Timestamp - ActualInputs[0].Timestamp;
+            const float Deviation = (ActualSpan - Skill->TimingWindow) / Skill->TimingWindow;
+            Attempt.TimingAccuracy = FMath::Clamp(Deviation, -1.0f, 1.0f);
+        }
     }
     else
     {
@@ -326,6 +378,10 @@ FSkillAttempt UGameSkillTrainingSystem::RecordAttempt(const FString& SkillID, bo
     // Update skill stats
     if (Skill)
     {
+        if (ActualInputs.Num() > 1)
+        {
+            Skill->TotalPracticeTime += FMath::Max(0.0f, ActualInputs.Last().Timestamp - ActualInputs[0].Timestamp);
+        }
         UpdateSkillProficiency(*Skill, Attempt);
     }
 
@@ -356,7 +412,13 @@ FSkillAttempt UGameSkillTrainingSystem::RecordAttempt(const FString& SkillID, bo
 
     // Broadcast events
     OnSkillAttempted.Broadcast(SkillID, Attempt);
-    BroadcastToLearningSystem(*Skill, Attempt);
+    if (Skill)
+    {
+        // Guarded: Skill is null when SkillID doesn't exist in the registry, and this was
+        // previously dereferenced unconditionally here, crashing on any attempt against an
+        // unregistered skill.
+        BroadcastToLearningSystem(*Skill, Attempt);
+    }
 
     return Attempt;
 }
@@ -539,8 +601,13 @@ void UGameSkillTrainingSystem::BroadcastToLearningSystem(const FGameSkill& Skill
         false
     );
 
-    // Practice the corresponding cognitive skill
-    LearningSystem->PracticeSkill(Skill.SkillID, Attempt.Quality);
+    // Practice the corresponding cognitive skill, using OnlineLearningSystem's OWN id-space.
+    // This component's SKILL_N id means nothing there and was previously passed directly,
+    // silently no-opping (UOnlineLearningSystem::PracticeSkill returns early on unknown IDs).
+    if (const FString* LearningSkillID = GameSkillIDToLearningSkillID.Find(Skill.SkillID))
+    {
+        LearningSystem->PracticeSkill(*LearningSkillID, Attempt.Quality);
+    }
 
     // Update sensorimotor contingency
     if (EmbodimentComponent)
@@ -595,11 +662,15 @@ float UGameSkillTrainingSystem::ComputeInputSimilarity(const FControllerInputSta
     float Similarity = 0.0f;
     int32 Dimensions = 0;
 
-    // Compare analog values
-    Similarity += 1.0f - FMath::Abs(A.LeftStickX - B.LeftStickX);
-    Similarity += 1.0f - FMath::Abs(A.LeftStickY - B.LeftStickY);
-    Similarity += 1.0f - FMath::Abs(A.RightStickX - B.RightStickX);
-    Similarity += 1.0f - FMath::Abs(A.RightStickY - B.RightStickY);
+    // Compare analog values. Stick axes range [-1,1], so a max difference of 2.0 would push
+    // these terms as low as -1 without normalizing by /2.0f - which in turn pushed the DTW
+    // per-step cost (1 - similarity) above 1, saturating ComputeSequenceSimilarity's clamp to
+    // exactly 0 for any sequence with a non-trivial stick movement. Trigger axes range [0,1],
+    // so their max difference is already 1.0 and needs no normalization.
+    Similarity += 1.0f - FMath::Abs(A.LeftStickX - B.LeftStickX) / 2.0f;
+    Similarity += 1.0f - FMath::Abs(A.LeftStickY - B.LeftStickY) / 2.0f;
+    Similarity += 1.0f - FMath::Abs(A.RightStickX - B.RightStickX) / 2.0f;
+    Similarity += 1.0f - FMath::Abs(A.RightStickY - B.RightStickY) / 2.0f;
     Similarity += 1.0f - FMath::Abs(A.LeftTrigger - B.LeftTrigger);
     Similarity += 1.0f - FMath::Abs(A.RightTrigger - B.RightTrigger);
     Dimensions += 6;
@@ -742,13 +813,15 @@ FString UGameSkillTrainingSystem::GetRecommendedSkill() const
     if (CurrentStageIndex < Curriculum.Num())
     {
         const FCurriculumStage& Stage = Curriculum[CurrentStageIndex];
-        for (const FString& SkillID : Stage.SkillsToLearn)
+        for (const FString& SkillName : Stage.SkillsToLearn)
         {
-            if (const FGameSkill* Skill = Skills.Find(SkillID))
+            // SkillsToLearn holds NAMES, not the generated SKILL_N IDs Skills is keyed by.
+            if (const FGameSkill* Skill = FindSkillByNamePtr(SkillName))
             {
                 if (Skill->Proficiency < Stage.RequiredProficiency)
                 {
-                    return SkillID;
+                    // Return the real generated ID (a valid Skills map key), not the name.
+                    return Skill->SkillID;
                 }
             }
         }
@@ -966,12 +1039,13 @@ TMap<FString, float> UGameSkillTrainingSystem::GetSkillCorrelations(const FStrin
             Correlation += 0.5f;
         }
 
-        // Prerequisites suggest strong correlation
-        if (Pair.Value.Prerequisites.Contains(SkillID))
+        // Prerequisites suggest strong correlation. Prerequisites arrays store skill NAMES, so
+        // they must be compared against SkillName, not against the SKILL_N map key (SkillID).
+        if (Pair.Value.Prerequisites.Contains(TargetSkill->SkillName))
         {
             Correlation += 0.4f;
         }
-        if (TargetSkill->Prerequisites.Contains(Pair.Key))
+        if (TargetSkill->Prerequisites.Contains(Pair.Value.SkillName))
         {
             Correlation += 0.4f;
         }
@@ -994,6 +1068,9 @@ void UGameSkillTrainingSystem::LoadSkillPresets(EGameGenre Genre)
 {
     Skills.Empty();
     SkillIDCounter = 0;
+    // Clear the cross-system mapping too, or entries would point at SKILL_N ids that no longer
+    // exist in Skills after this reload.
+    GameSkillIDToLearningSkillID.Empty();
 
     RegisterMovementSkills();
 

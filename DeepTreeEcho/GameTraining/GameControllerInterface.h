@@ -190,6 +190,10 @@ struct FInputSequence
     UPROPERTY(BlueprintReadWrite)
     TArray<FControllerInputState> Inputs;
 
+    /** Ordered action names that make up this combo (matched against DetectCurrentActions history) */
+    UPROPERTY(BlueprintReadWrite)
+    TArray<FString> ActionNames;
+
     UPROPERTY(BlueprintReadWrite)
     float MaxTimeBetweenInputs = 0.3f;
 
@@ -216,7 +220,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOutputCommandGenerated, const FCo
  * Bridges gamepad input/output with Deep Tree Echo cognitive system
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UGameControllerInterface : public UActorComponent
+class UNREALECHO_API UGameControllerInterface : public UActorComponent
 {
     GENERATED_BODY()
 
@@ -453,8 +457,14 @@ protected:
 
     // Combo tracking
     TMap<FString, FInputSequence> RegisteredCombos;
-    TArray<FString> RecentActions;
+    TArray<TPair<FString, float>> RecentActions;  // (ActionName, Timestamp) - each entry aged independently
     float LastActionTime = 0.0f;
+
+    /** Window (seconds) after which a recent-action entry is discarded */
+    static constexpr float RecentActionWindow = 1.0f;
+
+    /** Max entries retained in ImitationBuffer before oldest are dropped */
+    static constexpr int32 MaxImitationBufferSize = 500;
 
     // Imitation learning buffer
     TArray<TPair<FControllerInputState, FString>> ImitationBuffer;

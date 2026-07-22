@@ -150,8 +150,7 @@ struct FReservoirRLState
     UPROPERTY(BlueprintReadWrite)
     TArray<float> EchoMemory;
 
-    /** Temporal pattern buffer */
-    UPROPERTY(BlueprintReadWrite)
+    /** Temporal pattern buffer (not UPROPERTY: nested TArray<TArray<>> is rejected by UnrealHeaderTool) */
     TArray<TArray<float>> TemporalBuffer;
 
     /** Detected patterns */
@@ -173,7 +172,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPolicyImproved, float, OldValue,
  * Connects game training with Deep Tree Echo cognitive systems
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UReinforcementLearningBridge : public UActorComponent
+class UNREALECHO_API UReinforcementLearningBridge : public UActorComponent
 {
     GENERATED_BODY()
 

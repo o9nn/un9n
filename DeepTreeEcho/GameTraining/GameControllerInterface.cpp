@@ -5,6 +5,8 @@
 #include "../Learning/OnlineLearningSystem.h"
 #include "../4ECognition/EmbodiedCognitionComponent.h"
 #include "../Core/DeepTreeEchoCore.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
 
 // ============================================================================
 // FControllerInputState Implementation
@@ -347,16 +349,16 @@ void UGameControllerInterface::DetectAndBroadcastActions()
     {
         OnActionDetected.Broadcast(Action);
 
-        // Track for combo detection
-        RecentActions.Add(Action);
+        // Track for combo detection - each entry ages independently by its own timestamp
+        RecentActions.Add(TPair<FString, float>(Action, CurrentTime));
         LastActionTime = CurrentTime;
     }
 
-    // Clean old actions
-    while (RecentActions.Num() > 0 && CurrentTime - LastActionTime > 1.0f)
+    // Drop entries older than the window, regardless of whether new actions are still arriving.
+    RecentActions.RemoveAll([CurrentTime](const TPair<FString, float>& Entry)
     {
-        RecentActions.RemoveAt(0);
-    }
+        return CurrentTime - Entry.Value > RecentActionWindow;
+    });
 
     // Detect combos
     TArray<FString> Combos = DetectCombos();
@@ -469,27 +471,63 @@ TArray<FString> UGameControllerInterface::DetectCurrentActions() const
 {
     TArray<FString> Actions;
 
+    float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
     for (const FGameActionMapping& Mapping : ActionMappings)
     {
-        bool bActionActive = false;
-
-        // Check button
+        // Evaluate button and axis conditions independently, then combine, rather than letting
+        // one silently overwrite the other when a mapping configures both.
+        bool bButtonOk = true;
+        bool bHasButtonCondition = false;
         if (Mapping.PrimaryButton != EGamepadButton::None)
         {
-            bActionActive = CurrentState.PressedButtons.Contains(Mapping.PrimaryButton);
+            bHasButtonCondition = true;
+            bButtonOk = CurrentState.PressedButtons.Contains(Mapping.PrimaryButton);
         }
 
-        // Check axis
+        bool bAxisOk = true;
+        bool bHasAxisCondition = false;
         if (Mapping.PrimaryAxis != EGamepadAxis::None)
         {
+            bHasAxisCondition = true;
             float AxisValue = GetAxisValue(Mapping.PrimaryAxis);
-            bActionActive = FMath::Abs(AxisValue) >= Mapping.AxisThreshold;
+            bAxisOk = FMath::Abs(AxisValue) >= Mapping.AxisThreshold;
         }
+
+        bool bActionActive = (bHasButtonCondition || bHasAxisCondition) &&
+                              (!bHasButtonCondition || bButtonOk) &&
+                              (!bHasAxisCondition || bAxisOk);
 
         // Check secondary button
         if (Mapping.SecondaryButton != EGamepadButton::None && bActionActive)
         {
             bActionActive = CurrentState.PressedButtons.Contains(Mapping.SecondaryButton);
+        }
+
+        // Hold-gated actions only activate once the trigger has been held for HoldDuration.
+        if (bActionActive && Mapping.bRequiresHold)
+        {
+            EGamepadButton HoldButton = Mapping.PrimaryButton != EGamepadButton::None ?
+                Mapping.PrimaryButton : Mapping.SecondaryButton;
+
+            const float* StartTime = HoldButton != EGamepadButton::None ?
+                ButtonHoldStartTimes.Find(HoldButton) : nullptr;
+
+            if (StartTime)
+            {
+                bActionActive = (CurrentTime - *StartTime) >= Mapping.HoldDuration;
+            }
+            else if (HoldButton == EGamepadButton::None)
+            {
+                // Axis-only hold (e.g. trigger axis): no discrete button press is tracked,
+                // so a hold requirement without a button cannot be timed - treat as satisfied.
+                bActionActive = true;
+            }
+            else
+            {
+                // Button not currently tracked as held (shouldn't happen if bActionActive is true).
+                bActionActive = false;
+            }
         }
 
         if (bActionActive)
@@ -513,6 +551,7 @@ void UGameControllerInterface::RegisterComboSequence(const FString& ComboName,
 {
     FInputSequence Combo;
     Combo.SequenceName = ComboName;
+    Combo.ActionNames = ActionSequence;
     Combo.MaxTimeBetweenInputs = MaxTimeBetween;
 
     RegisteredCombos.Add(ComboName, Combo);
@@ -522,8 +561,48 @@ TArray<FString> UGameControllerInterface::DetectCombos() const
 {
     TArray<FString> DetectedCombos;
 
-    // Simple combo detection based on recent actions
-    // More sophisticated pattern matching could be implemented
+    if (RecentActions.Num() == 0)
+    {
+        return DetectedCombos;
+    }
+
+    for (const auto& ComboPair : RegisteredCombos)
+    {
+        const FInputSequence& Combo = ComboPair.Value;
+        const int32 Len = Combo.ActionNames.Num();
+        if (Len == 0 || RecentActions.Num() < Len)
+        {
+            continue;
+        }
+
+        // Check whether the most recent Len entries in RecentActions match the combo's
+        // action sequence in order, each within MaxTimeBetweenInputs of the previous one.
+        bool bMatch = true;
+        const int32 StartIdx = RecentActions.Num() - Len;
+        for (int32 i = 0; i < Len; ++i)
+        {
+            const TPair<FString, float>& Entry = RecentActions[StartIdx + i];
+            if (Entry.Key != Combo.ActionNames[i])
+            {
+                bMatch = false;
+                break;
+            }
+            if (i > 0)
+            {
+                const float Gap = Entry.Value - RecentActions[StartIdx + i - 1].Value;
+                if (Gap > Combo.MaxTimeBetweenInputs)
+                {
+                    bMatch = false;
+                    break;
+                }
+            }
+        }
+
+        if (bMatch)
+        {
+            DetectedCombos.Add(Combo.SequenceName);
+        }
+    }
 
     return DetectedCombos;
 }
@@ -641,12 +720,16 @@ void UGameControllerInterface::ProcessOutputQueue(float DeltaTime)
     // Process and execute outputs
     ExecuteQueuedOutput();
 
-    // Remove completed commands
-    OutputQueue.RemoveAll([DeltaTime](FControllerOutputCommand& Cmd)
+    // Only the head command is actually executing each tick; only its duration should burn down.
+    // Commands still waiting behind it must be left untouched.
+    if (OutputQueue.Num() > 0)
     {
-        Cmd.Duration -= DeltaTime;
-        return Cmd.Duration <= 0.0f;
-    });
+        OutputQueue[0].Duration -= DeltaTime;
+        if (OutputQueue[0].Duration <= 0.0f)
+        {
+            OutputQueue.RemoveAt(0);
+        }
+    }
 }
 
 // ============================================================================
@@ -678,6 +761,12 @@ FString UGameControllerInterface::GetStateString(const FControllerInputState& In
 void UGameControllerInterface::RecordInputForImitation(const FControllerInputState& Input, const FString& Context)
 {
     ImitationBuffer.Add(TPair<FControllerInputState, FString>(Input, Context));
+
+    // Bound growth: this buffer accumulates every ticked action and is never otherwise drained.
+    while (ImitationBuffer.Num() > MaxImitationBufferSize)
+    {
+        ImitationBuffer.RemoveAt(0);
+    }
 
     // Record to learning system
     if (LearningSystem)
@@ -887,9 +976,10 @@ FControllerInputState UGameControllerInterface::DeserializeInputState(const TArr
     uint32 ButtonMask;
     Ar << ButtonMask;
 
-    for (int32 i = 0; i < 16; ++i)
+    // Bound must cover every EGamepadButton value, including Select (16) at the top of the enum.
+    for (int32 i = 0; i <= static_cast<int32>(EGamepadButton::Select); ++i)
     {
-        if (ButtonMask & (1 << i))
+        if (ButtonMask & (1u << i))
         {
             State.PressedButtons.Add(static_cast<EGamepadButton>(i));
         }

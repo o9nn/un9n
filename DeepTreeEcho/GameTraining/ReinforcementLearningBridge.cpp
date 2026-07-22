@@ -154,6 +154,13 @@ FRLAction UReinforcementLearningBridge::SelectAction(const TArray<float>& State)
             break;
     }
 
+    // Populate the continuous action vector every selection path leaves empty. The documented
+    // training loop (README.md) passes Action.ContinuousAction into
+    // UGameTrainingEnvironment::Step -> FControllerInputState::FromActionVector, which returns
+    // an all-zero/no-op state for any vector shorter than 22 elements - so without this, no
+    // selected action ever actually reached the controller.
+    Action.ContinuousAction = ActionToControllerOutput(Action).DesiredState.ToActionVector();
+
     // Store for learning
     LastState = State;
     LastAction = Action;
@@ -582,10 +589,13 @@ void UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Trans
 
     // Add intrinsic reward (curiosity bonus)
     float IntrinsicReward = ComputeIntrinsicReward(Transition.State, Transition.Action.ActionIndex);
-    float TotalReward = Transition.Reward + CurrentModulation.Curiosity * IntrinsicReward;
+    // Renamed from TotalReward: that name shadowed the class member of the same name used by
+    // GetAverageReward(), which modern UE build settings (ShadowVariableWarningLevel = Error)
+    // treat as a hard compile error.
+    float AugmentedReward = Transition.Reward + CurrentModulation.Curiosity * IntrinsicReward;
 
     // TD target
-    float Target = TotalReward + DiscountFactor * MaxNextQ;
+    float Target = AugmentedReward + DiscountFactor * MaxNextQ;
 
     // Q-learning update
     float EffectiveLR = GetEffectiveLearningRate();

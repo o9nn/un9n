@@ -324,7 +324,7 @@ struct FRewardShaping
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEpisodeStarted, int32, EpisodeNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEpisodeEnded, const FTrainingEpisode&, Episode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStepCompleted, const FGameStateObservation&, State, float, Reward);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRewardReceived, const FRewardBreakdown&, Reward);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnvRewardReceived, const FRewardBreakdown&, Reward);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStateObserved, const FGameStateObservation&, State);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrainingModeChanged, ETrainingMode, NewMode);
 
@@ -333,7 +333,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrainingModeChanged, ETrainingMod
  * Provides RL environment interface for Deep Tree Echo game training
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UGameTrainingEnvironment : public UActorComponent
+class UNREALECHO_API UGameTrainingEnvironment : public UActorComponent
 {
     GENERATED_BODY()
 
@@ -401,7 +401,7 @@ public:
     FOnStepCompleted OnStepCompleted;
 
     UPROPERTY(BlueprintAssignable, Category = "Events")
-    FOnRewardReceived OnRewardReceived;
+    FOnEnvRewardReceived OnRewardReceived;
 
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnStateObserved OnStateObserved;
@@ -626,5 +626,15 @@ protected:
     FIntVector WorldToCell(const FVector& WorldPos) const;
     bool IsNewExploration(const FVector& Position);
 
-    void ApplyRewardToLearning(float Reward, const FString& Context);
+    /** Shared implementation for EndEpisode(). bTriggerAutoReset=false is used when called from
+     *  Reset() itself, so a Reset() forced while an episode is active cannot recursively re-enter
+     *  Reset() a second time via EndEpisode's own auto-reset. bApplyTerminalShaping=false is used
+     *  when the caller (Step) has already folded the terminal bonus/penalty into its own reward. */
+    void EndEpisodeInternal(EEpisodeTermination Reason, bool bTriggerAutoReset, bool bApplyTerminalShaping);
+
+    /** Success/Death shaping for a termination reason; 0 for all other reasons. */
+    float ComputeTerminalRewardShaping(EEpisodeTermination Reason) const;
+
+    void ApplyRewardToLearning(float Reward, const FString& Context, bool bTerminal = false,
+                               const FString& ActionOverride = FString());
 };
