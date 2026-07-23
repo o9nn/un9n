@@ -671,19 +671,14 @@ float UGameSkillTrainingSystem::ComputeInputSimilarity(const FControllerInputSta
     Similarity += 1.0f - FMath::Abs(A.RightTrigger - B.RightTrigger);
     Dimensions += 6;
 
-    // Compare button sets
-    int32 CommonButtons = 0;
-    int32 TotalButtons = FMath::Max(A.PressedButtons.Num(), B.PressedButtons.Num());
+    // Compare button sets via bitmask intersection - popcounts instead of per-button hashing
+    const uint32 AMask = static_cast<uint32>(A.ButtonMask);
+    const uint32 BMask = static_cast<uint32>(B.ButtonMask);
+    const int32 CommonButtons = FMath::CountBits(AMask & BMask);
+    const int32 TotalButtons = FMath::Max(FMath::CountBits(AMask), FMath::CountBits(BMask));
 
     if (TotalButtons > 0)
     {
-        for (const EGamepadButton& Button : A.PressedButtons)
-        {
-            if (B.PressedButtons.Contains(Button))
-            {
-                CommonButtons++;
-            }
-        }
         Similarity += static_cast<float>(CommonButtons) / static_cast<float>(TotalButtons);
         Dimensions++;
     }

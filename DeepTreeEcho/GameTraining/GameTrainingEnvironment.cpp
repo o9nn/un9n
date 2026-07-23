@@ -497,6 +497,11 @@ void UGameTrainingEnvironment::UpdateObservation()
 
     CurrentObservation.Timestamp = Now;
 
+    // Mark the tick-path gate satisfied for this frame: when Step drives observations at the
+    // same rate as the tick, the tick would otherwise immediately re-run this whole update
+    // (including the delegate broadcast) a second time in the same frame.
+    LastObservationTime = Now;
+
     OnStateObserved.Broadcast(CurrentObservation);
 }
 
