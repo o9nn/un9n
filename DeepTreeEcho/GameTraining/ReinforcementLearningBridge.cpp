@@ -96,33 +96,83 @@ void UReinforcementLearningBridge::InitializeQTable()
 
 FString UReinforcementLearningBridge::StateToKey(const TArray<float>& State) const
 {
-    // Discretize state for tabular Q-learning
+    // Discretize state for tabular Q-learning. Built with a single pre-reserved buffer and
+    // AppendInt/AppendChar - the previous per-element FString::Printf allocated a transient
+    // string per bucket (~30 heap allocations per call on this hot path).
     FString Key;
+    Key.Reserve(State.Num() * 4 + 8);
     for (int32 i = 0; i < FMath::Min(State.Num(), 20); ++i)
     {
-        int32 Bucket = FMath::RoundToInt(State[i] * 10);
-        Key += FString::Printf(TEXT("%d_"), Bucket);
+        Key.AppendInt(FMath::RoundToInt(State[i] * 10));
+        Key.AppendChar(TEXT('_'));
     }
+
+    // Fold the tail (entity slots and, with bUseReservoirIntegration, the appended echo memory)
+    // into coarse pooled buckets. Truncating at 20 elements made states differing only in their
+    // reservoir tail collapse onto one key, so the echo memory had no effect on the tabular
+    // policy at all. Pooling keeps the key space bounded while letting the tail differentiate.
+    for (int32 i = 20; i < State.Num(); i += 10)
+    {
+        float Sum = 0.0f;
+        const int32 End = FMath::Min(i + 10, State.Num());
+        for (int32 j = i; j < End; ++j)
+        {
+            Sum += State[j];
+        }
+        Key.AppendChar(TEXT('p'));
+        Key.AppendInt(FMath::RoundToInt(Sum * 2.0f));
+        Key.AppendChar(TEXT('_'));
+    }
+
     return Key;
 }
 
-TArray<float> UReinforcementLearningBridge::GetOrCreateQValues(const FString& StateKey)
+TArray<float>& UReinforcementLearningBridge::GetOrCreateQValues(const FString& StateKey)
 {
-    if (TArray<float>* Existing = QTable.Find(StateKey))
+    TArray<float>& Values = QTable.FindOrAdd(StateKey);
+    if (Values.Num() == 0)
     {
-        return *Existing;
+        // Small optimistic initialization (same as before the by-reference conversion)
+        Values.Init(0.1f, NumActions);
     }
-
-    // Initialize Q-values optimistically
-    TArray<float> NewQValues;
-    NewQValues.SetNumZeroed(NumActions);
-    for (int32 i = 0; i < NumActions; ++i)
-    {
-        NewQValues[i] = 0.1f;  // Small optimistic initialization
-    }
-    QTable.Add(StateKey, NewQValues);
-    return NewQValues;
+    return Values;
 }
+
+float UReinforcementLearningBridge::GetMaxQValueForKey(const FString& StateKey) const
+{
+    const TArray<float>* Values = QTable.Find(StateKey);
+    if (!Values || Values->Num() == 0)
+    {
+        return 0.0f;
+    }
+    float MaxQ = (*Values)[0];
+    for (float V : *Values)
+    {
+        MaxQ = FMath::Max(MaxQ, V);
+    }
+    return MaxQ;
+}
+
+const FString& UReinforcementLearningBridge::ResolveStateKey(const FTransition& Transition, FString& Scratch) const
+{
+    if (!Transition.StateKey.IsEmpty())
+    {
+        return Transition.StateKey;
+    }
+    Scratch = StateToKey(Transition.State);
+    return Scratch;
+}
+
+const FString& UReinforcementLearningBridge::ResolveNextStateKey(const FTransition& Transition, FString& Scratch) const
+{
+    if (!Transition.NextStateKey.IsEmpty())
+    {
+        return Transition.NextStateKey;
+    }
+    Scratch = StateToKey(Transition.NextState);
+    return Scratch;
+}
+
 
 // ============================================================================
 // Action Selection
@@ -153,6 +203,13 @@ FRLAction UReinforcementLearningBridge::SelectAction(const TArray<float>& State)
             Action = SelectEpsilonGreedy(State);
             break;
     }
+
+    // Populate the continuous action vector every selection path leaves empty. The documented
+    // training loop (README.md) passes Action.ContinuousAction into
+    // UGameTrainingEnvironment::Step -> FControllerInputState::FromActionVector, which returns
+    // an all-zero/no-op state for any vector shorter than 22 elements - so without this, no
+    // selected action ever actually reached the controller.
+    Action.ContinuousAction = ActionToControllerOutput(Action).DesiredState.ToActionVector();
 
     // Store for learning
     LastState = State;
@@ -248,15 +305,15 @@ FControllerOutputCommand UReinforcementLearningBridge::ActionToControllerOutput(
             Output.Category = EGameActionCategory::Movement;
             break;
         case 5:  // Jump
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::FaceBottom);
+            Output.DesiredState.Press(EGamepadButton::FaceBottom);
             Output.Category = EGameActionCategory::Movement;
             break;
         case 6:  // Crouch
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::LeftThumb);
+            Output.DesiredState.Press(EGamepadButton::LeftThumb);
             Output.Category = EGameActionCategory::Movement;
             break;
         case 7:  // Attack
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::FaceRight);
+            Output.DesiredState.Press(EGamepadButton::FaceRight);
             Output.Category = EGameActionCategory::Attack;
             break;
         case 8:  // Block
@@ -264,19 +321,19 @@ FControllerOutputCommand UReinforcementLearningBridge::ActionToControllerOutput(
             Output.Category = EGameActionCategory::Defense;
             break;
         case 9:  // Dodge
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::FaceLeft);
+            Output.DesiredState.Press(EGamepadButton::FaceLeft);
             Output.Category = EGameActionCategory::Defense;
             break;
         case 10: // Interact
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::FaceTop);
+            Output.DesiredState.Press(EGamepadButton::FaceTop);
             Output.Category = EGameActionCategory::Interaction;
             break;
         case 11: // Special1
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::RightShoulder);
+            Output.DesiredState.Press(EGamepadButton::RightShoulder);
             Output.Category = EGameActionCategory::Special;
             break;
         case 12: // Special2
-            Output.DesiredState.PressedButtons.Add(EGamepadButton::LeftShoulder);
+            Output.DesiredState.Press(EGamepadButton::LeftShoulder);
             Output.Category = EGameActionCategory::Special;
             break;
         case 13: // LookLeft
@@ -361,7 +418,10 @@ FRLAction UReinforcementLearningBridge::SelectSoftmax(const TArray<float>& State
     for (int32 i = 0; i < NumActions; ++i)
     {
         Cumulative += Probs[i];
-        if (Roll <= Cumulative)
+        // The final iteration always selects: float rounding can leave the cumulative sum
+        // slightly below Roll (FRand can return exactly 1.0), and an all-zero Probs array
+        // (Sum==0 guard) would otherwise fall through to a default-constructed action.
+        if (Roll <= Cumulative || i == NumActions - 1)
         {
             Action.ActionIndex = i;
             Action.Probability = Probs[i];
@@ -459,6 +519,11 @@ void UReinforcementLearningBridge::RecordTransition(const TArray<float>& State, 
     Transition.bTerminal = bTerminal;
     Transition.Timestamp = GetWorld()->GetTimeSeconds();
 
+    // Compute both Q-table keys exactly once here; every downstream consumer (immediate update,
+    // batch replays, cognitive sync) reuses them instead of re-discretizing the state vectors.
+    Transition.StateKey = StateToKey(State);
+    Transition.NextStateKey = StateToKey(NextState);
+
     AddToReplayBuffer(Transition);
 
     // Apply immediate learning based on algorithm
@@ -480,8 +545,9 @@ void UReinforcementLearningBridge::RecordTransition(const TArray<float>& State, 
         TotalEpisodes++;
     }
 
-    // Sync with cognitive learning system
-    SyncWithCognitiveSystem();
+    // Sync with cognitive learning system (pass the transition directly - the previous
+    // ReplayBuffer.Last() read breaks under ring-buffer eviction ordering)
+    SyncWithCognitiveSystem(Transition);
 
     OnTransitionRecorded.Broadcast(Transition);
 }
@@ -507,11 +573,11 @@ void UReinforcementLearningBridge::RecordGameTransition(const FGameStateObservat
     {
         Action.ActionIndex = Input.LeftStickX > 0 ? 4 : 3;  // Right/Left
     }
-    else if (Input.PressedButtons.Contains(EGamepadButton::FaceBottom))
+    else if (Input.IsPressed(EGamepadButton::FaceBottom))
     {
         Action.ActionIndex = 5;  // Jump
     }
-    else if (Input.PressedButtons.Contains(EGamepadButton::FaceRight))
+    else if (Input.IsPressed(EGamepadButton::FaceRight))
     {
         Action.ActionIndex = 7;  // Attack
     }
@@ -541,21 +607,20 @@ float UReinforcementLearningBridge::PerformBatchUpdate()
         return 0.0f;
     }
 
-    TArray<FTransition> Batch = SampleFromReplayBuffer(BatchSize);
+    const TArray<int32> BatchIndices = SampleIndicesFromReplayBuffer(BatchSize);
 
     float TotalLoss = 0.0f;
 
-    for (const FTransition& Transition : Batch)
+    for (const int32 Idx : BatchIndices)
     {
+        const FTransition& Transition = ReplayBuffer[Idx];
+
         if (Algorithm == ELearningAlgorithm::QLearning || Algorithm == ELearningAlgorithm::DQN)
         {
-            ApplyQLearningUpdate(Transition);
-
-            // Compute loss (TD error squared)
-            float CurrentQ = GetQValues(Transition.State)[Transition.Action.ActionIndex];
-            float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
-            float Target = Transition.Reward + DiscountFactor * MaxNextQ;
-            float TDError = Target - CurrentQ;
+            // The update returns its own pre-update TD error (computed against the same
+            // intrinsic-augmented target it applies), so the loss no longer duplicates the
+            // full target computation - and no longer measures it post-update.
+            const float TDError = ApplyQLearningUpdate(Transition);
             TotalLoss += TDError * TDError;
         }
         else if (Algorithm == ELearningAlgorithm::SARSA)
@@ -564,7 +629,7 @@ float UReinforcementLearningBridge::PerformBatchUpdate()
         }
     }
 
-    float AvgLoss = TotalLoss / Batch.Num();
+    float AvgLoss = BatchIndices.Num() > 0 ? TotalLoss / BatchIndices.Num() : 0.0f;
     float AvgReward = GetAverageReward();
 
     OnLearningUpdate.Broadcast(AvgLoss, AvgReward);
@@ -572,88 +637,140 @@ float UReinforcementLearningBridge::PerformBatchUpdate()
     return AvgLoss;
 }
 
-void UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Transition)
+float UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Transition)
 {
-    FString StateKey = StateToKey(Transition.State);
-    TArray<float> QValues = GetOrCreateQValues(StateKey);
+    // RecordTransition is BlueprintCallable with an arbitrary caller-supplied FRLAction, so the
+    // index must be validated up front - and BEFORE GetOrCreateQValues, which inserts a fresh
+    // optimistically-initialized row into the Q-table as a side effect. A rejected transition
+    // must be a complete no-op, not a table-polluting one.
+    if (Transition.Action.ActionIndex < 0 || Transition.Action.ActionIndex >= NumActions)
+    {
+        return 0.0f;
+    }
+
+    // Use the keys cached at RecordTransition; only recompute for transitions that never went
+    // through it (StateToKey previously ran up to 7x per recorded transition).
+    FString StateScratch, NextScratch;
+    const FString& StateKey = ResolveStateKey(Transition, StateScratch);
+    const FString& NextKey = ResolveNextStateKey(Transition, NextScratch);
+
+    // Order matters for reference validity: FindOrAdd (may rehash) FIRST, then only read-only
+    // lookups (GetMaxQValueForKey / ComputeIntrinsicRewardForKey use Find) while the reference
+    // is held, then mutate in place - no by-value copy, no QTable.Add writeback.
+    TArray<float>& QValues = GetOrCreateQValues(StateKey);
 
     float CurrentQ = QValues[Transition.Action.ActionIndex];
-    float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
+    float MaxNextQ = Transition.bTerminal ? 0.0f : GetMaxQValueForKey(NextKey);
 
     // Add intrinsic reward (curiosity bonus)
-    float IntrinsicReward = ComputeIntrinsicReward(Transition.State, Transition.Action.ActionIndex);
-    float TotalReward = Transition.Reward + CurrentModulation.Curiosity * IntrinsicReward;
+    float IntrinsicReward = ComputeIntrinsicRewardForKey(StateKey);
+    float AugmentedReward = Transition.Reward + CurrentModulation.Curiosity * IntrinsicReward;
 
     // TD target
-    float Target = TotalReward + DiscountFactor * MaxNextQ;
+    float Target = AugmentedReward + DiscountFactor * MaxNextQ;
+    float TDError = Target - CurrentQ;
 
     // Q-learning update
     float EffectiveLR = GetEffectiveLearningRate();
-    float NewQ = CurrentQ + EffectiveLR * (Target - CurrentQ);
+    QValues[Transition.Action.ActionIndex] = CurrentQ + EffectiveLR * TDError;
 
-    QValues[Transition.Action.ActionIndex] = NewQ;
-    QTable.Add(StateKey, QValues);
+    return TDError;
 }
 
-void UReinforcementLearningBridge::ApplySARSAUpdate(const FTransition& Transition)
+float UReinforcementLearningBridge::ApplySARSAUpdate(const FTransition& Transition)
 {
-    FString StateKey = StateToKey(Transition.State);
-    TArray<float> QValues = GetOrCreateQValues(StateKey);
+    // Same BlueprintCallable-supplied index hazard as ApplyQLearningUpdate; checked before
+    // GetOrCreateQValues so rejected transitions don't insert phantom Q-table rows.
+    if (Transition.Action.ActionIndex < 0 || Transition.Action.ActionIndex >= NumActions)
+    {
+        return 0.0f;
+    }
 
-    float CurrentQ = QValues[Transition.Action.ActionIndex];
+    FString StateScratch, NextScratch;
+    const FString& StateKey = ResolveStateKey(Transition, StateScratch);
+    const FString& NextKey = ResolveNextStateKey(Transition, NextScratch);
 
     // SARSA uses the action actually taken in next state (on-policy)
-    // For simplicity, use epsilon-greedy policy
-    FRLAction NextAction = Transition.bTerminal ?
-        FRLAction() : SelectEpsilonGreedy(Transition.NextState);
-    float NextQ = Transition.bTerminal ? 0.0f : GetQValues(Transition.NextState)[NextAction.ActionIndex];
+    // For simplicity, use epsilon-greedy policy. Selected BEFORE taking the QValues reference:
+    // SelectEpsilonGreedy -> GetGreedyAction -> GetQValues only reads, but keeping all
+    // non-mutating work ahead of the FindOrAdd reference is the safer pattern.
+    float NextQ = 0.0f;
+    if (!Transition.bTerminal)
+    {
+        FRLAction NextAction = SelectEpsilonGreedy(Transition.NextState);
+        const TArray<float>* NextValues = QTable.Find(NextKey);
+        if (NextValues && NextValues->IsValidIndex(NextAction.ActionIndex))
+        {
+            NextQ = (*NextValues)[NextAction.ActionIndex];
+        }
+    }
+
+    TArray<float>& QValues = GetOrCreateQValues(StateKey);
+    float CurrentQ = QValues[Transition.Action.ActionIndex];
 
     // SARSA update
     float Target = Transition.Reward + DiscountFactor * NextQ;
+    float TDError = Target - CurrentQ;
     float EffectiveLR = GetEffectiveLearningRate();
-    float NewQ = CurrentQ + EffectiveLR * (Target - CurrentQ);
+    QValues[Transition.Action.ActionIndex] = CurrentQ + EffectiveLR * TDError;
 
-    QValues[Transition.Action.ActionIndex] = NewQ;
-    QTable.Add(StateKey, QValues);
+    return TDError;
 }
 
 void UReinforcementLearningBridge::UpdateQValue(const TArray<float>& State, int32 ActionIndex, float Target)
 {
+    if (ActionIndex < 0 || ActionIndex >= NumActions)
+    {
+        return;
+    }
+
     FString StateKey = StateToKey(State);
-    TArray<float> QValues = GetOrCreateQValues(StateKey);
+    TArray<float>& QValues = GetOrCreateQValues(StateKey);
 
     if (QValues.IsValidIndex(ActionIndex))
     {
         float EffectiveLR = GetEffectiveLearningRate();
         QValues[ActionIndex] += EffectiveLR * (Target - QValues[ActionIndex]);
-        QTable.Add(StateKey, QValues);
     }
 }
 
 void UReinforcementLearningBridge::ClearReplayBuffer()
 {
     ReplayBuffer.Empty();
+    ReplayWriteIndex = 0;
 }
 
 void UReinforcementLearningBridge::AddToReplayBuffer(const FTransition& Transition)
 {
-    ReplayBuffer.Add(Transition);
-
-    while (ReplayBuffer.Num() > ReplayBufferSize)
+    // Ring-buffer write: RemoveAt(0) eviction memmoved the entire full buffer (~1.2MB at the
+    // default 10k capacity) on every recorded transition. Overwriting the oldest slot in place
+    // is O(1) and reuses the evicted element's array allocations.
+    if (ReplayBuffer.Num() < ReplayBufferSize)
     {
-        ReplayBuffer.RemoveAt(0);
+        ReplayBuffer.Add(Transition);
+    }
+    else
+    {
+        if (ReplayWriteIndex >= ReplayBuffer.Num())
+        {
+            // ReplayBufferSize shrank at runtime (EditAnywhere) - re-wrap defensively.
+            ReplayWriteIndex = 0;
+        }
+        ReplayBuffer[ReplayWriteIndex] = Transition;
+        ReplayWriteIndex = (ReplayWriteIndex + 1) % ReplayBuffer.Num();
     }
 }
 
-TArray<FTransition> UReinforcementLearningBridge::SampleFromReplayBuffer(int32 Count)
+TArray<int32> UReinforcementLearningBridge::SampleIndicesFromReplayBuffer(int32 Count) const
 {
-    TArray<FTransition> Sample;
+    // Indices only - callers iterate ReplayBuffer by const reference. The previous by-value
+    // sample deep-copied Count full transitions (two 60+ float arrays each) per batch update.
+    TArray<int32> Sample;
     Sample.Reserve(Count);
 
     for (int32 i = 0; i < Count && ReplayBuffer.Num() > 0; ++i)
     {
-        int32 Idx = FMath::RandRange(0, ReplayBuffer.Num() - 1);
-        Sample.Add(ReplayBuffer[Idx]);
+        Sample.Add(FMath::RandRange(0, ReplayBuffer.Num() - 1));
     }
 
     return Sample;
@@ -661,16 +778,21 @@ TArray<FTransition> UReinforcementLearningBridge::SampleFromReplayBuffer(int32 C
 
 float UReinforcementLearningBridge::ComputeIntrinsicReward(const TArray<float>& State, int32 ActionIndex) const
 {
-    // Curiosity-driven intrinsic reward
-    // Higher reward for less-visited states
-    FString StateKey = StateToKey(State);
+    return ComputeIntrinsicRewardForKey(StateToKey(State));
+}
 
+float UReinforcementLearningBridge::ComputeIntrinsicRewardForKey(const FString& StateKey) const
+{
+    // Curiosity-driven intrinsic reward: higher for less-visited states. Key-based so hot
+    // callers that already hold the discretized key skip the StateToKey recomputation.
+    // Read-only (Contains) - safe to call while a GetOrCreateQValues reference is held.
     if (!QTable.Contains(StateKey))
     {
         return 1.0f;  // Novel state bonus
     }
 
-    return ComputeCuriosityBonus(State);
+    // Simplified curiosity: inverse of state visitation
+    return 0.1f / FMath::Sqrt(static_cast<float>(TotalSteps + 1));
 }
 
 float UReinforcementLearningBridge::ComputeCuriosityBonus(const TArray<float>& State) const
@@ -762,7 +884,7 @@ float UReinforcementLearningBridge::GetEffectiveExplorationRate() const
     return FMath::Clamp(Rate, MinExplorationRate, 1.0f);
 }
 
-void UReinforcementLearningBridge::SyncWithCognitiveSystem()
+void UReinforcementLearningBridge::SyncWithCognitiveSystem(const FTransition& Latest)
 {
     if (!LearningSystem)
     {
@@ -772,32 +894,33 @@ void UReinforcementLearningBridge::SyncWithCognitiveSystem()
     // Sync exploration rate
     LearningSystem->SetExplorationRate(GetEffectiveExplorationRate());
 
-    // Record experience in cognitive system
-    if (ReplayBuffer.Num() > 0)
-    {
-        const FTransition& Latest = ReplayBuffer.Last();
+    // Record experience in cognitive system, reusing the keys cached on the transition
+    // (this function previously recomputed StateToKey four more times per transition).
+    FString StateScratch, NextScratch;
+    const FString& StateKey = ResolveStateKey(Latest, StateScratch);
+    const FString& NextKey = ResolveNextStateKey(Latest, NextScratch);
 
-        TArray<FString> Tags;
-        Tags.Add(TEXT("GameTraining"));
-        Tags.Add(Latest.Action.ActionName);
+    TArray<FString> Tags;
+    Tags.Reserve(2);
+    Tags.Add(TEXT("GameTraining"));
+    Tags.Add(Latest.Action.ActionName);
 
-        LearningSystem->RecordExperience(
-            StateToKey(Latest.State),
-            Latest.Action.ActionName,
-            StateToKey(Latest.NextState),
-            Latest.Reward,
-            Tags,
-            Latest.bTerminal
-        );
+    LearningSystem->RecordExperience(
+        StateKey,
+        Latest.Action.ActionName,
+        NextKey,
+        Latest.Reward,
+        Tags,
+        Latest.bTerminal
+    );
 
-        // Update Q-value in cognitive system
-        LearningSystem->UpdateQValue(
-            StateToKey(Latest.State),
-            Latest.Action.ActionName,
-            Latest.Reward,
-            StateToKey(Latest.NextState)
-        );
-    }
+    // Update Q-value in cognitive system
+    LearningSystem->UpdateQValue(
+        StateKey,
+        Latest.Action.ActionName,
+        Latest.Reward,
+        NextKey
+    );
 }
 
 // ============================================================================

@@ -110,7 +110,9 @@ FString FGameStateObservation::GetStateHash() const
     int32 PosX = FMath::RoundToInt(PlayerPosition.X / 100.0f);
     int32 PosY = FMath::RoundToInt(PlayerPosition.Y / 100.0f);
     int32 PosZ = FMath::RoundToInt(PlayerPosition.Z / 50.0f);
-    int32 Yaw = FMath::RoundToInt(PlayerRotation.Yaw / 45.0f) % 8;
+    // Normalize to [0,360) first: Unreal yaw is in [-180,180] and C++ % preserves sign, which
+    // would otherwise alias the same physical heading (e.g. -180 vs +180) to different buckets.
+    int32 Yaw = FMath::RoundToInt(FRotator::ClampAxis(PlayerRotation.Yaw) / 45.0f) % 8;
     int32 HealthBucket = FMath::RoundToInt(Health * 4);
     int32 StaminaBucket = FMath::RoundToInt(Stamina * 4);
 
@@ -125,7 +127,7 @@ FString FGameStateObservation::GetStateHash() const
 
 void FRewardBreakdown::ComputeTotal()
 {
-    Total = Progress + Survival + Combat + Exploration + Efficiency + SkillExecution + Penalty;
+    Total = Progress + Survival + Combat + Exploration + Efficiency + SkillExecution + Penalty + TerminalShaping;
 }
 
 // ============================================================================
@@ -179,7 +181,9 @@ void UGameTrainingEnvironment::FindComponentReferences()
 
 void UGameTrainingEnvironment::InitializeEnvironment()
 {
-    ObservationInterval = 1.0f / ObservationRate;
+    // Guard against ObservationRate <= 0 (designer error): 1/0 would yield +inf, silently
+    // stalling tick-driven observation updates and blowing out the survival reward term.
+    ObservationInterval = 1.0f / FMath::Max(ObservationRate, KINDA_SMALL_NUMBER);
     LoadGenrePreset(GameGenre);
 }
 
@@ -189,10 +193,22 @@ void UGameTrainingEnvironment::InitializeEnvironment()
 
 FGameStateObservation UGameTrainingEnvironment::Reset()
 {
-    // End previous episode if active
+    // A freshly (auto-)reset episode that hasn't taken a single step yet IS the state a caller
+    // wants from Reset(). This is the standard gym pattern colliding with bAutoReset: Step
+    // returns bDone=true, the auto-reset has already started episode N+1, and the trainer then
+    // calls Reset() - ending that pristine episode here would push a phantom 0-step entry into
+    // history and inflate the episode statistics.
+    if (bEpisodeActive && CurrentStep == 0 && AccumulatedReward == 0.0f)
+    {
+        return CurrentObservation;
+    }
+
+    // End previous episode if active. bTriggerAutoReset=false: EndEpisode's own auto-reset would
+    // otherwise re-enter Reset() a second time (once here, once from inside EndEpisodeInternal),
+    // incrementing Stats.TotalEpisodes twice and silently dropping the intermediate episode.
     if (bEpisodeActive)
     {
-        EndEpisode(EEpisodeTermination::UserAbort);
+        EndEpisodeInternal(EEpisodeTermination::UserAbort, /*bTriggerAutoReset=*/false, /*bApplyTerminalShaping=*/true);
     }
 
     // Start new episode
@@ -237,9 +253,11 @@ void UGameTrainingEnvironment::Step(const TArray<float>& Action, FGameStateObser
     PreviousObservation = CurrentObservation;
 
     // Execute action through controller interface
+    FString ExecutedActionString;
     if (ControllerInterface)
     {
         FControllerInputState InputState = FControllerInputState::FromActionVector(Action);
+        ExecutedActionString = InputState.ToActionString();
         FControllerOutputCommand Command;
         Command.DesiredState = InputState;
         Command.Duration = ObservationInterval;
@@ -256,30 +274,55 @@ void UGameTrainingEnvironment::Step(const TArray<float>& Action, FGameStateObser
     // Compute reward
     FRewardBreakdown RewardBreakdown = ComputeReward(PreviousObservation, CurrentObservation);
     Reward = RewardBreakdown.Total;
-    AccumulatedReward += Reward;
 
-    // Record experience
-    ApplyRewardToLearning(Reward, TEXT("Step"));
-
-    OnRewardReceived.Broadcast(RewardBreakdown);
-    OnStepCompleted.Broadcast(CurrentObservation, Reward);
-
-    // Check termination
+    // Determine termination BEFORE calling EndEpisode, so we can (a) fold terminal shaping into
+    // the reward the caller and the learner actually see, and (b) capture the true terminal
+    // observation below rather than whatever EndEpisode's auto-reset replaces CurrentObservation
+    // with.
     bDone = false;
+    EEpisodeTermination TermReason = EEpisodeTermination::None;
     if (CurrentStep >= MaxStepsPerEpisode)
     {
-        EndEpisode(EEpisodeTermination::Timeout);
         bDone = true;
+        TermReason = EEpisodeTermination::Timeout;
         Info = TEXT("Max steps reached");
     }
     else if (CurrentObservation.Health <= 0.0f)
     {
-        EndEpisode(EEpisodeTermination::Death);
         bDone = true;
+        TermReason = EEpisodeTermination::Death;
         Info = TEXT("Player died");
     }
 
+    if (bDone)
+    {
+        const float Shaping = ComputeTerminalRewardShaping(TermReason);
+        Reward += Shaping;
+        // Keep the broadcast breakdown consistent with the shaped Reward: OnRewardReceived
+        // (breakdown) and OnStepCompleted (scalar) must report the same terminal-step value.
+        RewardBreakdown.TerminalShaping = Shaping;
+        RewardBreakdown.Total += Shaping;
+    }
+
+    AccumulatedReward += Reward;
+
+    // Record experience with the real executed action and the correct terminal flag (previously
+    // this always passed !bEpisodeActive, which is still true at this point in the call, so
+    // bTerminal was always false for every step transition).
+    ApplyRewardToLearning(Reward, TEXT("Step"), bDone, ExecutedActionString);
+
+    OnRewardReceived.Broadcast(RewardBreakdown);
+    OnStepCompleted.Broadcast(CurrentObservation, Reward);
+
+    // Capture the true terminal/next observation before EndEpisode's possible auto-reset
+    // overwrites CurrentObservation with a fresh episode's blank initial state.
     NextState = CurrentObservation;
+
+    if (bDone)
+    {
+        // bApplyTerminalShaping=false: the bonus/penalty was already folded into Reward above.
+        EndEpisodeInternal(TermReason, /*bTriggerAutoReset=*/true, /*bApplyTerminalShaping=*/false);
+    }
 }
 
 FGameStateObservation UGameTrainingEnvironment::GetObservation() const
@@ -288,6 +331,25 @@ FGameStateObservation UGameTrainingEnvironment::GetObservation() const
 }
 
 void UGameTrainingEnvironment::EndEpisode(EEpisodeTermination Reason)
+{
+    EndEpisodeInternal(Reason, /*bTriggerAutoReset=*/true, /*bApplyTerminalShaping=*/true);
+}
+
+float UGameTrainingEnvironment::ComputeTerminalRewardShaping(EEpisodeTermination Reason) const
+{
+    if (Reason == EEpisodeTermination::Success)
+    {
+        return RewardConfig.SuccessBonus;
+    }
+    if (Reason == EEpisodeTermination::Death)
+    {
+        return RewardConfig.DeathPenalty;
+    }
+    return 0.0f;
+}
+
+void UGameTrainingEnvironment::EndEpisodeInternal(EEpisodeTermination Reason, bool bTriggerAutoReset,
+                                                   bool bApplyTerminalShaping)
 {
     if (!bEpisodeActive)
     {
@@ -298,20 +360,27 @@ void UGameTrainingEnvironment::EndEpisode(EEpisodeTermination Reason)
 
     CurrentEpisode.EndTime = GetWorld()->GetTimeSeconds();
     CurrentEpisode.Duration = CurrentEpisode.EndTime - CurrentEpisode.StartTime;
-    CurrentEpisode.TotalReward = AccumulatedReward;
     CurrentEpisode.TerminationReason = Reason;
     CurrentEpisode.FinalState = CurrentObservation;
     CurrentEpisode.FinalScore = CurrentObservation.Score;
 
-    // Apply terminal rewards
+    // Only apply the bonus/penalty here if the caller hasn't already folded it into
+    // AccumulatedReward (Step does this itself so the shaping reaches its Reward out-param).
+    if (bApplyTerminalShaping)
+    {
+        const float Shaping = ComputeTerminalRewardShaping(Reason);
+        AccumulatedReward += Shaping;
+
+        // Deliver the shaping and the episode boundary to the learning system as well. The Step
+        // terminal path records its own shaped, bTerminal=true experience (and passes
+        // bApplyTerminalShaping=false here); tick-detected and manually-signaled terminations
+        // would otherwise leave the learner's experience stream unshaped with the boundary
+        // unmarked.
+        ApplyRewardToLearning(Shaping, TEXT("Terminal"), /*bTerminal=*/true);
+    }
     if (Reason == EEpisodeTermination::Success)
     {
-        AccumulatedReward += RewardConfig.SuccessBonus;
         Stats.SuccessfulEpisodes++;
-    }
-    else if (Reason == EEpisodeTermination::Death)
-    {
-        AccumulatedReward += RewardConfig.DeathPenalty;
     }
 
     CurrentEpisode.TotalReward = AccumulatedReward;
@@ -322,8 +391,9 @@ void UGameTrainingEnvironment::EndEpisode(EEpisodeTermination Reason)
 
     OnEpisodeEnded.Broadcast(CurrentEpisode);
 
-    // Auto-reset if configured
-    if (bAutoReset)
+    // Auto-reset if configured. Suppressed when called from Reset() itself, which handles its
+    // own subsequent reset and would otherwise recurse (see Reset()'s comment).
+    if (bTriggerAutoReset && bAutoReset)
     {
         Reset();
     }
@@ -396,6 +466,12 @@ void UGameTrainingEnvironment::AddScore(float Delta)
 
 void UGameTrainingEnvironment::UpdateObservation()
 {
+    // Capture "now" up front: CurrentObservation.Timestamp still holds its OLD value at this
+    // point (it was just copied into PreviousObservation.Timestamp in Step), so computing
+    // DeltaTime from it before this stamp is refreshed always yielded exactly zero and silently
+    // skipped the velocity update on every call.
+    const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : CurrentObservation.Timestamp;
+
     // Get player character if available
     AActor* Owner = GetOwner();
     if (Owner)
@@ -404,10 +480,10 @@ void UGameTrainingEnvironment::UpdateObservation()
         CurrentObservation.PlayerRotation = Owner->GetActorRotation();
 
         // Compute velocity from position delta
-        if (PreviousObservation.Timestamp > 0)
+        if (PreviousObservation.Timestamp > 0.0f)
         {
-            float DeltaTime = CurrentObservation.Timestamp - PreviousObservation.Timestamp;
-            if (DeltaTime > 0)
+            const float DeltaTime = Now - PreviousObservation.Timestamp;
+            if (DeltaTime > 0.0f)
             {
                 CurrentObservation.PlayerVelocity =
                     (CurrentObservation.PlayerPosition - PreviousObservation.PlayerPosition) / DeltaTime;
@@ -419,7 +495,12 @@ void UGameTrainingEnvironment::UpdateObservation()
     CurrentObservation.DistanceToObjective =
         FVector::Dist(CurrentObservation.PlayerPosition, CurrentObservation.ObjectivePosition);
 
-    CurrentObservation.Timestamp = GetWorld()->GetTimeSeconds();
+    CurrentObservation.Timestamp = Now;
+
+    // Mark the tick-path gate satisfied for this frame: when Step drives observations at the
+    // same rate as the tick, the tick would otherwise immediately re-run this whole update
+    // (including the delegate broadcast) a second time in the same frame.
+    LastObservationTime = Now;
 
     OnStateObserved.Broadcast(CurrentObservation);
 }
@@ -550,7 +631,8 @@ bool UGameTrainingEnvironment::IsNewExploration(const FVector& Position)
     return false;
 }
 
-void UGameTrainingEnvironment::ApplyRewardToLearning(float Reward, const FString& Context)
+void UGameTrainingEnvironment::ApplyRewardToLearning(float Reward, const FString& Context, bool bTerminal,
+                                                      const FString& ActionOverride)
 {
     if (LearningSystem)
     {
@@ -561,13 +643,19 @@ void UGameTrainingEnvironment::ApplyRewardToLearning(float Reward, const FString
         Tags.Add(Context);
         Tags.Add(FString::Printf(TEXT("Episode%d"), CurrentEpisode.EpisodeNumber));
 
+        // The Action slot should be the action actually executed (e.g. the controller state's
+        // action string), not the successor-state hash. Ancillary reward signals (combat hits,
+        // skill success, etc.) don't have a discrete action available, so they fall back to the
+        // Context label, which is still more meaningful than a raw state hash.
+        const FString ActionStr = ActionOverride.IsEmpty() ? Context : ActionOverride;
+
         LearningSystem->RecordExperience(
             PreviousObservation.GetStateHash(),
-            CurrentObservation.GetStateHash(),
+            ActionStr,
             CurrentObservation.GetStateHash(),
             Reward,
             Tags,
-            !bEpisodeActive
+            bTerminal
         );
     }
 }
@@ -689,12 +777,20 @@ TArray<FTrainingEpisode> UGameTrainingEnvironment::GetEpisodeHistory() const
 
 FTrainingEpisode UGameTrainingEnvironment::GetBestEpisode() const
 {
-    FTrainingEpisode Best;
-    for (const FTrainingEpisode& Episode : EpisodeHistory)
+    // Seed from the first real episode rather than a default-constructed one (TotalReward 0.0f),
+    // so an all-negative-reward history doesn't fall back to reporting an episode that never
+    // happened as "best".
+    if (EpisodeHistory.Num() == 0)
     {
-        if (Episode.TotalReward > Best.TotalReward)
+        return FTrainingEpisode();
+    }
+
+    FTrainingEpisode Best = EpisodeHistory[0];
+    for (int32 i = 1; i < EpisodeHistory.Num(); ++i)
+    {
+        if (EpisodeHistory[i].TotalReward > Best.TotalReward)
         {
-            Best = Episode;
+            Best = EpisodeHistory[i];
         }
     }
     return Best;
@@ -731,8 +827,10 @@ void UGameTrainingEnvironment::UpdateStatistics()
     Stats.WinRate = Stats.TotalEpisodes > 0 ?
         static_cast<float>(Stats.SuccessfulEpisodes) / Stats.TotalEpisodes : 0.0f;
 
-    // Update reward statistics
-    if (CurrentEpisode.TotalReward > Stats.BestReward)
+    // Update reward statistics. Stats.TotalEpisodes == 1 identifies the very first episode's
+    // completion; without it, an all-negative-reward history would never overwrite the 0.0f
+    // default and BestReward would falsely report a reward that was never actually achieved.
+    if (Stats.TotalEpisodes == 1 || CurrentEpisode.TotalReward > Stats.BestReward)
     {
         Stats.BestReward = CurrentEpisode.TotalReward;
     }

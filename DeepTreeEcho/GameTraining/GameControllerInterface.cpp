@@ -5,6 +5,8 @@
 #include "../Learning/OnlineLearningSystem.h"
 #include "../4ECognition/EmbodiedCognitionComponent.h"
 #include "../Core/DeepTreeEchoCore.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
 
 // ============================================================================
 // FControllerInputState Implementation
@@ -24,22 +26,22 @@ TArray<float> FControllerInputState::ToActionVector() const
     Vector.Add(RightTrigger);
 
     // Button states (16 values, 0 or 1)
-    Vector.Add(PressedButtons.Contains(EGamepadButton::FaceBottom) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::FaceRight) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::FaceLeft) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::FaceTop) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::LeftShoulder) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::RightShoulder) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::LeftThumb) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::RightThumb) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::DPadUp) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::DPadDown) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::DPadLeft) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::DPadRight) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::Start) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::Select) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::LeftTrigger) ? 1.0f : 0.0f);
-    Vector.Add(PressedButtons.Contains(EGamepadButton::RightTrigger) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::FaceBottom) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::FaceRight) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::FaceLeft) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::FaceTop) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::LeftShoulder) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::RightShoulder) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::LeftThumb) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::RightThumb) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::DPadUp) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::DPadDown) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::DPadLeft) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::DPadRight) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::Start) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::Select) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::LeftTrigger) ? 1.0f : 0.0f);
+    Vector.Add(IsPressed(EGamepadButton::RightTrigger) ? 1.0f : 0.0f);
 
     return Vector;
 }
@@ -57,22 +59,22 @@ FControllerInputState FControllerInputState::FromActionVector(const TArray<float
     State.RightTrigger = FMath::Clamp(Vector[5], 0.0f, 1.0f);
 
     // Button states
-    if (Vector[6] > 0.5f) State.PressedButtons.Add(EGamepadButton::FaceBottom);
-    if (Vector[7] > 0.5f) State.PressedButtons.Add(EGamepadButton::FaceRight);
-    if (Vector[8] > 0.5f) State.PressedButtons.Add(EGamepadButton::FaceLeft);
-    if (Vector[9] > 0.5f) State.PressedButtons.Add(EGamepadButton::FaceTop);
-    if (Vector[10] > 0.5f) State.PressedButtons.Add(EGamepadButton::LeftShoulder);
-    if (Vector[11] > 0.5f) State.PressedButtons.Add(EGamepadButton::RightShoulder);
-    if (Vector[12] > 0.5f) State.PressedButtons.Add(EGamepadButton::LeftThumb);
-    if (Vector[13] > 0.5f) State.PressedButtons.Add(EGamepadButton::RightThumb);
-    if (Vector[14] > 0.5f) State.PressedButtons.Add(EGamepadButton::DPadUp);
-    if (Vector[15] > 0.5f) State.PressedButtons.Add(EGamepadButton::DPadDown);
-    if (Vector[16] > 0.5f) State.PressedButtons.Add(EGamepadButton::DPadLeft);
-    if (Vector[17] > 0.5f) State.PressedButtons.Add(EGamepadButton::DPadRight);
-    if (Vector[18] > 0.5f) State.PressedButtons.Add(EGamepadButton::Start);
-    if (Vector[19] > 0.5f) State.PressedButtons.Add(EGamepadButton::Select);
-    if (Vector[20] > 0.5f) State.PressedButtons.Add(EGamepadButton::LeftTrigger);
-    if (Vector[21] > 0.5f) State.PressedButtons.Add(EGamepadButton::RightTrigger);
+    if (Vector[6] > 0.5f) State.Press(EGamepadButton::FaceBottom);
+    if (Vector[7] > 0.5f) State.Press(EGamepadButton::FaceRight);
+    if (Vector[8] > 0.5f) State.Press(EGamepadButton::FaceLeft);
+    if (Vector[9] > 0.5f) State.Press(EGamepadButton::FaceTop);
+    if (Vector[10] > 0.5f) State.Press(EGamepadButton::LeftShoulder);
+    if (Vector[11] > 0.5f) State.Press(EGamepadButton::RightShoulder);
+    if (Vector[12] > 0.5f) State.Press(EGamepadButton::LeftThumb);
+    if (Vector[13] > 0.5f) State.Press(EGamepadButton::RightThumb);
+    if (Vector[14] > 0.5f) State.Press(EGamepadButton::DPadUp);
+    if (Vector[15] > 0.5f) State.Press(EGamepadButton::DPadDown);
+    if (Vector[16] > 0.5f) State.Press(EGamepadButton::DPadLeft);
+    if (Vector[17] > 0.5f) State.Press(EGamepadButton::DPadRight);
+    if (Vector[18] > 0.5f) State.Press(EGamepadButton::Start);
+    if (Vector[19] > 0.5f) State.Press(EGamepadButton::Select);
+    if (Vector[20] > 0.5f) State.Press(EGamepadButton::LeftTrigger);
+    if (Vector[21] > 0.5f) State.Press(EGamepadButton::RightTrigger);
 
     return State;
 }
@@ -89,16 +91,45 @@ FString FControllerInputState::ToActionString() const
     ActionStr = FString::Printf(TEXT("L%d_R%d"), LeftStickRegion, RightStickRegion);
 
     // Add active buttons
-    if (PressedButtons.Contains(EGamepadButton::FaceBottom)) ActionStr += TEXT("_A");
-    if (PressedButtons.Contains(EGamepadButton::FaceRight)) ActionStr += TEXT("_B");
-    if (PressedButtons.Contains(EGamepadButton::FaceLeft)) ActionStr += TEXT("_X");
-    if (PressedButtons.Contains(EGamepadButton::FaceTop)) ActionStr += TEXT("_Y");
-    if (PressedButtons.Contains(EGamepadButton::LeftShoulder)) ActionStr += TEXT("_LB");
-    if (PressedButtons.Contains(EGamepadButton::RightShoulder)) ActionStr += TEXT("_RB");
+    if (IsPressed(EGamepadButton::FaceBottom)) ActionStr += TEXT("_A");
+    if (IsPressed(EGamepadButton::FaceRight)) ActionStr += TEXT("_B");
+    if (IsPressed(EGamepadButton::FaceLeft)) ActionStr += TEXT("_X");
+    if (IsPressed(EGamepadButton::FaceTop)) ActionStr += TEXT("_Y");
+    if (IsPressed(EGamepadButton::LeftShoulder)) ActionStr += TEXT("_LB");
+    if (IsPressed(EGamepadButton::RightShoulder)) ActionStr += TEXT("_RB");
     if (LeftTrigger > 0.5f) ActionStr += TEXT("_LT");
     if (RightTrigger > 0.5f) ActionStr += TEXT("_RT");
 
     return ActionStr;
+}
+
+bool FControllerInputState::HasSameActionSignature(const FControllerInputState& Other) const
+{
+    // Mirrors exactly what ToActionString encodes, without building any strings.
+    if (FMath::RoundToInt(LeftStickX) != FMath::RoundToInt(Other.LeftStickX) ||
+        FMath::RoundToInt(LeftStickY) != FMath::RoundToInt(Other.LeftStickY) ||
+        FMath::RoundToInt(RightStickX) != FMath::RoundToInt(Other.RightStickX) ||
+        FMath::RoundToInt(RightStickY) != FMath::RoundToInt(Other.RightStickY))
+    {
+        return false;
+    }
+
+    if ((LeftTrigger > 0.5f) != (Other.LeftTrigger > 0.5f) ||
+        (RightTrigger > 0.5f) != (Other.RightTrigger > 0.5f))
+    {
+        return false;
+    }
+
+    // Only the buttons ToActionString encodes participate in the signature.
+    constexpr int32 SignatureMask =
+        (1 << static_cast<uint8>(EGamepadButton::FaceBottom)) |
+        (1 << static_cast<uint8>(EGamepadButton::FaceRight)) |
+        (1 << static_cast<uint8>(EGamepadButton::FaceLeft)) |
+        (1 << static_cast<uint8>(EGamepadButton::FaceTop)) |
+        (1 << static_cast<uint8>(EGamepadButton::LeftShoulder)) |
+        (1 << static_cast<uint8>(EGamepadButton::RightShoulder));
+
+    return (ButtonMask & SignatureMask) == (Other.ButtonMask & SignatureMask);
 }
 
 // ============================================================================
@@ -132,6 +163,17 @@ void UGameControllerInterface::TickComponent(float DeltaTime, ELevelTick TickTyp
     // Poll input
     PollControllerInput();
 
+    // Apply queued AI output BEFORE edge detection: ExecuteQueuedOutput writes the command's
+    // DesiredState into CurrentState, and press edges (which feed ButtonHoldStartTimes and
+    // therefore hold-gated actions) are only observable if that write happens before
+    // ProcessButtonEvents compares CurrentState against PreviousState. Running it at the end of
+    // the tick meant AI-injected presses were copied into PreviousState before ever being
+    // edge-detected, so hold-gated actions could never fire in AI output mode.
+    if (bAIOutputMode)
+    {
+        ProcessOutputQueue(DeltaTime);
+    }
+
     // Update buffer
     UpdateInputBuffer(DeltaTime);
 
@@ -142,14 +184,9 @@ void UGameControllerInterface::TickComponent(float DeltaTime, ELevelTick TickTyp
     // Detect and broadcast actions
     DetectAndBroadcastActions();
 
-    // Process AI output if enabled
-    if (bAIOutputMode)
-    {
-        ProcessOutputQueue(DeltaTime);
-    }
-
-    // Broadcast state change
-    if (!CurrentState.ToActionString().Equals(PreviousState.ToActionString()))
+    // Broadcast state change - allocation-free signature compare; the strings themselves are
+    // only built inside BroadcastCognitiveState on the (rare) ticks the signature changed.
+    if (!CurrentState.HasSameActionSignature(PreviousState))
     {
         OnInputStateChanged.Broadcast(CurrentState);
         BroadcastCognitiveState();
@@ -309,20 +346,26 @@ void UGameControllerInterface::ProcessButtonEvents(float DeltaTime)
 {
     float CurrentTime = GetWorld()->GetTimeSeconds();
 
-    // Check for newly pressed buttons
-    for (const EGamepadButton& Button : CurrentState.PressedButtons)
+    // Diff the button bitmasks directly; both loops below only visit set bits.
+    const int32 PressedNow = CurrentState.ButtonMask & ~PreviousState.ButtonMask;
+    const int32 ReleasedNow = PreviousState.ButtonMask & ~CurrentState.ButtonMask;
+    if (PressedNow == 0 && ReleasedNow == 0)
     {
-        if (!PreviousState.PressedButtons.Contains(Button))
+        return;
+    }
+
+    for (int32 i = 1; i <= static_cast<int32>(EGamepadButton::Select); ++i)
+    {
+        const int32 Bit = 1 << i;
+        const EGamepadButton Button = static_cast<EGamepadButton>(i);
+
+        if (PressedNow & Bit)
         {
             ButtonHoldStartTimes.Add(Button, CurrentTime);
             OnButtonPressed.Broadcast(Button, CurrentTime);
         }
-    }
 
-    // Check for released buttons
-    for (const EGamepadButton& Button : PreviousState.PressedButtons)
-    {
-        if (!CurrentState.PressedButtons.Contains(Button))
+        if (ReleasedNow & Bit)
         {
             float HeldDuration = 0.0f;
             if (float* StartTime = ButtonHoldStartTimes.Find(Button))
@@ -385,22 +428,40 @@ void UGameControllerInterface::DetectAndBroadcastActions()
     {
         OnActionDetected.Broadcast(Action);
 
-        // Track for combo detection
-        RecentActions.Add(Action);
-        LastActionTime = CurrentTime;
+        // Track for combo detection, RISING EDGES ONLY: DetectCurrentActions is level-based
+        // (an action stays "detected" every tick its input is held), so unconditional appends
+        // would record one entry per tick of a held press - falsely matching repeated-action
+        // combos against a single press and burying real sequences in duplicates.
+        if (!PreviouslyActiveActions.Contains(Action))
+        {
+            RecentActions.Add(TPair<FString, float>(Action, CurrentTime));
+            LastActionTime = CurrentTime;
+        }
     }
 
-    // Clean old actions
-    while (RecentActions.Num() > 0 && CurrentTime - LastActionTime > 1.0f)
+    PreviouslyActiveActions.Reset();
+    for (const FString& Action : DetectedActions)
     {
-        RecentActions.RemoveAt(0);
+        PreviouslyActiveActions.Add(Action);
     }
+
+    // Drop entries older than the window, regardless of whether new actions are still arriving.
+    RecentActions.RemoveAll([CurrentTime](const TPair<FString, float>& Entry)
+    {
+        return CurrentTime - Entry.Value > RecentActionWindow;
+    });
 
     // Detect combos
     TArray<FString> Combos = DetectCombos();
     for (const FString& Combo : Combos)
     {
         OnComboDetected.Broadcast(Combo);
+    }
+    if (Combos.Num() > 0)
+    {
+        // Consume the history on a match, or the same combo would re-fire every tick until its
+        // entries age out of the window.
+        RecentActions.Empty();
     }
 
     // Record for imitation learning
@@ -460,19 +521,19 @@ TArray<FControllerInputState> UGameControllerInterface::GetInputBuffer() const
 
 bool UGameControllerInterface::IsButtonPressed(EGamepadButton Button) const
 {
-    return CurrentState.PressedButtons.Contains(Button);
+    return CurrentState.IsPressed(Button);
 }
 
 bool UGameControllerInterface::WasButtonJustPressed(EGamepadButton Button) const
 {
-    return CurrentState.PressedButtons.Contains(Button) &&
-           !PreviousState.PressedButtons.Contains(Button);
+    return CurrentState.IsPressed(Button) &&
+           !PreviousState.IsPressed(Button);
 }
 
 bool UGameControllerInterface::WasButtonJustReleased(EGamepadButton Button) const
 {
-    return !CurrentState.PressedButtons.Contains(Button) &&
-           PreviousState.PressedButtons.Contains(Button);
+    return !CurrentState.IsPressed(Button) &&
+           PreviousState.IsPressed(Button);
 }
 
 float UGameControllerInterface::GetAxisValue(EGamepadAxis Axis) const
@@ -507,27 +568,63 @@ TArray<FString> UGameControllerInterface::DetectCurrentActions() const
 {
     TArray<FString> Actions;
 
+    float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
     for (const FGameActionMapping& Mapping : ActionMappings)
     {
-        bool bActionActive = false;
-
-        // Check button
+        // Evaluate button and axis conditions independently, then combine, rather than letting
+        // one silently overwrite the other when a mapping configures both.
+        bool bButtonOk = true;
+        bool bHasButtonCondition = false;
         if (Mapping.PrimaryButton != EGamepadButton::None)
         {
-            bActionActive = CurrentState.PressedButtons.Contains(Mapping.PrimaryButton);
+            bHasButtonCondition = true;
+            bButtonOk = CurrentState.IsPressed(Mapping.PrimaryButton);
         }
 
-        // Check axis
+        bool bAxisOk = true;
+        bool bHasAxisCondition = false;
         if (Mapping.PrimaryAxis != EGamepadAxis::None)
         {
+            bHasAxisCondition = true;
             float AxisValue = GetAxisValue(Mapping.PrimaryAxis);
-            bActionActive = FMath::Abs(AxisValue) >= Mapping.AxisThreshold;
+            bAxisOk = FMath::Abs(AxisValue) >= Mapping.AxisThreshold;
         }
+
+        bool bActionActive = (bHasButtonCondition || bHasAxisCondition) &&
+                              (!bHasButtonCondition || bButtonOk) &&
+                              (!bHasAxisCondition || bAxisOk);
 
         // Check secondary button
         if (Mapping.SecondaryButton != EGamepadButton::None && bActionActive)
         {
-            bActionActive = CurrentState.PressedButtons.Contains(Mapping.SecondaryButton);
+            bActionActive = CurrentState.IsPressed(Mapping.SecondaryButton);
+        }
+
+        // Hold-gated actions only activate once the trigger has been held for HoldDuration.
+        if (bActionActive && Mapping.bRequiresHold)
+        {
+            EGamepadButton HoldButton = Mapping.PrimaryButton != EGamepadButton::None ?
+                Mapping.PrimaryButton : Mapping.SecondaryButton;
+
+            const float* StartTime = HoldButton != EGamepadButton::None ?
+                ButtonHoldStartTimes.Find(HoldButton) : nullptr;
+
+            if (StartTime)
+            {
+                bActionActive = (CurrentTime - *StartTime) >= Mapping.HoldDuration;
+            }
+            else if (HoldButton == EGamepadButton::None)
+            {
+                // Axis-only hold (e.g. trigger axis): no discrete button press is tracked,
+                // so a hold requirement without a button cannot be timed - treat as satisfied.
+                bActionActive = true;
+            }
+            else
+            {
+                // Button not currently tracked as held (shouldn't happen if bActionActive is true).
+                bActionActive = false;
+            }
         }
 
         if (bActionActive)
@@ -551,6 +648,7 @@ void UGameControllerInterface::RegisterComboSequence(const FString& ComboName,
 {
     FInputSequence Combo;
     Combo.SequenceName = ComboName;
+    Combo.ActionNames = ActionSequence;
     Combo.MaxTimeBetweenInputs = MaxTimeBetween;
 
     RegisteredCombos.Add(ComboName, Combo);
@@ -560,8 +658,51 @@ TArray<FString> UGameControllerInterface::DetectCombos() const
 {
     TArray<FString> DetectedCombos;
 
-    // Simple combo detection based on recent actions
-    // More sophisticated pattern matching could be implemented
+    if (RecentActions.Num() == 0)
+    {
+        return DetectedCombos;
+    }
+
+    for (const auto& ComboPair : RegisteredCombos)
+    {
+        const FInputSequence& Combo = ComboPair.Value;
+        const int32 Len = Combo.ActionNames.Num();
+        if (Len == 0 || RecentActions.Num() < Len)
+        {
+            continue;
+        }
+
+        // Ordered-subsequence scan: the combo's actions must appear in order, each within
+        // MaxTimeBetweenInputs of the previously matched one, but OTHER concurrently active
+        // actions (movement, camera - active almost constantly in real play) may be interleaved
+        // between them. A strict "last Len entries" suffix match would be broken by any such
+        // interleaving.
+        int32 MatchIdx = 0;
+        float LastMatchTime = 0.0f;
+        for (const TPair<FString, float>& Entry : RecentActions)
+        {
+            if (Entry.Key != Combo.ActionNames[MatchIdx])
+            {
+                continue;
+            }
+            if (MatchIdx > 0 && Entry.Value - LastMatchTime > Combo.MaxTimeBetweenInputs)
+            {
+                // Chain broken by too large a gap - this entry can still start a new attempt.
+                MatchIdx = 0;
+                if (Entry.Key != Combo.ActionNames[0])
+                {
+                    continue;
+                }
+            }
+            LastMatchTime = Entry.Value;
+            ++MatchIdx;
+            if (MatchIdx == Len)
+            {
+                DetectedCombos.Add(Combo.SequenceName);
+                break;
+            }
+        }
+    }
 
     return DetectedCombos;
 }
@@ -603,7 +744,7 @@ FControllerOutputCommand UGameControllerInterface::GenerateOutputForAction(const
 
             if (Mapping.PrimaryButton != EGamepadButton::None)
             {
-                Command.DesiredState.PressedButtons.Add(Mapping.PrimaryButton);
+                Command.DesiredState.Press(Mapping.PrimaryButton);
             }
 
             break;
@@ -679,12 +820,16 @@ void UGameControllerInterface::ProcessOutputQueue(float DeltaTime)
     // Process and execute outputs
     ExecuteQueuedOutput();
 
-    // Remove completed commands
-    OutputQueue.RemoveAll([DeltaTime](FControllerOutputCommand& Cmd)
+    // Only the head command is actually executing each tick; only its duration should burn down.
+    // Commands still waiting behind it must be left untouched.
+    if (OutputQueue.Num() > 0)
     {
-        Cmd.Duration -= DeltaTime;
-        return Cmd.Duration <= 0.0f;
-    });
+        OutputQueue[0].Duration -= DeltaTime;
+        if (OutputQueue[0].Duration <= 0.0f)
+        {
+            OutputQueue.RemoveAt(0);
+        }
+    }
 }
 
 // ============================================================================
@@ -715,19 +860,35 @@ FString UGameControllerInterface::GetStateString(const FControllerInputState& In
 
 void UGameControllerInterface::RecordInputForImitation(const FControllerInputState& Input, const FString& Context)
 {
-    ImitationBuffer.Add(TPair<FControllerInputState, FString>(Input, Context));
+    // Ring-buffer write: RemoveAt(0) eviction memmoved the whole buffer (~65KB) every tick at
+    // steady state. Once full, overwrite the oldest slot in place instead - O(1), and the
+    // evicted slot's heap blocks are reused by the assignment.
+    if (ImitationBuffer.Num() < MaxImitationBufferSize)
+    {
+        ImitationBuffer.Emplace(Input, Context);
+    }
+    else
+    {
+        ImitationBuffer[ImitationWriteIndex] = TPair<FControllerInputState, FString>(Input, Context);
+        ImitationWriteIndex = (ImitationWriteIndex + 1) % MaxImitationBufferSize;
+    }
 
     // Record to learning system
     if (LearningSystem)
     {
+        // Build each state string exactly once (the input string is used for both the action
+        // and next-state slots).
+        const FString InputStr = GetStateString(Input);
+
         TArray<FString> Tags;
+        Tags.Reserve(2);
         Tags.Add(TEXT("Imitation"));
         Tags.Add(Context);
 
         LearningSystem->RecordExperience(
             GetStateString(PreviousState),
-            GetStateString(Input),
-            GetStateString(Input),
+            InputStr,
+            InputStr,
             0.0f,  // Reward assigned later
             Tags,
             false
@@ -897,12 +1058,8 @@ TArray<uint8> UGameControllerInterface::SerializeInputState(const FControllerInp
     Ar << const_cast<float&>(State.LeftTrigger);
     Ar << const_cast<float&>(State.RightTrigger);
 
-    // Write buttons as bitmask
-    uint32 ButtonMask = 0;
-    for (const EGamepadButton& Button : State.PressedButtons)
-    {
-        ButtonMask |= (1 << static_cast<uint8>(Button));
-    }
+    // Buttons are already a bitmask (bit index = enum value) - same wire format as before
+    uint32 ButtonMask = static_cast<uint32>(State.ButtonMask);
     Ar << ButtonMask;
 
     Ar << const_cast<float&>(State.Timestamp);
@@ -925,13 +1082,9 @@ FControllerInputState UGameControllerInterface::DeserializeInputState(const TArr
     uint32 ButtonMask;
     Ar << ButtonMask;
 
-    for (int32 i = 0; i < 16; ++i)
-    {
-        if (ButtonMask & (1 << i))
-        {
-            State.PressedButtons.Add(static_cast<EGamepadButton>(i));
-        }
-    }
+    // Same wire format as before (bit index = enum value, incl. Select at bit 16); the struct
+    // stores exactly this representation now, so no per-bit expansion is needed.
+    State.ButtonMask = static_cast<int32>(ButtonMask);
 
     Ar << State.Timestamp;
 

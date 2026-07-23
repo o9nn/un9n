@@ -99,6 +99,12 @@ struct FTransition
 
     UPROPERTY(BlueprintReadWrite)
     float Priority = 1.0f;
+
+    /** Q-table keys for State/NextState, computed once at RecordTransition and reused by every
+     *  update (incl. batch replays) - StateToKey was previously recomputed up to 7x per
+     *  transition. Not UPROPERTYs: internal cache, empty means "compute on demand". */
+    FString StateKey;
+    FString NextStateKey;
 };
 
 /**
@@ -150,8 +156,7 @@ struct FReservoirRLState
     UPROPERTY(BlueprintReadWrite)
     TArray<float> EchoMemory;
 
-    /** Temporal pattern buffer */
-    UPROPERTY(BlueprintReadWrite)
+    /** Temporal pattern buffer (not UPROPERTY: nested TArray<TArray<>> is rejected by UnrealHeaderTool) */
     TArray<TArray<float>> TemporalBuffer;
 
     /** Detected patterns */
@@ -173,6 +178,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPolicyImproved, float, OldValue,
  * Connects game training with Deep Tree Echo cognitive systems
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
+class UNREALECHO_API UReinforcementLearningBridge : public UActorComponent
 class DEEPTREEECHO_API UReinforcementLearningBridge : public UActorComponent
 {
     GENERATED_BODY()
@@ -466,8 +472,10 @@ protected:
     // Q-table (for tabular Q-learning)
     TMap<FString, TArray<float>> QTable;
 
-    // Experience replay buffer
+    // Experience replay buffer, maintained as a ring once full (RemoveAt(0) eviction memmoved
+    // the entire 10k-entry buffer per transition); ReplayWriteIndex is the next overwrite slot
     TArray<FTransition> ReplayBuffer;
+    int32 ReplayWriteIndex = 0;
 
     // State tracking
     TArray<float> LastState;
@@ -493,21 +501,38 @@ protected:
     void InitializeQTable();
 
     FString StateToKey(const TArray<float>& State) const;
-    TArray<float> GetOrCreateQValues(const FString& StateKey);
+
+    /** Returns a reference into QTable (via FindOrAdd, optimistically initialized) so callers
+     *  mutate in place - the previous by-value return forced a full array copy plus a second
+     *  hash + copy on the QTable.Add writeback for every update. */
+    TArray<float>& GetOrCreateQValues(const FString& StateKey);
+
+    /** Max Q-value for an already-computed state key; 0 for unseen states. Read-only (no
+     *  insertion), so references obtained from GetOrCreateQValues stay valid across calls. */
+    float GetMaxQValueForKey(const FString& StateKey) const;
+
+    /** Resolves the transition's cached StateKey/NextStateKey, computing only if empty. */
+    const FString& ResolveStateKey(const FTransition& Transition, FString& Scratch) const;
+    const FString& ResolveNextStateKey(const FTransition& Transition, FString& Scratch) const;
 
     FRLAction SelectEpsilonGreedy(const TArray<float>& State);
     FRLAction SelectSoftmax(const TArray<float>& State);
     FRLAction SelectUCB(const TArray<float>& State);
     FRLAction SelectThompson(const TArray<float>& State);
 
-    void ApplyQLearningUpdate(const FTransition& Transition);
-    void ApplySARSAUpdate(const FTransition& Transition);
+    /** Both return the pre-update TD error (0 for rejected transitions) so batch updates can
+     *  report loss without recomputing the full target a second time. */
+    float ApplyQLearningUpdate(const FTransition& Transition);
+    float ApplySARSAUpdate(const FTransition& Transition);
 
-    TArray<FTransition> SampleFromReplayBuffer(int32 Count);
+    /** Returns indices into ReplayBuffer - batch consumers iterate by const reference instead
+     *  of deep-copying 32 transitions (two 60+ float arrays each) per update. */
+    TArray<int32> SampleIndicesFromReplayBuffer(int32 Count) const;
     void AddToReplayBuffer(const FTransition& Transition);
 
     float ComputeIntrinsicReward(const TArray<float>& State, int32 ActionIndex) const;
+    float ComputeIntrinsicRewardForKey(const FString& StateKey) const;
     float ComputeCuriosityBonus(const TArray<float>& State) const;
 
-    void SyncWithCognitiveSystem();
+    void SyncWithCognitiveSystem(const FTransition& Latest);
 };

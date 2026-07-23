@@ -98,13 +98,41 @@ struct FControllerInputState
     UPROPERTY(BlueprintReadWrite)
     float RightTrigger = 0.0f;
 
-    // Button states
+    // Button states packed as a bitmask indexed by EGamepadButton value (bit 16 = Select).
+    // Replaces a TSet whose per-copy heap allocations dominated per-tick cost: this struct is
+    // copied several times per tick (previous-state snapshot, input buffer, output queue), and
+    // the bitmask makes those copies trivial memcpys and Contains a single AND.
     UPROPERTY(BlueprintReadWrite)
-    TSet<EGamepadButton> PressedButtons;
+    int32 ButtonMask = 0;
 
     // Timestamp
     UPROPERTY(BlueprintReadWrite)
     float Timestamp = 0.0f;
+
+    bool IsPressed(EGamepadButton Button) const
+    {
+        return (ButtonMask & (1 << static_cast<uint8>(Button))) != 0;
+    }
+
+    void Press(EGamepadButton Button)
+    {
+        ButtonMask |= (1 << static_cast<uint8>(Button));
+    }
+
+    void Release(EGamepadButton Button)
+    {
+        ButtonMask &= ~(1 << static_cast<uint8>(Button));
+    }
+
+    int32 NumPressed() const
+    {
+        return FMath::CountBits(static_cast<uint64>(static_cast<uint32>(ButtonMask)));
+    }
+
+    /** True when both states discretize to the same Q-learning action signature (stick regions,
+     *  trigger on/off, signature buttons) - the allocation-free equivalent of comparing
+     *  ToActionString() results. Must stay in lockstep with ToActionString's contents. */
+    bool HasSameActionSignature(const FControllerInputState& Other) const;
 
     /** Convert to action vector for learning */
     TArray<float> ToActionVector() const;
@@ -190,6 +218,10 @@ struct FInputSequence
     UPROPERTY(BlueprintReadWrite)
     TArray<FControllerInputState> Inputs;
 
+    /** Ordered action names that make up this combo (matched against DetectCurrentActions history) */
+    UPROPERTY(BlueprintReadWrite)
+    TArray<FString> ActionNames;
+
     UPROPERTY(BlueprintReadWrite)
     float MaxTimeBetweenInputs = 0.3f;
 
@@ -216,6 +248,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOutputCommandGenerated, const FCo
  * Bridges gamepad input/output with Deep Tree Echo cognitive system
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
+class UNREALECHO_API UGameControllerInterface : public UActorComponent
 class DEEPTREEECHO_API UGameControllerInterface : public UActorComponent
 {
     GENERATED_BODY()
@@ -453,11 +486,20 @@ protected:
 
     // Combo tracking
     TMap<FString, FInputSequence> RegisteredCombos;
-    TArray<FString> RecentActions;
+    TArray<TPair<FString, float>> RecentActions;  // (ActionName, Timestamp) - each entry aged independently
+    TSet<FString> PreviouslyActiveActions;        // actions active last tick, for edge-gating RecentActions
     float LastActionTime = 0.0f;
 
-    // Imitation learning buffer
+    /** Window (seconds) after which a recent-action entry is discarded */
+    static constexpr float RecentActionWindow = 1.0f;
+
+    /** Max entries retained in ImitationBuffer before oldest are overwritten */
+    static constexpr int32 MaxImitationBufferSize = 500;
+
+    // Imitation learning buffer, maintained as a ring (RemoveAt(0) eviction memmoved ~65KB/tick
+    // at steady state); ImitationWriteIndex is the next slot to overwrite once full
     TArray<TPair<FControllerInputState, FString>> ImitationBuffer;
+    int32 ImitationWriteIndex = 0;
 
     // Internal methods
     void FindComponentReferences();

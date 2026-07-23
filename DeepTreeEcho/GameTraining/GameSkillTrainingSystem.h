@@ -234,6 +234,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSkillUnlocked, const FString&, S
  * Manages game-specific skill acquisition with motor learning
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
+class UNREALECHO_API UGameSkillTrainingSystem : public UActorComponent
 class DEEPTREEECHO_API UGameSkillTrainingSystem : public UActorComponent
 {
     GENERATED_BODY()
@@ -495,6 +496,12 @@ protected:
 
     FString GenerateSkillID();
     int32 FindSkillIndex(const FString& SkillID) const;
+
+    /** Resolves a skill by its display NAME rather than its generated SkillID map key. Needed
+     *  because Prerequisites and FCurriculumStage::SkillsToLearn are populated with names (see
+     *  RegisterMovementSkills/RegisterCombatSkills/LoadPresetCurriculum) while Skills itself is
+     *  keyed by generated "SKILL_N" IDs. */
+    const FGameSkill* FindSkillByNamePtr(const FString& SkillName) const;
 
     float ComputeLearningRate(const FGameSkill& Skill) const;
     float ComputeInputSimilarity(const FControllerInputState& A, const FControllerInputState& B) const;
