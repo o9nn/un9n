@@ -609,15 +609,17 @@ float UReinforcementLearningBridge::PerformBatchUpdate()
 
 void UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Transition)
 {
-    FString StateKey = StateToKey(Transition.State);
-    TArray<float> QValues = GetOrCreateQValues(StateKey);
-
     // RecordTransition is BlueprintCallable with an arbitrary caller-supplied FRLAction, so the
-    // index must be validated before touching an array sized to NumActions.
-    if (!QValues.IsValidIndex(Transition.Action.ActionIndex))
+    // index must be validated up front - and BEFORE GetOrCreateQValues, which inserts a fresh
+    // optimistically-initialized row into the Q-table as a side effect. A rejected transition
+    // must be a complete no-op, not a table-polluting one.
+    if (Transition.Action.ActionIndex < 0 || Transition.Action.ActionIndex >= NumActions)
     {
         return;
     }
+
+    FString StateKey = StateToKey(Transition.State);
+    TArray<float> QValues = GetOrCreateQValues(StateKey);
 
     float CurrentQ = QValues[Transition.Action.ActionIndex];
     float MaxNextQ = Transition.bTerminal ? 0.0f : GetGreedyAction(Transition.NextState).QValue;
@@ -642,14 +644,15 @@ void UReinforcementLearningBridge::ApplyQLearningUpdate(const FTransition& Trans
 
 void UReinforcementLearningBridge::ApplySARSAUpdate(const FTransition& Transition)
 {
-    FString StateKey = StateToKey(Transition.State);
-    TArray<float> QValues = GetOrCreateQValues(StateKey);
-
-    // Same BlueprintCallable-supplied index hazard as ApplyQLearningUpdate.
-    if (!QValues.IsValidIndex(Transition.Action.ActionIndex))
+    // Same BlueprintCallable-supplied index hazard as ApplyQLearningUpdate; checked before
+    // GetOrCreateQValues so rejected transitions don't insert phantom Q-table rows.
+    if (Transition.Action.ActionIndex < 0 || Transition.Action.ActionIndex >= NumActions)
     {
         return;
     }
+
+    FString StateKey = StateToKey(Transition.State);
+    TArray<float> QValues = GetOrCreateQValues(StateKey);
 
     float CurrentQ = QValues[Transition.Action.ActionIndex];
 
