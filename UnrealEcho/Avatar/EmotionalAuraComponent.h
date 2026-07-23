@@ -48,7 +48,7 @@ struct FAuraVisualizationData
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UEmotionalAuraComponent : public UActorComponent
+class UNREALECHO_API UEmotionalAuraComponent : public UActorComponent
 {
     GENERATED_BODY()
 

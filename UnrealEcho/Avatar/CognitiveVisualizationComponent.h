@@ -80,7 +80,7 @@ struct FThoughtParticle
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UCognitiveVisualizationComponent : public UActorComponent
+class UNREALECHO_API UCognitiveVisualizationComponent : public UActorComponent
 {
     GENERATED_BODY()
 

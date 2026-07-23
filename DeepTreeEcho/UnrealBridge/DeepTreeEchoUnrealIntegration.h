@@ -202,7 +202,7 @@ struct FAvatarExpressionState
  * - Diary/Insight/Wisdom cultivation
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoUnrealIntegration : public UActorComponent
+class DEEPTREEECHO_API UDeepTreeEchoUnrealIntegration : public UActorComponent
 {
     GENERATED_BODY()
 

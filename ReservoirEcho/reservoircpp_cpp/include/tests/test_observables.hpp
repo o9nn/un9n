@@ -2,11 +2,11 @@
 #define RESERVOIRCPP_TEST_OBSERVABLES_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///observables/(.hpp"
+#include "reservoircpp/observables/(.hpp"
 #include "reservoircpp/scipy/sparse/csr_matrix.hpp"
-#include "reservoircpp///nodes/Ridge.hpp"
+#include "reservoircpp/nodes/Ridge.hpp"
 #include "pytest.hpp"
-#include "reservoircpp///nodes/Reservoir.hpp"
+#include "reservoircpp/nodes/Reservoir.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

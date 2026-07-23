@@ -173,7 +173,7 @@ struct FProceduralAnimOutput
 };
 
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UProceduralAnimationComponent : public UActorComponent
+class UNREALECHO_API UProceduralAnimationComponent : public UActorComponent
 {
     GENERATED_BODY()
 

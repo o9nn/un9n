@@ -224,7 +224,7 @@ struct FTetrahedralState
  * Implements System 5 tetradic cognitive architecture with reservoir computing.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UTetradicReservoirIntegration : public UActorComponent
+class DEEPTREEECHO_API UTetradicReservoirIntegration : public UActorComponent
 {
     GENERATED_BODY()
 

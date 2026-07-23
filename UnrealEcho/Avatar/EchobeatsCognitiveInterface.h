@@ -123,7 +123,7 @@ struct FRelevanceRealizationEvent
 };
 
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UEchobeatsCognitiveInterface : public UActorComponent
+class UNREALECHO_API UEchobeatsCognitiveInterface : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -185,7 +185,7 @@ struct FSomaticMarker
  * 4E Embodied Cognition Component
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UEmbodiedCognitionComponent : public UActorComponent
+class DEEPTREEECHO_API UEmbodiedCognitionComponent : public UActorComponent
 {
     GENERATED_BODY()
 

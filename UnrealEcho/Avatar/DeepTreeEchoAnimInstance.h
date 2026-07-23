@@ -12,7 +12,7 @@
  * Integrates with the expression system for facial animation and procedural movement
  */
 UCLASS()
-class DEEPTREECHO_API UDeepTreeEchoAnimInstance : public UAnimInstance
+class UNREALECHO_API UDeepTreeEchoAnimInstance : public UAnimInstance
 {
     GENERATED_BODY()
 
@@ -135,7 +135,7 @@ private:
  * Animation Notify for expression triggers
  */
 UCLASS()
-class DEEPTREECHO_API UAnimNotify_TriggerExpression : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerExpression : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -153,7 +153,7 @@ public:
  * Animation Notify for microexpression triggers
  */
 UCLASS()
-class DEEPTREECHO_API UAnimNotify_TriggerMicroExpression : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerMicroExpression : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -171,7 +171,7 @@ public:
  * Animation Notify State for Wonder-to-Joy transition
  */
 UCLASS()
-class DEEPTREECHO_API UAnimNotifyState_WonderToJoy : public UAnimNotifyState
+class UNREALECHO_API UAnimNotifyState_WonderToJoy : public UAnimNotifyState
 {
     GENERATED_BODY()
 

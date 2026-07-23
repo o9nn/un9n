@@ -5,6 +5,10 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Sound/SoundBase.h"
 #include "NiagaraSystem.h"
+
+// Forward declarations
+enum class EAvatarMaterialSlot : uint8;
+
 #include "CustomAnimNotifies.generated.h"
 
 /**
@@ -12,7 +16,7 @@
  * Plays a sound at a specific point in an animation
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerAudioCue : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerAudioCue : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -42,7 +46,7 @@ public:
  * Spawns a particle system at a specific point in an animation
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerParticleEffect : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerParticleEffect : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -73,9 +77,10 @@ public:
 /**
  * Animation Notify: Trigger Material Effect
  * Triggers a material parameter change (e.g., blush, sparkle)
+ * If bFadeOut is true, the parameter will fade from ParameterValue to 0 over Duration
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerMaterialEffect : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerMaterialEffect : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -95,6 +100,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
     bool bFadeOut;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+    EAvatarMaterialSlot MaterialSlot;
 };
 
 /**
@@ -102,7 +110,7 @@ public:
  * Plays a gesture-specific sound using the AudioManagerComponent
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerGestureSound : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerGestureSound : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -120,7 +128,7 @@ public:
  * Applies a material effect over a duration (e.g., sustained blush during emote)
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotifyState_MaterialEffectOverTime : public UAnimNotifyState
+class UNREALECHO_API UAnimNotifyState_MaterialEffectOverTime : public UAnimNotifyState
 {
     GENERATED_BODY()
 
@@ -156,7 +164,7 @@ private:
  * Spawns and maintains a particle effect for the duration of the notify state
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotifyState_ParticleEffectOverTime : public UAnimNotifyState
+class UNREALECHO_API UAnimNotifyState_ParticleEffectOverTime : public UAnimNotifyState
 {
     GENERATED_BODY()
 
@@ -189,7 +197,7 @@ private:
  * Triggers the echo resonance effect (visual + audio)
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerEchoResonance : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerEchoResonance : public UAnimNotify
 {
     GENERATED_BODY()
 
@@ -207,7 +215,7 @@ public:
  * Triggers cognitive load visualization
  */
 UCLASS()
-class UNREALENGINE_API UAnimNotify_TriggerCognitiveLoad : public UAnimNotify
+class UNREALECHO_API UAnimNotify_TriggerCognitiveLoad : public UAnimNotify
 {
     GENERATED_BODY()
 

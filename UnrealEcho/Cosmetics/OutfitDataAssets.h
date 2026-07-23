@@ -121,7 +121,7 @@ struct FOutfitColorScheme
  * Data asset defining a complete outfit configuration.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UOutfitDataAsset : public UDataAsset
+class UNREALECHO_API UOutfitDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
@@ -215,7 +215,7 @@ public:
  * Data asset defining an accessory item.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UAccessoryDataAsset : public UDataAsset
+class UNREALECHO_API UAccessoryDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
@@ -302,7 +302,7 @@ public:
  * A collection of outfits and accessories that go together.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UOutfitCollectionDataAsset : public UDataAsset
+class UNREALECHO_API UOutfitCollectionDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
@@ -335,7 +335,7 @@ public:
  * A preset combination of outfit and accessories.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UOutfitPresetDataAsset : public UDataAsset
+class UNREALECHO_API UOutfitPresetDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 

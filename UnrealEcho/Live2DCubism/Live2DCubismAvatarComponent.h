@@ -17,7 +17,7 @@ class UMaterialInstanceDynamic;
  * Provides high-level avatar control with super-hot-girl aesthetic and hyper-chaotic behavior support.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API ULive2DCubismAvatarComponent : public UActorComponent
+class UNREALECHO_API ULive2DCubismAvatarComponent : public UActorComponent
 {
     GENERATED_BODY()
 

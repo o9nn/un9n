@@ -3,20 +3,20 @@
 
 #include "re.hpp"
 #include "numpy.hpp"
-#include "reservoircpp///nodes/ESN.hpp"
+#include "reservoircpp/nodes/ESN.hpp"
 #include "pathlib.hpp"
-#include "reservoircpp///nodes/Ridge.hpp"
-#include "reservoircpp///regression_models.hpp"
+#include "reservoircpp/nodes/Ridge.hpp"
+#include "reservoircpp/regression_models.hpp"
 #include <reservoircpp/scipy.hpp>
 #include "dill.hpp"
-#include "reservoircpp//_esn_online/ESNOnline.hpp"
-#include "reservoircpp//utils/save/load.hpp"
-#include "reservoircpp//_esn/ESN.hpp"
+#include "reservoircpp/_esn_online/ESNOnline.hpp"
+#include "reservoircpp/utils/save/load.hpp"
+#include "reservoircpp/_esn/ESN.hpp"
 #include "reservoircpp/typing/Union.hpp"
-#include "reservoircpp///mat_gen/zeros.hpp"
+#include "reservoircpp/mat_gen/zeros.hpp"
 #include "json.hpp"
-#include "reservoircpp///activationsfunc/identity.hpp"
-#include "reservoircpp///nodes/Reservoir.hpp"
+#include "reservoircpp/activationsfunc/identity.hpp"
+#include "reservoircpp/nodes/Reservoir.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

@@ -89,7 +89,7 @@ struct FBodyLanguageData
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UGestureSystem : public UActorComponent
+class UNREALECHO_API UGestureSystem : public UActorComponent
 {
     GENERATED_BODY()
 

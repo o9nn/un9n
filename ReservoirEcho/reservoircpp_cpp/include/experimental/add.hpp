@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_ADD_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
-#include "reservoircpp///utils/validation/is_sequence_set.hpp"
+#include "reservoircpp/node/Node.hpp"
+#include "reservoircpp/utils/validation/is_sequence_set.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

@@ -1,0 +1,170 @@
+name: Security & Dependency Scanning
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ============================================================================
+  # CodeQL Analysis
+  # ============================================================================
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['cpp', 'python']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ============================================================================
+  # Dependency Vulnerability Scan
+  # ============================================================================
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ============================================================================
+  # Secret Detection
+  # ============================================================================
+  secret-detection:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # License Compliance
+  # ============================================================================
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check license headers
+        run: |
+          echo "## License Compliance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for copyright headers in custom source files
+          MISSING_HEADERS=0
+          for dir in DeepTreeEcho UnrealEcho; do
+            for f in $(find "$dir" -name "*.cpp" -o -name "*.h" 2>/dev/null); do
+              if ! head -5 "$f" | grep -qi "copyright\|license\|deep tree echo"; then
+                echo "- ⚠️ Missing header: $f" >> $GITHUB_STEP_SUMMARY
+                MISSING_HEADERS=$((MISSING_HEADERS + 1))
+              fi
+            done
+          done
+
+          if [ "$MISSING_HEADERS" -eq 0 ]; then
+            echo "✅ All custom source files have license headers" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ $MISSING_HEADERS files missing license headers" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================================================
+  # SAST - Static Application Security Testing
+  # ============================================================================
+  sast-cpp:
+    name: C++ Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install cppcheck
+        run: sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck security scan
+        run: |
+          echo "## C++ Security Analysis (cppcheck)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          cppcheck --enable=warning,security \
+            --suppress=missingInclude \
+            --suppress=unusedFunction \
+            --error-exitcode=0 \
+            --xml --xml-version=2 \
+            DeepTreeEcho/ UnrealEcho/ Source/ 2> cppcheck-results.xml || true
+
+          # Count issues
+          ERRORS=$(grep -c 'severity="error"' cppcheck-results.xml 2>/dev/null || echo "0")
+          WARNINGS=$(grep -c 'severity="warning"' cppcheck-results.xml 2>/dev/null || echo "0")
+
+          echo "- Errors: $ERRORS" >> $GITHUB_STEP_SUMMARY
+          echo "- Warnings: $WARNINGS" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Security-relevant errors found - review required" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ No critical security issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload cppcheck results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cppcheck-security-results
+          path: cppcheck-results.xml

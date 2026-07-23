@@ -425,7 +425,7 @@ struct FWisdomState
  * Deep-Tree-Echo cognitive framework.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UWisdomCultivation : public UActorComponent
+class DEEPTREEECHO_API UWisdomCultivation : public UActorComponent
 {
     GENERATED_BODY()
 

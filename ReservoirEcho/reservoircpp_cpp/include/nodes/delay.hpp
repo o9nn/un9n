@@ -3,7 +3,7 @@
 
 #include "numpy.hpp"
 #include "reservoircpp/functools/partial.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/node/Node.hpp"
 #include "reservoircpp/collections/deque.hpp"
 
 using namespace reservoircpp;

@@ -177,7 +177,7 @@ struct FEchobeatsExpressionProfile
  * physical avatar manifestations.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UAvatarCognitionBridge : public UActorComponent
+class UNREALECHO_API UAvatarCognitionBridge : public UActorComponent
 {
     GENERATED_BODY()
 

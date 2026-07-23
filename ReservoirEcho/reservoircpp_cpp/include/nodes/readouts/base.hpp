@@ -2,9 +2,9 @@
 #define RESERVOIRCPP_BASE_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp////utils/validation/check_vector.hpp"
-#include "reservoircpp////node/Node.hpp"
-#include "reservoircpp////utils/validation/add_bias.hpp"
+#include "reservoircpp//utils/validation/check_vector.hpp"
+#include "reservoircpp//node/Node.hpp"
+#include "reservoircpp//utils/validation/add_bias.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

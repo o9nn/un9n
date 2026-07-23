@@ -196,7 +196,7 @@ struct FNicheConstructionRecord
  * Avatar Evolution System Component
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UAvatarEvolutionSystem : public UActorComponent
+class DEEPTREEECHO_API UAvatarEvolutionSystem : public UActorComponent
 {
     GENERATED_BODY()
 

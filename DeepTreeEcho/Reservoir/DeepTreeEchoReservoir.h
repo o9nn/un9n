@@ -175,7 +175,7 @@ struct FCognitiveStreamState
  * Integrates Echo State Networks with cognitive architecture
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoReservoir : public UActorComponent
+class DEEPTREEECHO_API UDeepTreeEchoReservoir : public UActorComponent
 {
     GENERATED_BODY()
 

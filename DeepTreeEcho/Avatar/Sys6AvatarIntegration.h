@@ -18,7 +18,7 @@ class UAnimInstance;
  * Avatar expression channel type
  */
 UENUM(BlueprintType)
-enum class EAvatarExpressionChannel : uint8
+enum class ESys6ExpressionChannel : uint8
 {
     Facial          UMETA(DisplayName = "Facial Expression"),
     Body            UMETA(DisplayName = "Body Language"),
@@ -51,7 +51,7 @@ struct FSys6ExpressionState
 
     /** Expression channel */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    EAvatarExpressionChannel Channel = EAvatarExpressionChannel::Facial;
+    ESys6ExpressionChannel Channel = ESys6ExpressionChannel::Facial;
 
     /** Intensity (0-1) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -109,6 +109,16 @@ struct FAvatarBodySchemaElement
     /** Sys6 thread assignment (0-7 for C8) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 Sys6ThreadID = 0;
+
+    /** Embedded cognition: coupling strength between this element and the
+     *  environment surface it is adapting to (0 = decoupled, 1 = fully coupled) */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float EnvironmentalCoupling = 0.0f;
+
+    /** Enacted cognition: weight of detected affordances (e.g. proximity of
+     *  interactable agents/objects) influencing this element's posture */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float AffordanceWeight = 0.0f;
 };
 
 /**
@@ -144,7 +154,7 @@ struct FAvatarSensorimotorCoupling
  * Avatar cognitive state
  */
 USTRUCT(BlueprintType)
-struct FAvatarCognitiveState
+struct FSys6AvatarCognitiveState
 {
     GENERATED_BODY()
 
@@ -176,7 +186,7 @@ struct FAvatarCognitiveState
 /**
  * Delegate declarations
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAvatarExpressionChanged, EAvatarExpressionChannel, Channel, float, Intensity);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAvatarExpressionChanged, ESys6ExpressionChannel, Channel, float, Intensity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAvatar4EDimensionChanged, E4EAvatarDimension, OldDimension, E4EAvatarDimension, NewDimension);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvatarSys6Sync, int32, Sys6Step);
 
@@ -266,7 +276,7 @@ public:
 
     /** Current avatar cognitive state */
     UPROPERTY(BlueprintReadOnly, Category = "Sys6 Avatar|State")
-    FAvatarCognitiveState CognitiveState;
+    FSys6AvatarCognitiveState CognitiveState;
 
     /** Body schema elements */
     UPROPERTY(BlueprintReadOnly, Category = "Sys6 Avatar|State")
@@ -298,15 +308,15 @@ public:
 
     /** Get expression state for channel */
     UFUNCTION(BlueprintPure, Category = "Sys6 Avatar|Expression")
-    FSys6ExpressionState GetExpressionState(EAvatarExpressionChannel Channel) const;
+    FSys6ExpressionState GetExpressionState(ESys6ExpressionChannel Channel) const;
 
     /** Set expression intensity */
     UFUNCTION(BlueprintCallable, Category = "Sys6 Avatar|Expression")
-    void SetExpressionIntensity(EAvatarExpressionChannel Channel, float Intensity);
+    void SetExpressionIntensity(ESys6ExpressionChannel Channel, float Intensity);
 
     /** Set expression valence */
     UFUNCTION(BlueprintCallable, Category = "Sys6 Avatar|Expression")
-    void SetExpressionValence(EAvatarExpressionChannel Channel, float Valence);
+    void SetExpressionValence(ESys6ExpressionChannel Channel, float Valence);
 
     /** Apply sys6 state to expression */
     UFUNCTION(BlueprintCallable, Category = "Sys6 Avatar|Expression")
@@ -370,7 +380,7 @@ public:
 
     /** Get avatar cognitive state */
     UFUNCTION(BlueprintPure, Category = "Sys6 Avatar|State")
-    FAvatarCognitiveState GetCognitiveState() const;
+    FSys6AvatarCognitiveState GetCognitiveState() const;
 
     /** Get body schema element by bone name */
     UFUNCTION(BlueprintPure, Category = "Sys6 Avatar|State")

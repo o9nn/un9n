@@ -284,7 +284,7 @@ enum class ECubismBlendMode : uint8
  * Provides safe access to the native SDK model.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UCubismModelWrapper : public UObject
+class UNREALECHO_API UCubismModelWrapper : public UObject
 {
 	GENERATED_BODY()
 

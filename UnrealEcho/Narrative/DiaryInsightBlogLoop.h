@@ -99,7 +99,7 @@ struct FInsightGenerationParams
  * Implements the continuous self-reflection and narrative generation system
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UDiaryInsightBlogLoop : public UActorComponent
+class UNREALECHO_API UDiaryInsightBlogLoop : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -151,7 +151,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEmotionalEffectApplied, const FEm
  * - AI Angel-level aesthetic quality
  */
 UCLASS(ClassGroup = (DeepTreeEcho), meta = (BlueprintSpawnableComponent))
-class UNREALENGINE_API UDeepTreeEchoCosmeticsComponent : public UActorComponent
+class UNREALECHO_API UDeepTreeEchoCosmeticsComponent : public UActorComponent
 {
 	GENERATED_BODY()
 

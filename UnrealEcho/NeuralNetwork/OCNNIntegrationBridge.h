@@ -183,7 +183,7 @@ struct FOCNNNetworkConfig
  * Connects UnrealEngine avatar system with OCNN neural processing
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UOCNNIntegrationBridge : public UActorComponent
+class UNREALECHO_API UOCNNIntegrationBridge : public UActorComponent
 {
     GENERATED_BODY()
 

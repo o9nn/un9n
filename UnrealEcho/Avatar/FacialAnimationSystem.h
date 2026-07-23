@@ -77,7 +77,7 @@ struct FPhonemeData
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UFacialAnimationSystem : public UActorComponent
+class UNREALECHO_API UFacialAnimationSystem : public UActorComponent
 {
     GENERATED_BODY()
 

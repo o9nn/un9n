@@ -126,7 +126,7 @@ struct FPatternRecognitionResult
 //==============================================================================
 
 UCLASS(ClassGroup=(Avatar), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UPatternAwareAvatarComponent : public UActorComponent
+class UNREALECHO_API UPatternAwareAvatarComponent : public UActorComponent
 {
     GENERATED_BODY()
 

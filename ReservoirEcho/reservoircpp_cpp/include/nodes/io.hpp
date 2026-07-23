@@ -1,7 +1,7 @@
 #ifndef RESERVOIRCPP_IO_HPP
 #define RESERVOIRCPP_IO_HPP
 
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/node/Node.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

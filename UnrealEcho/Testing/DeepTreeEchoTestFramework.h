@@ -114,7 +114,7 @@ struct FPerformanceMetrics
  * and visual regression testing capabilities.
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UDeepTreeEchoTestFramework : public UObject
+class UNREALECHO_API UDeepTreeEchoTestFramework : public UObject
 {
 	GENERATED_BODY()
 

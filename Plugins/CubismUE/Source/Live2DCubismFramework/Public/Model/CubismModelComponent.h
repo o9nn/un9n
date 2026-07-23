@@ -40,13 +40,13 @@ UENUM()
 enum class ECubismDrawableBlendMode : uint8
 {
 	/** Standard alpha blending. Default mode for most drawables. */
-	Normal UMETA(DisplayName = "Normal", ToolTip = "Standard alpha blending for normal rendering."),
+	Normal UMETA(DisplayName = "Normal"),
 	
 	/** Additive blending. Used for glow and light effects. */
-	Additive UMETA(DisplayName = "Additive", ToolTip = "Additive blending for glow, light, and bright effects."),
+	Additive UMETA(DisplayName = "Additive"),
 	
 	/** Multiplicative blending. Used for shadows and darkening effects. */
-	Multiplicative UMETA(DisplayName = "Multiplicative", ToolTip = "Multiplicative blending for shadows and darkening effects."),
+	Multiplicative UMETA(DisplayName = "Multiplicative"),
 };
 
 /**
@@ -57,13 +57,13 @@ UENUM(BlueprintType)
 enum class ECubismParameterBlendMode : uint8
 {
 	/** Replace the current parameter value completely. */
-	Overwrite UMETA(DisplayName = "Overwrite", ToolTip = "Replace the current parameter value completely with the new value."),
+	Overwrite UMETA(DisplayName = "Overwrite"),
 	
 	/** Add the new value to the current parameter value. Use for layering effects. */
-	Additive UMETA(DisplayName = "Additive", ToolTip = "Add the new value to the current parameter value. Useful for layering multiple animations."),
+	Additive UMETA(DisplayName = "Additive"),
 	
 	/** Multiply the current parameter value by the new value. Use for scaling effects. */
-	Multiplicative UMETA(DisplayName = "Multiplicative", ToolTip = "Multiply the current parameter value by the new value. Useful for scaling or dampening effects."),
+	Multiplicative UMETA(DisplayName = "Multiplicative"),
 };
 
 /**
@@ -73,10 +73,10 @@ UENUM()
 enum class ECubismParameterType : uint8
 {
 	/** Standard parameter type for regular model parameters. */
-	Normal UMETA(DisplayName = "Normal", ToolTip = "Standard parameter type for regular model parameters."),
+	Normal UMETA(DisplayName = "Normal"),
 	
 	/** Blend shape parameter type for vertex morphing. */
-	BlendShape UMETA(DisplayName = "Blend Shape", ToolTip = "Parameter that controls vertex morphing/blend shapes."),
+	BlendShape UMETA(DisplayName = "Blend Shape"),
 };
 
 /**

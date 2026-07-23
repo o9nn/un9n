@@ -615,15 +615,15 @@ void UExpressiveAnimationSystem::ProcessEchobeatStep(int32 Step)
     }
 }
 
-TArray<FExpressionTarget> UExpressiveAnimationSystem::GetEchobeatPhaseExpression(int32 Phase) const
+TArray<FChannelExpressionTarget> UExpressiveAnimationSystem::GetEchobeatPhaseExpression(int32 Phase) const
 {
-    TArray<FExpressionTarget> Targets;
+    TArray<FChannelExpressionTarget> Targets;
 
     switch (Phase)
     {
     case 0: // Pivotal
         {
-            FExpressionTarget Target;
+            FChannelExpressionTarget Target;
             Target.Name = TEXT("Attention");
             Target.Channel = EExpressionChannel::Facial;
             Target.Value = 0.3f;
@@ -633,7 +633,7 @@ TArray<FExpressionTarget> UExpressiveAnimationSystem::GetEchobeatPhaseExpression
 
     case 1: // Affordance
         {
-            FExpressionTarget Target;
+            FChannelExpressionTarget Target;
             Target.Name = TEXT("Readiness");
             Target.Channel = EExpressionChannel::Body;
             Target.Value = 0.4f;
@@ -643,7 +643,7 @@ TArray<FExpressionTarget> UExpressiveAnimationSystem::GetEchobeatPhaseExpression
 
     case 2: // Salience
         {
-            FExpressionTarget Target;
+            FChannelExpressionTarget Target;
             Target.Name = TEXT("Contemplation");
             Target.Channel = EExpressionChannel::Facial;
             Target.Value = 0.2f;
@@ -653,7 +653,7 @@ TArray<FExpressionTarget> UExpressiveAnimationSystem::GetEchobeatPhaseExpression
 
     case 3: // Integration
         {
-            FExpressionTarget Target;
+            FChannelExpressionTarget Target;
             Target.Name = TEXT("Processing");
             Target.Channel = EExpressionChannel::Body;
             Target.Value = 0.2f;

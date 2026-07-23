@@ -67,7 +67,7 @@ struct FRenderQualitySettings
  * - Performance optimization
  */
 UCLASS()
-class UNREALENGINE_API UDeepTreeEchoRenderingSubsystem : public UWorldSubsystem
+class UNREALECHO_API UDeepTreeEchoRenderingSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 

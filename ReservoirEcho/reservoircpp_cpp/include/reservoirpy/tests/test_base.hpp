@@ -1,14 +1,14 @@
 #ifndef RESERVOIRCPP_TEST_BASE_HPP
 #define RESERVOIRCPP_TEST_BASE_HPP
 
-#include "reservoircpp///_base/check_xy.hpp"
-#include "reservoircpp///_base/DistantFeedback.hpp"
+#include "reservoircpp/_base/check_xy.hpp"
+#include "reservoircpp/_base/DistantFeedback.hpp"
 #include "numpy.hpp"
 #include "reservoircpp/numpy/testing/assert_equal.hpp"
-#include "reservoircpp///_base/check_n_sequences.hpp"
+#include "reservoircpp/_base/check_n_sequences.hpp"
 #include "pytest.hpp"
-#include "reservoircpp//dummy_nodes.hpp"
-#include "reservoircpp///_base/check_one_sequence.hpp"
+#include "reservoircpp/dummy_nodes.hpp"
+#include "reservoircpp/_base/check_one_sequence.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

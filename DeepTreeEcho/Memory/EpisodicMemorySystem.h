@@ -466,7 +466,7 @@ struct FMemorySystemConfig
  * for the Deep-Tree-Echo cognitive architecture.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UEpisodicMemorySystem : public UActorComponent
+class DEEPTREEECHO_API UEpisodicMemorySystem : public UActorComponent
 {
     GENERATED_BODY()
 

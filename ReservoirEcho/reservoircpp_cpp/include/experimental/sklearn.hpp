@@ -2,7 +2,7 @@
 #define RESERVOIRCPP_SKLEARN_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/node/Node.hpp"
 #include "warnings.hpp"
 
 using namespace reservoircpp;

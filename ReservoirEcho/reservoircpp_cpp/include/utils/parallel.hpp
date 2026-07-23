@@ -1,7 +1,7 @@
 #ifndef RESERVOIRCPP_PARALLEL_HPP
 #define RESERVOIRCPP_PARALLEL_HPP
 
-#include "reservoircpp///type/global_dtype.hpp"
+#include "reservoircpp/type/global_dtype.hpp"
 #include "numpy.hpp"
 #include "uuid.hpp"
 #include "reservoircpp/collections/defaultdict.hpp"

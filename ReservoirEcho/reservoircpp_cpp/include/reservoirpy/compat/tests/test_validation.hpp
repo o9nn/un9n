@@ -1,12 +1,12 @@
 #ifndef RESERVOIRCPP_TEST_VALIDATION_HPP
 #define RESERVOIRCPP_TEST_VALIDATION_HPP
 
-#include "reservoircpp///utils/validation/check_reservoir_matrices.hpp"
+#include "reservoircpp/utils/validation/check_reservoir_matrices.hpp"
 #include "numpy.hpp"
 #include "reservoircpp/scipy/sparse/csr_matrix.hpp"
 #include "reservoircpp/numpy/testing/assert_array_equal.hpp"
 #include "pytest.hpp"
-#include "reservoircpp///utils/validation/check_input_lists.hpp"
+#include "reservoircpp/utils/validation/check_input_lists.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

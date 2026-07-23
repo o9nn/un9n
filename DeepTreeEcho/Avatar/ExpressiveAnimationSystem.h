@@ -71,7 +71,7 @@ enum class E4ECognitionMode : uint8
  * Expression target
  */
 USTRUCT(BlueprintType)
-struct FExpressionTarget
+struct FChannelExpressionTarget
 {
     GENERATED_BODY()
 
@@ -632,7 +632,7 @@ public:
 
     /** Get expression for echobeat phase */
     UFUNCTION(BlueprintPure, Category = "Echobeats")
-    TArray<FExpressionTarget> GetEchobeatPhaseExpression(int32 Phase) const;
+    TArray<FChannelExpressionTarget> GetEchobeatPhaseExpression(int32 Phase) const;
 
     /** Synchronize expression with stream */
     UFUNCTION(BlueprintCallable, Category = "Echobeats")

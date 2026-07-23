@@ -389,7 +389,7 @@ struct FAXIOMConfig
  * Deep-Tree-Echo CognitiveCycleManager for game learning and avatar control.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UAXIOMActiveInference : public UActorComponent
+class DEEPTREEECHO_API UAXIOMActiveInference : public UActorComponent
 {
     GENERATED_BODY()
 

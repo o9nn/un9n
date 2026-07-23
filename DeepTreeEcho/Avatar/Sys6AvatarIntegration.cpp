@@ -110,17 +110,17 @@ void USys6AvatarIntegration::InitializeExpressionStates()
     CognitiveState.ExpressionStates.Empty();
 
     // Initialize all expression channels
-    TArray<EAvatarExpressionChannel> Channels = {
-        EAvatarExpressionChannel::Facial,
-        EAvatarExpressionChannel::Body,
-        EAvatarExpressionChannel::Gesture,
-        EAvatarExpressionChannel::Gaze,
-        EAvatarExpressionChannel::Posture,
-        EAvatarExpressionChannel::Breathing,
-        EAvatarExpressionChannel::Aura
+    TArray<ESys6ExpressionChannel> Channels = {
+        ESys6ExpressionChannel::Facial,
+        ESys6ExpressionChannel::Body,
+        ESys6ExpressionChannel::Gesture,
+        ESys6ExpressionChannel::Gaze,
+        ESys6ExpressionChannel::Posture,
+        ESys6ExpressionChannel::Breathing,
+        ESys6ExpressionChannel::Aura
     };
 
-    for (EAvatarExpressionChannel Channel : Channels)
+    for (ESys6ExpressionChannel Channel : Channels)
     {
         FSys6ExpressionState State;
         State.Channel = Channel;
@@ -379,8 +379,71 @@ void USys6AvatarIntegration::ProcessEmbeddedCognition(float DeltaTime)
     {
         if (Element.Dimension == E4EAvatarDimension::Embedded)
         {
-            // Apply environmental influence to target transform
-            // This is a placeholder for more sophisticated environmental processing
+            // ========================================
+            // ENVIRONMENTAL AFFORDANCE PROCESSING
+            // ========================================
+            // Detects environmental affordances through raycasting
+            // and spatial queries, updating body schema elements
+            // to reflect the avatar's embedded situatedness.
+
+            AActor* Owner = GetOwner();
+            if (!Owner) continue;
+
+            // Raycast from element position to detect nearby surfaces
+            FVector ElementWorldPos = Owner->GetActorTransform().TransformPosition(
+                Element.CurrentTransform.GetLocation());
+            
+            // Ground detection for stance adaptation
+            FHitResult GroundHit;
+            FVector TraceStart = ElementWorldPos;
+            FVector TraceEnd = ElementWorldPos - FVector(0.0f, 0.0f, 200.0f);
+            FCollisionQueryParams QueryParams;
+            QueryParams.AddIgnoredActor(Owner);
+            
+            if (GetWorld()->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd,
+                ECC_WorldStatic, QueryParams))
+            {
+                // Adapt body schema to ground surface
+                float GroundDistance = GroundHit.Distance;
+                float SurfaceAngle = FMath::Acos(FVector::DotProduct(GroundHit.Normal, FVector::UpVector));
+                
+                // Adjust target transform based on terrain
+                FVector SurfaceAdaptation = FVector(0.0f, 0.0f, -GroundDistance * 0.01f);
+                Element.TargetTransform.SetLocation(
+                    Element.TargetTransform.GetLocation() + SurfaceAdaptation);
+                
+                // Surface angle affects posture through body schema
+                Element.EnvironmentalCoupling = FMath::Clamp(
+                    1.0f - (SurfaceAngle / FMath::PI), 0.0f, 1.0f);
+            }
+
+            // Proximity detection for social space awareness
+            FVector ForwardDir = Owner->GetActorForwardVector();
+            FHitResult ProximityHit;
+            FVector ProxEnd = ElementWorldPos + ForwardDir * 300.0f;
+            
+            if (GetWorld()->LineTraceSingleByChannel(ProximityHit, ElementWorldPos, ProxEnd,
+                ECC_Pawn, QueryParams))
+            {
+                // Close proximity triggers defensive/attentive posture
+                float ProximityFactor = 1.0f - (ProximityHit.Distance / 300.0f);
+                Element.AffordanceWeight = FMath::Lerp(
+                    Element.AffordanceWeight, ProximityFactor, 0.1f);
+            }
+            else
+            {
+                Element.AffordanceWeight = FMath::Lerp(
+                    Element.AffordanceWeight, 0.0f, 0.05f);
+            }
+
+            // Blend target transform toward affordance-influenced position
+            Element.CurrentTransform = FTransform(
+                FMath::Lerp(Element.CurrentTransform.GetRotation(),
+                    Element.TargetTransform.GetRotation(), 0.1f * DeltaTime),
+                FMath::Lerp(Element.CurrentTransform.GetLocation(),
+                    Element.TargetTransform.GetLocation(), 0.1f * DeltaTime),
+                FVector::OneVector
+            );
         }
     }
 }
@@ -481,7 +544,7 @@ void USys6AvatarIntegration::ComputeEntelechy()
 }
 
 // Expression state queries
-FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(EAvatarExpressionChannel Channel) const
+FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(ESys6ExpressionChannel Channel) const
 {
     for (const FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -493,7 +556,7 @@ FSys6ExpressionState USys6AvatarIntegration::GetExpressionState(EAvatarExpressio
     return FSys6ExpressionState();
 }
 
-void USys6AvatarIntegration::SetExpressionIntensity(EAvatarExpressionChannel Channel, float Intensity)
+void USys6AvatarIntegration::SetExpressionIntensity(ESys6ExpressionChannel Channel, float Intensity)
 {
     for (FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -506,7 +569,7 @@ void USys6AvatarIntegration::SetExpressionIntensity(EAvatarExpressionChannel Cha
     }
 }
 
-void USys6AvatarIntegration::SetExpressionValence(EAvatarExpressionChannel Channel, float Valence)
+void USys6AvatarIntegration::SetExpressionValence(ESys6ExpressionChannel Channel, float Valence)
 {
     for (FSys6ExpressionState& State : CognitiveState.ExpressionStates)
     {
@@ -592,7 +655,7 @@ void USys6AvatarIntegration::MapConvolutionToSensorimotor(const FTriadicConvolut
 }
 
 // State queries
-FAvatarCognitiveState USys6AvatarIntegration::GetCognitiveState() const
+FSys6AvatarCognitiveState USys6AvatarIntegration::GetCognitiveState() const
 {
     return CognitiveState;
 }

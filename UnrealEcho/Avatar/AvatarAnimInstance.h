@@ -82,7 +82,7 @@ struct FFacialBlendShapes
  * Drives all animation layers for Deep Tree Echo avatar
  */
 UCLASS()
-class DEEPTREECHO_API UAvatarAnimInstance : public UAnimInstance
+class UNREALECHO_API UAvatarAnimInstance : public UAnimInstance
 {
     GENERATED_BODY()
 

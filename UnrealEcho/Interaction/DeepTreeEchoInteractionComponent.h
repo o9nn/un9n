@@ -147,7 +147,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractableLost, AActor*, Actor)
  * - Line-of-sight and attention-based filtering
  */
 UCLASS(ClassGroup = (DeepTreeEcho), meta = (BlueprintSpawnableComponent))
-class UNREALENGINE_API UDeepTreeEchoInteractionComponent : public UActorComponent
+class UNREALECHO_API UDeepTreeEchoInteractionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 

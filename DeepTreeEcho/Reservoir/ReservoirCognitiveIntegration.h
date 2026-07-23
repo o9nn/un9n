@@ -149,7 +149,7 @@ struct FReservoirLearningParams
  * Deep Tree Echo cognitive framework for embodied cognition.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UReservoirCognitiveIntegration : public UActorComponent
+class DEEPTREEECHO_API UReservoirCognitiveIntegration : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -430,7 +430,7 @@ struct FGoalManagerState
  * Manages goal creation, pursuit, and resolution for Deep-Tree-Echo.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UHierarchicalGoalManager : public UActorComponent
+class DEEPTREEECHO_API UHierarchicalGoalManager : public UActorComponent
 {
     GENERATED_BODY()
 

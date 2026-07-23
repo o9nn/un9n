@@ -27,16 +27,16 @@ UENUM(BlueprintType)
 enum class ECubismMotionPriority : uint8
 {
 	/** No motion is playing or priority not set. */
-	None UMETA(DisplayName = "None", ToolTip = "No motion priority. Motion can be interrupted by any other motion."),
+	None UMETA(DisplayName = "None"),
 	
 	/** Lowest priority. Used for idle/ambient animations. Can be interrupted by Normal or Force. */
-	Idle UMETA(DisplayName = "Idle", ToolTip = "Lowest priority for idle/ambient animations. Can be interrupted by higher priority motions."),
+	Idle UMETA(DisplayName = "Idle"),
 	
 	/** Standard priority. Used for regular animations. Can be interrupted by Force. */
-	Normal UMETA(DisplayName = "Normal", ToolTip = "Standard priority for regular animations. Can interrupt Idle motions."),
+	Normal UMETA(DisplayName = "Normal"),
 	
 	/** Highest priority. Cannot be interrupted by other motions. */
-	Force UMETA(DisplayName = "Force", ToolTip = "Highest priority. Cannot be interrupted by other motions until completion."),
+	Force UMETA(DisplayName = "Force"),
 };
 
 /**

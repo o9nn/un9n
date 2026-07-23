@@ -114,7 +114,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvatarSyncStateUpdated, const FAv
  * - Transition animations and effects
  */
 UCLASS(ClassGroup = (DeepTreeEcho), meta = (BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatarSwitchingSystem : public UActorComponent
+class UNREALECHO_API UAvatarSwitchingSystem : public UActorComponent
 {
 	GENERATED_BODY()
 

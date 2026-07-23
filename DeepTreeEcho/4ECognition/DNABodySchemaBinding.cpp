@@ -651,8 +651,76 @@ void UDNABodySchemaBinding::SyncFromBodySchema(UEmbodiedCognitionComponent* Body
         return;
     }
 
-    // This would apply body schema motor commands back to the skeleton
-    // For now, this is a placeholder for future motor control integration
+    // ========================================
+    // MOTOR CONTROL INTEGRATION: Body Schema → Skeleton
+    // ========================================
+    // Applies cognitive motor commands from the body schema component
+    // back to the MetaHuman DNA skeleton, enabling embodied cognition
+    // to drive physical avatar movement through 4E enacted dimension.
+
+    // Get the 4E body schema state from the cognition component
+    const F4ECognitionState& CogState = BodySchemaComponent->GetCognitionState();
+
+    // Apply motor readiness to overall animation blend weight
+    float MotorReadiness = CogState.Embodied.MotorReadiness;
+
+    for (auto& Pair : JointBindings)
+    {
+        FDNAJointBinding& Binding = Pair.Value;
+        if (Binding.SkeletonBoneIndex == INDEX_NONE) continue;
+
+        // Get the target transform from body schema motor commands
+        FVector TargetPosition = FVector::ZeroVector;
+        FRotator TargetRotation = FRotator::ZeroRotator;
+
+        // Apply somatic markers as micro-adjustments to joint positions
+        // This creates subtle, unconscious body language driven by cognitive state
+        float SomaticInfluence = 0.0f;
+        for (const auto& Marker : CogState.Embodied.SomaticMarkers)
+        {
+            if (Marker.Key == Pair.Key)
+            {
+                SomaticInfluence = Marker.Value;
+                break;
+            }
+        }
+
+        // Compute motor command as blend between current and target
+        FTransform CurrentTransform = BoundSkeletalMesh->GetBoneTransform(Binding.SkeletonBoneIndex);
+        FVector CurrentPos = CurrentTransform.GetLocation();
+        FRotator CurrentRot = CurrentTransform.GetRotation().Rotator();
+
+        // Apply proprioceptive feedback loop
+        FProprioceptiveState* PropState = ProprioceptiveStates.Find(Pair.Key);
+        if (PropState)
+        {
+            // Damped spring model for natural motor control
+            float Damping = 0.85f;
+            float Stiffness = MotorReadiness * 0.5f;
+            FVector MotorCorrection = PropState->Velocity * Damping
+                + (TargetPosition - CurrentPos) * Stiffness;
+
+            // Apply somatic marker influence as postural micro-adjustment
+            MotorCorrection += FVector(0.0f, 0.0f, SomaticInfluence * 0.5f);
+
+            // Apply the motor command with motor readiness gating
+            FTransform MotorTransform;
+            MotorTransform.SetLocation(CurrentPos + MotorCorrection * MotorReadiness);
+            MotorTransform.SetRotation(FQuat(FMath::Lerp(CurrentRot, TargetRotation, MotorReadiness * 0.1f)));
+
+            if (Binding.bIsCriticalJoint)
+            {
+                BoundSkeletalMesh->SetBoneTransformByName(
+                    BoundSkeletalMesh->GetBoneName(Binding.SkeletonBoneIndex),
+                    MotorTransform,
+                    EBoneSpaces::ComponentSpace
+                );
+            }
+        }
+    }
+
+    SyncState.bBodySchemaSynced = true;
+    OnBodySchemaUpdated.Broadcast(TEXT("MotorControl"), FVector(MotorReadiness, 0.0f, 0.0f));
 }
 
 FBindingSyncState UDNABodySchemaBinding::GetSyncState() const

@@ -1,10 +1,10 @@
 #ifndef RESERVOIRCPP_RESERVOIRS_HPP
 #define RESERVOIRCPP_RESERVOIRS_HPP
 
-#include "reservoircpp//reservoir/Reservoir.hpp"
-#include "reservoircpp//intrinsic_plasticity/IPReservoir.hpp"
-#include "reservoircpp//nvar/NVAR.hpp"
-#include "reservoircpp//local_plasticity_reservoir/LocalPlasticityReservoir.hpp"
+#include "reservoircpp/reservoir/Reservoir.hpp"
+#include "reservoircpp/intrinsic_plasticity/IPReservoir.hpp"
+#include "reservoircpp/nvar/NVAR.hpp"
+#include "reservoircpp/local_plasticity_reservoir/LocalPlasticityReservoir.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

@@ -27,7 +27,7 @@ struct FEmotionalState
 };
 
 UCLASS(Blueprintable)
-class DEEPTREECHO_API UExpressionSynthesizer : public UObject
+class UNREALECHO_API UExpressionSynthesizer : public UObject
 {
     GENERATED_BODY()
 

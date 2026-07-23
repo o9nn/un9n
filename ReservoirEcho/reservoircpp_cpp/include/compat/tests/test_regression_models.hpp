@@ -2,7 +2,7 @@
 #define RESERVOIRCPP_TEST_REGRESSION_MODELS_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///regression_models/RidgeRegression.hpp"
+#include "reservoircpp/regression_models/RidgeRegression.hpp"
 #include "pytest.hpp"
 
 using namespace reservoircpp;

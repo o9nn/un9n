@@ -155,7 +155,7 @@ struct FHyperChaoticTrait
  * Manages all personality traits and their interactions
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UPersonalityTraitSystem : public UActorComponent
+class UNREALECHO_API UPersonalityTraitSystem : public UActorComponent
 {
     GENERATED_BODY()
 

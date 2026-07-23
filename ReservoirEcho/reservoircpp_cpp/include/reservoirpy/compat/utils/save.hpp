@@ -3,10 +3,10 @@
 
 #include "time.hpp"
 #include "numpy.hpp"
-#include "reservoircpp////regression_models.hpp"
+#include "reservoircpp//regression_models.hpp"
 #include <reservoircpp/scipy.hpp>
 #include "dill.hpp"
-#include "reservoircpp////_version/__version__.hpp"
+#include "reservoircpp//_version/__version__.hpp"
 #include "json.hpp"
 #include "os.hpp"
 

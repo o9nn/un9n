@@ -2,8 +2,8 @@
 #define RESERVOIRCPP_RANDOMCHOICE_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
-#include "reservoircpp///utils/random/rand_generator.hpp"
+#include "reservoircpp/node/Node.hpp"
+#include "reservoircpp/utils/random/rand_generator.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

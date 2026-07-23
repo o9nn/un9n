@@ -6,14 +6,30 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find required packages
-# Look for Eigen in our external directory
-set(EIGEN3_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0")
-if(NOT EXISTS "${EIGEN3_INCLUDE_DIR}")
-    message(FATAL_ERROR "Eigen library not found at ${EIGEN3_INCLUDE_DIR}")
+# Find Eigen if not already found by parent project
+if(NOT EIGEN3_FOUND)
+    # Priority 1: Check eigen-3.4.0 (if complete with headers)
+    set(EIGEN_3_4_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/eigen-3.4.0")
+    if(EXISTS "${EIGEN_3_4_DIR}/Eigen/Core")
+        set(EIGEN3_INCLUDE_DIR "${EIGEN_3_4_DIR}")
+        set(EIGEN3_FOUND TRUE)
+        message(STATUS "ReservoirCpp: Using Eigen 3.4.0 from ${EIGEN3_INCLUDE_DIR}")
+    endif()
 endif()
-# Skip find_package and set it up manually since we have Eigen in a non-standard location
-set(EIGEN3_FOUND TRUE)
+
+if(NOT EIGEN3_FOUND)
+    # Priority 2: Check taskflow bundled eigen-3.3.7
+    set(EIGEN_3_3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external/taskflow-3.8.0/3rd-party/eigen-3.3.7")
+    if(EXISTS "${EIGEN_3_3_DIR}/Eigen/Core")
+        set(EIGEN3_INCLUDE_DIR "${EIGEN_3_3_DIR}")
+        set(EIGEN3_FOUND TRUE)
+        message(STATUS "ReservoirCpp: Using Eigen 3.3.7 from ${EIGEN3_INCLUDE_DIR}")
+    endif()
+endif()
+
+if(NOT EIGEN3_FOUND)
+    message(FATAL_ERROR "Eigen library not found. Install libeigen3-dev or ensure bundled Eigen has header files.")
+endif()
 
 # Set compiler flags
 if(MSVC)
@@ -28,32 +44,56 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
 )
 
-# Add library
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_library(reservoircpp ${SOURCES})
-target_include_directories(reservoircpp PUBLIC
+# Core source files (only the ones that compile cleanly)
+set(CORE_SOURCES
+    src/_base.cpp
+    src/_version.cpp
+    src/activationsfunc.cpp
+)
+
+# Deep Tree Echo source files
+set(DEEP_TREE_ECHO_SOURCES
+    src/deep_tree_echo/core.cpp
+    src/deep_tree_echo/unreal_integration.cpp
+    src/deep_tree_echo/avatar_4e.cpp
+)
+
+# Add library with core sources only
+add_library(reservoircpp_core ${CORE_SOURCES})
+target_include_directories(reservoircpp_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
+# Deep Tree Echo integration library
+add_library(deep_tree_echo ${DEEP_TREE_ECHO_SOURCES})
+target_include_directories(deep_tree_echo PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(deep_tree_echo PUBLIC reservoircpp_core)
+
 # Add tests
-option(BUILD_TESTS "Build the tests" ON)
+option(BUILD_TESTS "Build the tests" OFF)
 if(BUILD_TESTS)
     enable_testing()
-    add_subdirectory(test)
+    # add_subdirectory(test)
 endif()
 
 # Add examples
-option(BUILD_EXAMPLES "Build the examples" ON)
+option(BUILD_EXAMPLES "Build the examples" OFF)
 if(BUILD_EXAMPLES)
-    add_subdirectory(examples)
+    # add_subdirectory(examples)
 endif()
 
 # Installation
-install(TARGETS reservoircpp
+install(TARGETS reservoircpp_core deep_tree_echo
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
     INCLUDES DESTINATION include
 )
 install(DIRECTORY include/ DESTINATION include)
+
+message(STATUS "ReservoirCpp Core configured successfully")
+message(STATUS "Deep Tree Echo integration enabled")

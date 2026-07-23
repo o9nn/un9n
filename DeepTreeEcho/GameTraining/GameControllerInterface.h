@@ -249,6 +249,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOutputCommandGenerated, const FCo
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
 class UNREALECHO_API UGameControllerInterface : public UActorComponent
+class DEEPTREEECHO_API UGameControllerInterface : public UActorComponent
 {
     GENERATED_BODY()
 

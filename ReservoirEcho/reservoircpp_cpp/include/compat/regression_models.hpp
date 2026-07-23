@@ -1,18 +1,18 @@
 #ifndef RESERVOIRCPP_REGRESSION_MODELS_HPP
 #define RESERVOIRCPP_REGRESSION_MODELS_HPP
 
-#include "reservoircpp///type/Data.hpp"
+#include "reservoircpp/type/Data.hpp"
 #include "reservoircpp/joblib/Parallel.hpp"
-#include "reservoircpp///utils/parallel/get_joblib_backend.hpp"
-#include "reservoircpp///utils/validation/check_vector.hpp"
-#include "reservoircpp//utils/parallel/as_memmap.hpp"
+#include "reservoircpp/utils/parallel/get_joblib_backend.hpp"
+#include "reservoircpp/utils/validation/check_vector.hpp"
+#include "reservoircpp/utils/parallel/as_memmap.hpp"
 #include "reservoircpp/joblib/delayed.hpp"
 #include "numpy.hpp"
-#include "reservoircpp///utils/parallel/clean_tempfile.hpp"
+#include "reservoircpp/utils/parallel/clean_tempfile.hpp"
 #include "reservoircpp/abc/ABCMeta.hpp"
 #include <reservoircpp/scipy.hpp>
-#include "reservoircpp///type/Weights.hpp"
-#include "reservoircpp///utils/validation/add_bias.hpp"
+#include "reservoircpp/type/Weights.hpp"
+#include "reservoircpp/utils/validation/add_bias.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

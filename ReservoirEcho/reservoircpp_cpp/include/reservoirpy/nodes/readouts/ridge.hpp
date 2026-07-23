@@ -1,15 +1,15 @@
 #ifndef RESERVOIRCPP_RIDGE_HPP
 #define RESERVOIRCPP_RIDGE_HPP
 
-#include "reservoircpp//base/_initialize_readout.hpp"
+#include "reservoircpp/base/_initialize_readout.hpp"
 #include "numpy.hpp"
-#include "reservoircpp//base/readout_forward.hpp"
-#include "reservoircpp////mat_gen/zeros.hpp"
-#include "reservoircpp////type/global_dtype.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp/base/readout_forward.hpp"
+#include "reservoircpp//mat_gen/zeros.hpp"
+#include "reservoircpp//type/global_dtype.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "reservoircpp/functools/partial.hpp"
 #include <reservoircpp/scipy.hpp>
-#include "reservoircpp//base/_prepare_inputs_for_learning.hpp"
+#include "reservoircpp/base/_prepare_inputs_for_learning.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

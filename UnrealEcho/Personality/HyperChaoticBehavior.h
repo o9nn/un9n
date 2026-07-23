@@ -20,7 +20,7 @@ struct FHyperChaoticProperties
 };
 
 UCLASS(Blueprintable)
-class DEEPTREECHO_API UHyperChaoticBehavior : public UObject
+class UNREALECHO_API UHyperChaoticBehavior : public UObject
 {
     GENERATED_BODY()
 

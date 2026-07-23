@@ -3,7 +3,7 @@
 
 #include "numpy.hpp"
 #include "itertools.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "sys.hpp"
 
 using namespace reservoircpp;

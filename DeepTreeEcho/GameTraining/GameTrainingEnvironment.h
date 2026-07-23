@@ -338,6 +338,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrainingModeChanged, ETrainingMod
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
 class UNREALECHO_API UGameTrainingEnvironment : public UActorComponent
+class DEEPTREEECHO_API UGameTrainingEnvironment : public UActorComponent
 {
     GENERATED_BODY()
 

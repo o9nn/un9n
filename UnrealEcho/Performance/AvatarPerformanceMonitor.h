@@ -154,7 +154,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPerformanceWarning, EPerformance
  * Performance monitoring component
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class UNREALENGINE_API UAvatarPerformanceMonitor : public UActorComponent
+class UNREALECHO_API UAvatarPerformanceMonitor : public UActorComponent
 {
     GENERATED_BODY()
 

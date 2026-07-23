@@ -1,0 +1,99 @@
+name: Full-Engine UHT Validation
+
+# Runs UnrealHeaderTool over all project modules inside the official
+# Epic Games UE 5.3 dev container. This is the authoritative reflection
+# validation pass; Scripts/uht_parity_check.py is the fast local proxy.
+#
+# Requires repository/org secret GHCR_EPIC_PAT: a PAT belonging to a
+# GitHub account with EpicGames org membership (grants pull access to
+# ghcr.io/epicgames/unreal-engine).
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'DeepTreeEcho/Avatar/**'
+      - 'Source/**'
+      - 'UnrealEcho/**'
+      - 'UnrealEngineCog.uproject'
+      - '.github/workflows/ci-uht-fullengine.yml'
+
+jobs:
+  uht-parity:
+    name: UHT-Parity Static Check (fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run UHT-parity validator
+        run: python3 Scripts/uht_parity_check.py
+
+  uht-fullengine:
+    name: UnrealHeaderTool (UE 5.3 container)
+    needs: uht-parity
+    runs-on: ubuntu-latest
+    # Skip gracefully when the secret is not configured (e.g. forks).
+    if: ${{ vars.ENABLE_FULL_UHT == 'true' }}
+    container:
+      image: ghcr.io/epicgames/unreal-engine:dev-slim-5.3.2
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_EPIC_PAT }}
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: project
+
+      - name: Generate project files & run UHT via UBT
+        shell: bash
+        run: |
+          set -euo pipefail
+          UE_ROOT=/home/ue4/UnrealEngine
+          PROJECT="$GITHUB_WORKSPACE/project/UnrealEngineCog.uproject"
+
+          # The dev-slim image ships a prebuilt UnrealBuildTool.dll but not
+          # BuildUBT.sh (which RunUBT.sh delegates to), so invoke the
+          # prebuilt UBT assembly directly with the engine-bundled dotnet.
+          UBT_DLL="$UE_ROOT/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll"
+          DOTNET="$(find "$UE_ROOT/Engine/Binaries/ThirdParty/DotNet" -maxdepth 4 -name dotnet -type f 2>/dev/null | head -1 || true)"
+          [ -n "$DOTNET" ] || DOTNET="$(command -v dotnet || true)"
+          echo "UBT_DLL=$UBT_DLL"; echo "DOTNET=$DOTNET"
+          [ -f "$UBT_DLL" ] || { echo 'UBT dll not found; listing candidates:'; find "$UE_ROOT/Engine/Binaries/DotNET" -maxdepth 2 -name 'UnrealBuildTool*' 2>/dev/null; exit 1; }
+
+          # UHT executes as the first stage of an editor-target UBT
+          # invocation; -SkipBuild stops after header generation so we
+          # get a pure reflection validation pass.
+          #
+          # Note: even with -SkipBuild, UBT resolves runtime dependencies
+          # after UHT succeeds. The proprietary Live2D Cubism Core native
+          # library (libLive2DCubismCore.so) cannot be committed to the
+          # repo, so that post-UHT stage is expected to fail. The gate's
+          # pass criterion is therefore UHT itself: reflection code was
+          # generated with zero errors.
+          set +e
+          "$DOTNET" "$UBT_DLL" \
+            UnrealEngineCogEditor Linux Development \
+            -Project="$PROJECT" \
+            -SkipBuild \
+            -NoHotReload 2>&1 | tee /tmp/uht.log
+          UBT_EXIT=$?
+          set -e
+
+          if grep -qE "Reflection code generated for" /tmp/uht.log && \
+             ! grep -qE "\): Error:" /tmp/uht.log; then
+            echo "UHT PASS: reflection code generated with zero errors."
+            if [ "$UBT_EXIT" -ne 0 ]; then
+              echo "(Post-UHT UBT stage failed as expected without the proprietary Live2D Cubism Core binary; not a reflection failure.)"
+            fi
+            exit 0
+          fi
+          echo "UHT FAILED (exit $UBT_EXIT): reflection errors above."
+          exit 1
+
+      - name: Upload UHT log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uht-log
+          path: /tmp/uht.log

@@ -1101,8 +1101,44 @@ TArray<float> UReinforcementLearningBridge::SavePolicy() const
 
 void UReinforcementLearningBridge::LoadPolicy(const TArray<float>& PolicyData)
 {
-    // In practice, would deserialize properly
-    // This is a placeholder for the interface
+    // ========================================
+    // POLICY DESERIALIZATION
+    // ========================================
+    // Reconstructs the Q-table from serialized policy data.
+    // Format: [state_hash_0, action_count_0, q_val_0_0, q_val_0_1, ..., state_hash_1, ...]
+    // This enables persistent learning across sessions and transfer learning.
+
+    QTable.Empty();
+
+    if (PolicyData.Num() == 0) return;
+
+    int32 Idx = 0;
+    while (Idx < PolicyData.Num())
+    {
+        // Read state hash (encoded as float)
+        if (Idx >= PolicyData.Num()) break;
+        int32 StateHash = (int32)PolicyData[Idx++];
+
+        // Read action count
+        if (Idx >= PolicyData.Num()) break;
+        int32 ActionCount = FMath::Clamp((int32)PolicyData[Idx++], 0, 100);
+
+        // Read Q-values for each action
+        TArray<float> QValues;
+        QValues.Reserve(ActionCount);
+        for (int32 a = 0; a < ActionCount && Idx < PolicyData.Num(); ++a)
+        {
+            QValues.Add(PolicyData[Idx++]);
+        }
+
+        if (QValues.Num() > 0)
+        {
+            QTable.Add(StateHash, QValues);
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("LoadPolicy: Restored %d state entries from %d float values"),
+        QTable.Num(), PolicyData.Num());
 }
 
 void UReinforcementLearningBridge::ResetLearning()

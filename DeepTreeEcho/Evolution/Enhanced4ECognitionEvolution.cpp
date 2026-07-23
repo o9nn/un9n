@@ -381,11 +381,71 @@ void UEnhanced4ECognitionEvolution::ApplyEvolutionTo4EMetrics()
 
     float Enhancement = BaseEnhancement * StageMultiplier;
 
-    // Apply to all 4E dimensions with slight variation
-    EnhanceEmbodiedCognition(Enhancement * (1.0f + FMath::FRand() * 0.2f - 0.1f));
+    // ========================================
+    // METAHUMAN DNA BRIDGE COUPLING
+    // ========================================
+    // Modulate evolution rate based on MetaHuman DNA bridge state
+    // Chaotic dynamics provide exploration, aesthetics provide constraints
+    AActor* Owner = GetOwner();
+    UMetaHumanDNACognitiveBridge* DNABridge = Owner ?
+        Owner->FindComponentByClass<UMetaHumanDNACognitiveBridge>() : nullptr;
+
+    if (DNABridge)
+    {
+        // Lyapunov exponent modulates exploration vs exploitation
+        float Lyapunov = DNABridge->GetLyapunovExponent();
+        float ExplorationBoost = FMath::Clamp(Lyapunov * 0.1f, -0.5f, 0.5f);
+        Enhancement *= (1.0f + ExplorationBoost);
+
+        // Aesthetic confidence provides evolutionary pressure
+        // toward maintaining SuperHotGirl properties
+        float ConfidencePosture = DNABridge->Aesthetics.ConfidencePosture;
+        float AestheticPressure = ConfidencePosture * 0.1f;
+
+        // Embodied cognition gets extra boost from aesthetic embodiment
+        EnhanceEmbodiedCognition(Enhancement * (1.0f + AestheticPressure)
+            * (1.0f + FMath::FRand() * 0.2f - 0.1f));
+    }
+    else
+    {
+        EnhanceEmbodiedCognition(Enhancement * (1.0f + FMath::FRand() * 0.2f - 0.1f));
+    }
+
+    // Apply to remaining 4E dimensions with slight variation
     EnhanceEmbeddedCognition(Enhancement * (1.0f + FMath::FRand() * 0.2f - 0.1f));
     EnhanceEnactedCognition(Enhancement * (1.0f + FMath::FRand() * 0.2f - 0.1f));
     EnhanceExtendedCognition(Enhancement * (1.0f + FMath::FRand() * 0.2f - 0.1f));
+
+    // ========================================
+    // HYPER-CHAOTIC CROSS-POLLINATION
+    // ========================================
+    // Chaotic dynamics create unexpected connections between 4E dimensions
+    // This drives creative evolution and prevents local optima
+    if (DNABridge && DNABridge->GetLyapunovExponent() > 0.0f)
+    {
+        // Stochastic cross-dimensional transfer
+        float TransferAmount = Enhancement * 0.05f * FMath::FRand();
+        int32 SourceDim = FMath::RandRange(0, 3);
+        int32 TargetDim = (SourceDim + FMath::RandRange(1, 3)) % 4;
+
+        float SourceValue = 0.0f;
+        switch (SourceDim)
+        {
+        case 0: SourceValue = EvolutionMetrics.BodySchemaIntegration; break;
+        case 1: SourceValue = EvolutionMetrics.AffordanceDetectionRate; break;
+        case 2: SourceValue = EvolutionMetrics.SensorimotorCoordination; break;
+        case 3: SourceValue = EvolutionMetrics.ToolUseCompetence; break;
+        }
+
+        float Transfer = SourceValue * TransferAmount;
+        switch (TargetDim)
+        {
+        case 0: EnhanceEmbodiedCognition(Transfer); break;
+        case 1: EnhanceEmbeddedCognition(Transfer); break;
+        case 2: EnhanceEnactedCognition(Transfer); break;
+        case 3: EnhanceExtendedCognition(Transfer); break;
+        }
+    }
 }
 
 void UEnhanced4ECognitionEvolution::UpdateEntelechyDimensions()

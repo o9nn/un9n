@@ -1,8 +1,8 @@
 #ifndef RESERVOIRCPP_ACTIVATIONS_HPP
 #define RESERVOIRCPP_ACTIVATIONS_HPP
 
-#include "reservoircpp///activationsfunc/get_function.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/activationsfunc/get_function.hpp"
+#include "reservoircpp/node/Node.hpp"
 #include "reservoircpp/functools/partial.hpp"
 
 using namespace reservoircpp;

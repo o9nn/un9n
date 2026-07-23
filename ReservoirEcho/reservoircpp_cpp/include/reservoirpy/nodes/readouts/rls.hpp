@@ -2,10 +2,10 @@
 #define RESERVOIRCPP_RLS_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp////mat_gen/zeros.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp//mat_gen/zeros.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "reservoircpp/functools/partial.hpp"
-#include "reservoircpp//base/(.hpp"
+#include "reservoircpp/base/(.hpp"
 
 using namespace reservoircpp;
 using namespace Eigen;

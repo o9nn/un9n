@@ -264,7 +264,7 @@ struct FEchobeatsStep
  * Main Deep-Tree-Echo Expression System Component
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UDeepTreeEchoExpressionSystem : public UActorComponent
+class UNREALECHO_API UDeepTreeEchoExpressionSystem : public UActorComponent
 {
     GENERATED_BODY()
 

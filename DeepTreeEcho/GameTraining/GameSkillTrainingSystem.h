@@ -235,6 +235,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSkillUnlocked, const FString&, S
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
 class UNREALECHO_API UGameSkillTrainingSystem : public UActorComponent
+class DEEPTREEECHO_API UGameSkillTrainingSystem : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -262,7 +262,7 @@ enum class EFeedbackChannel : uint8
  * Implements triadic consciousness with recursive self-observation
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class URecursiveMutualAwarenessSystem : public UActorComponent
+class UNREALECHO_API URecursiveMutualAwarenessSystem : public UActorComponent
 {
     GENERATED_BODY()
 

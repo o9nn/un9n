@@ -129,7 +129,7 @@ struct FSubsystemStatus
  * subsystems for unified cognitive processing.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoIntegration : public UActorComponent
+class DEEPTREEECHO_API UDeepTreeEchoIntegration : public UActorComponent
 {
     GENERATED_BODY()
 

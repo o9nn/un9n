@@ -84,7 +84,7 @@ struct TStructOpsTypeTraits<FDeepTreeEchoReplicatedState> : public TStructOpsTyp
  * Based on Lyra's modular character architecture for production-ready features.
  */
 UCLASS(Blueprintable, BlueprintType, Config = Game, Meta = (ShortTooltip = "Deep Tree Echo AGI Avatar Character"))
-class UNREALENGINE_API ADeepTreeEchoCharacter : public AModularCharacter, public IAbilitySystemInterface
+class UNREALECHO_API ADeepTreeEchoCharacter : public AModularCharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 

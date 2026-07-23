@@ -179,7 +179,7 @@ struct FAvatarConfiguration
  * Configuration manager class
  */
 UCLASS(BlueprintType)
-class UNREALENGINE_API UAvatarConfigurationManager : public UObject
+class UNREALECHO_API UAvatarConfigurationManager : public UObject
 {
     GENERATED_BODY()
 

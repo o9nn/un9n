@@ -157,7 +157,7 @@ struct FSensoryInputConfig
  * framework with Unreal Engine's character, animation, and rendering systems.
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UDeepTreeEchoUnrealBridge : public UActorComponent
+class DEEPTREEECHO_API UDeepTreeEchoUnrealBridge : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -1,9 +1,9 @@
 #ifndef RESERVOIRCPP_SKLEARN_NODE_HPP
 #define RESERVOIRCPP_SKLEARN_NODE_HPP
 
-#include "reservoircpp////utils/random/rand_generator.hpp"
+#include "reservoircpp//utils/random/rand_generator.hpp"
 #include "numpy.hpp"
-#include "reservoircpp////node/Node.hpp"
+#include "reservoircpp//node/Node.hpp"
 #include "reservoircpp/functools/partial.hpp"
 #include "reservoircpp/copy/deepcopy.hpp"
 

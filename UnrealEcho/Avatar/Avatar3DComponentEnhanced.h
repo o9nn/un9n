@@ -102,7 +102,7 @@ struct FAvatarEmotionalState
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class DEEPTREECHO_API UAvatar3DComponentEnhanced : public USkeletalMeshComponent
+class UNREALECHO_API UAvatar3DComponentEnhanced : public USkeletalMeshComponent
 {
     GENERATED_BODY()
 

@@ -2,7 +2,7 @@
 #define RESERVOIRCPP_CONCAT_HPP
 
 #include "numpy.hpp"
-#include "reservoircpp///node/Node.hpp"
+#include "reservoircpp/node/Node.hpp"
 #include "reservoircpp/typing/Sequence.hpp"
 
 using namespace reservoircpp;

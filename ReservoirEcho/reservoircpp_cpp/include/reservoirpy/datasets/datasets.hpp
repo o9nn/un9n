@@ -1,15 +1,15 @@
 #ifndef RESERVOIRCPP_DATASETS_HPP
 #define RESERVOIRCPP_DATASETS_HPP
 
-#include "reservoircpp//_japanese_vowels/japanese_vowels.hpp"
+#include "reservoircpp/_japanese_vowels/japanese_vowels.hpp"
 #include "reservoircpp/typing/Optional.hpp"
-#include "reservoircpp//_seed/set_seed.hpp"
-#include "reservoircpp//_utils/from_aeon_classification.hpp"
+#include "reservoircpp/_seed/set_seed.hpp"
+#include "reservoircpp/_utils/from_aeon_classification.hpp"
 #include "numpy.hpp"
-#include "reservoircpp//_seed/get_seed.hpp"
-#include "reservoircpp//_chaos/(.hpp"
-#include "reservoircpp//_santafe_laser/santafe_laser.hpp"
-#include "reservoircpp//_utils/one_hot_encode.hpp"
+#include "reservoircpp/_seed/get_seed.hpp"
+#include "reservoircpp/_chaos/(.hpp"
+#include "reservoircpp/_santafe_laser/santafe_laser.hpp"
+#include "reservoircpp/_utils/one_hot_encode.hpp"
 #include "reservoircpp/typing/Union.hpp"
 
 using namespace reservoircpp;

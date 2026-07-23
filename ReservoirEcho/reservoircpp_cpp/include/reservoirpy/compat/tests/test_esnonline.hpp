@@ -5,7 +5,7 @@
 #include "numpy.hpp"
 #include "reservoircpp/math/cos.hpp"
 #include "reservoircpp/reservoirpy/datasets/lorenz.hpp"
-#include "reservoircpp///_esn_online/ESNOnline.hpp"
+#include "reservoircpp/_esn_online/ESNOnline.hpp"
 #include "pytest.hpp"
 
 using namespace reservoircpp;

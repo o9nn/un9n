@@ -1,0 +1,205 @@
+cmake_minimum_required(VERSION 3.14)
+project(DeepTreeEchoTests VERSION 1.0.0 LANGUAGES CXX)
+
+# C++ Standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Find GTest
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+# Compiler flags
+if(MSVC)
+    add_compile_options(/W4 /WX-)
+else()
+    add_compile_options(-Wall -Wextra -pedantic -Wno-unused-parameter)
+endif()
+
+# Enable testing
+enable_testing()
+
+# ============================================================================
+# Core Tests
+# ============================================================================
+add_executable(CoreTests
+    CoreTests.cpp
+)
+
+target_link_libraries(CoreTests
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    pthread
+)
+
+target_include_directories(CoreTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/../../
+    ${CMAKE_SOURCE_DIR}/../../../
+)
+
+gtest_discover_tests(CoreTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    PROPERTIES
+        LABELS "unit;core"
+        TIMEOUT 60
+)
+
+# ============================================================================
+# Memory Tests
+# ============================================================================
+add_executable(MemoryTests
+    MemoryTests.cpp
+)
+
+target_link_libraries(MemoryTests
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    pthread
+)
+
+target_include_directories(MemoryTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/../../
+    ${CMAKE_SOURCE_DIR}/../../../
+)
+
+gtest_discover_tests(MemoryTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    PROPERTIES
+        LABELS "unit;memory"
+        TIMEOUT 60
+)
+
+# ============================================================================
+# Avatar Cognition Tests
+# ============================================================================
+add_executable(AvatarCognitionTests
+    AvatarCognitionTests.cpp
+)
+
+target_link_libraries(AvatarCognitionTests
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    pthread
+)
+
+target_include_directories(AvatarCognitionTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/../../
+    ${CMAKE_SOURCE_DIR}/../../../
+)
+
+gtest_discover_tests(AvatarCognitionTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    PROPERTIES
+        LABELS "unit;avatar;cognition"
+        TIMEOUT 60
+)
+
+# ============================================================================
+# Reservoir Integration Tests
+# ============================================================================
+add_executable(ReservoirIntegrationTests
+    ReservoirIntegrationTests.cpp
+)
+
+target_link_libraries(ReservoirIntegrationTests
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    pthread
+)
+
+target_include_directories(ReservoirIntegrationTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/../../
+    ${CMAKE_SOURCE_DIR}/../../../
+    ${CMAKE_SOURCE_DIR}/../../../ReservoirEcho/reservoircpp_cpp/include
+)
+
+gtest_discover_tests(ReservoirIntegrationTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    PROPERTIES
+        LABELS "unit;reservoir;integration"
+        TIMEOUT 120
+)
+
+# ============================================================================
+# Active Inference Tests
+# ============================================================================
+add_executable(ActiveInferenceTests
+    ActiveInferenceTests.cpp
+)
+
+target_link_libraries(ActiveInferenceTests
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    pthread
+)
+
+target_include_directories(ActiveInferenceTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/../../
+    ${CMAKE_SOURCE_DIR}/../../../
+)
+
+gtest_discover_tests(ActiveInferenceTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    PROPERTIES
+        LABELS "unit;active-inference"
+        TIMEOUT 60
+)
+
+# ============================================================================
+# All Tests Target
+# ============================================================================
+add_custom_target(run_all_tests
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --parallel 4
+    DEPENDS CoreTests MemoryTests AvatarCognitionTests ReservoirIntegrationTests ActiveInferenceTests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all DeepTreeEcho unit tests"
+)
+
+# ============================================================================
+# Coverage Target (GCC/Clang only)
+# ============================================================================
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    option(ENABLE_COVERAGE "Enable code coverage" OFF)
+    
+    if(ENABLE_COVERAGE)
+        add_compile_options(--coverage -fprofile-arcs -ftest-coverage)
+        add_link_options(--coverage)
+        
+        add_custom_target(coverage
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            COMMAND gcov -r ${CMAKE_SOURCE_DIR}/*.cpp
+            COMMAND lcov --capture --directory . --output-file coverage.info
+            COMMAND lcov --remove coverage.info '/usr/*' --output-file coverage.info
+            COMMAND genhtml coverage.info --output-directory coverage_report
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Generating code coverage report"
+        )
+    endif()
+endif()
+
+# ============================================================================
+# Installation
+# ============================================================================
+install(TARGETS CoreTests MemoryTests AvatarCognitionTests ReservoirIntegrationTests ActiveInferenceTests
+    RUNTIME DESTINATION bin/tests
+)
+
+message(STATUS "DeepTreeEcho Tests configured")
+message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Tests: CoreTests, MemoryTests, AvatarCognitionTests, ReservoirIntegrationTests, ActiveInferenceTests")
