@@ -69,6 +69,39 @@ struct FReservoirState
     /** Last update timestamp */
     UPROPERTY(BlueprintReadWrite)
     float LastUpdateTime = 0.0f;
+
+    /** Seed the fixed weight matrices are generated from. Persisting the seed rather than the
+     *  matrices keeps the reflected struct small while making the reservoir exactly
+     *  reproducible - EnsureWeightsBuilt() regenerates W/Win from it on demand. */
+    UPROPERTY(BlueprintReadWrite)
+    int32 WeightSeed = 0;
+
+    /** Max input channels the input matrix is built for (input is truncated past this). */
+    static constexpr int32 MaxInputDimension = 16;
+
+    // ---- Fixed weight matrices -------------------------------------------------------------
+    // Deliberately NOT UPROPERTY: they are derived data regenerable from WeightSeed, and
+    // reflected nested containers are illegal in UHT anyway. Sparse recurrent matrix W is held
+    // in CSR form so ProcessInput is a fixed sparse mat-vec.
+    //
+    // These MUST stay fixed for the lifetime of the reservoir: resampling them per step
+    // destroys the Echo State Property that makes the reservoir able to encode temporal
+    // structure at all.
+
+    /** CSR row offsets into RecurrentColIndex/RecurrentWeight; length Units + 1 */
+    TArray<int32> RecurrentRowStart;
+
+    /** CSR column indices of nonzero recurrent connections */
+    TArray<int32> RecurrentColIndex;
+
+    /** CSR values, spectral-radius normalized */
+    TArray<float> RecurrentWeight;
+
+    /** Dense input matrix, Units x MaxInputDimension, row-major */
+    TArray<float> InputWeight;
+
+    /** True once W/Win have been generated for the current Units/seed */
+    bool bWeightsBuilt = false;
 };
 
 /**
@@ -303,6 +336,14 @@ private:
 
     /** Initialize single reservoir */
     FReservoirState CreateReservoir(int32 Units, float SpectralRadius, float LeakRate);
+
+    /** Build the fixed sparse recurrent matrix W and input matrix Win from Reservoir.WeightSeed,
+     *  normalizing W to the configured spectral radius. Idempotent: returns immediately once
+     *  built for the current unit count. Safe to call from the ProcessInput hot path. */
+    static void EnsureWeightsBuilt(FReservoirState& Reservoir);
+
+    /** Connection density of the recurrent matrix (fraction of nonzero entries). */
+    static constexpr float RecurrentDensity = 0.1f;
 
     /** Update cycle step */
     void UpdateCycleStep(float DeltaTime);

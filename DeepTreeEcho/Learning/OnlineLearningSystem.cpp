@@ -52,6 +52,7 @@ void UOnlineLearningSystem::InitializeLearningSystem()
 {
     ExperienceBuffer.Empty();
     QTable.Empty();
+    StateActionIndex.Empty();  // Secondary index over QTable - must be cleared with it
     LearnedPatterns.Empty();
     AcquiredSkills.Empty();
 
@@ -140,27 +141,30 @@ void UOnlineLearningSystem::UpdateQValue(const FString& State, const FString& Ac
 {
     FString Key = MakeQKey(State, Action);
 
-    float CurrentQ = 0.0f;
-    int32 CurrentVisits = 0;
+    // Compute the successor's max-Q BEFORE taking a reference into QTable: FindOrAdd below may
+    // rehash the map, which would invalidate any reference held across it.
+    const float MaxNextQ = GetMaxQValue(NextState);
 
-    if (QTable.Contains(Key))
-    {
-        CurrentQ = QTable[Key].QValue;
-        CurrentVisits = QTable[Key].VisitCount;
-    }
+    // Single hash lookup for the whole update (was Contains + two operator[] + a trailing Add,
+    // i.e. four lookups plus a redundant entry copy on every transition).
+    const bool bIsNewEntry = !QTable.Contains(Key);
+    FQValueEntry& Entry = QTable.FindOrAdd(Key);
+
+    const float CurrentQ = bIsNewEntry ? 0.0f : Entry.QValue;
+    const int32 CurrentVisits = bIsNewEntry ? 0 : Entry.VisitCount;
 
     // Q-learning update
-    float MaxNextQ = GetMaxQValue(NextState);
-    float NewQ = CurrentQ + LearningRate * (Reward + DiscountFactor * MaxNextQ - CurrentQ);
-
-    FQValueEntry Entry;
     Entry.State = State;
     Entry.Action = Action;
-    Entry.QValue = NewQ;
+    Entry.QValue = CurrentQ + LearningRate * (Reward + DiscountFactor * MaxNextQ - CurrentQ);
     Entry.VisitCount = CurrentVisits + 1;
     Entry.LastUpdateTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
-    QTable.Add(Key, Entry);
+    // Maintain the state -> actions index used by GetMaxQValue / GetBestAction
+    if (bIsNewEntry)
+    {
+        StateActionIndex.FindOrAdd(State).AddUnique(Action);
+    }
 }
 
 float UOnlineLearningSystem::GetQValue(const FString& State, const FString& Action) const
@@ -178,12 +182,22 @@ FString UOnlineLearningSystem::GetBestAction(const FString& State) const
     FString BestAction = TEXT("");
     float BestQ = -FLT_MAX;
 
-    for (const auto& Pair : QTable)
+    // Indexed lookup - see GetMaxQValue. Was a full-table scan with per-entry string compares.
+    const TArray<FString>* Actions = StateActionIndex.Find(State);
+    if (!Actions)
     {
-        if (Pair.Value.State == State && Pair.Value.QValue > BestQ)
+        return BestAction;
+    }
+
+    for (const FString& Action : *Actions)
+    {
+        if (const FQValueEntry* Entry = QTable.Find(MakeQKey(State, Action)))
         {
-            BestQ = Pair.Value.QValue;
-            BestAction = Pair.Value.Action;
+            if (Entry->QValue > BestQ)
+            {
+                BestQ = Entry->QValue;
+                BestAction = Entry->Action;
+            }
         }
     }
 
@@ -547,6 +561,7 @@ void UOnlineLearningSystem::ResetLearning()
 {
     ExperienceBuffer.Empty();
     QTable.Empty();
+    StateActionIndex.Empty();  // Secondary index over QTable - must be cleared with it
     LearnedPatterns.Empty();
     // Keep acquired skills
 
@@ -594,16 +609,24 @@ FString UOnlineLearningSystem::MakeQKey(const FString& State, const FString& Act
 
 float UOnlineLearningSystem::GetMaxQValue(const FString& State) const
 {
+    // Indexed lookup: only this state's actions are examined. Previously this scanned every
+    // entry in the table comparing State strings, on every Q-update.
+    const TArray<FString>* Actions = StateActionIndex.Find(State);
+    if (!Actions)
+    {
+        return 0.0f;  // Unseen state - unchanged from the original's not-found result
+    }
+
     float MaxQ = 0.0f;
     bool bFound = false;
 
-    for (const auto& Pair : QTable)
+    for (const FString& Action : *Actions)
     {
-        if (Pair.Value.State == State)
+        if (const FQValueEntry* Entry = QTable.Find(MakeQKey(State, Action)))
         {
-            if (!bFound || Pair.Value.QValue > MaxQ)
+            if (!bFound || Entry->QValue > MaxQ)
             {
-                MaxQ = Pair.Value.QValue;
+                MaxQ = Entry->QValue;
                 bFound = true;
             }
         }

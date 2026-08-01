@@ -1,33 +1,64 @@
 # DeepTreeEcho Performance Survey
 
 Confirmed hot-path performance issues in the wider DeepTreeEcho tree, found during the
-GameTraining optimization pass (adversarially verified, report-only — these subsystems are
-outside the GameTraining branch's scope and should be fixed on their own branches).
+GameTraining optimization pass and adversarially verified. The two HIGH-severity findings have
+since been fixed (finding 2 turned out to be a correctness bug, not merely a performance one);
+the three MEDIUM findings remain open and are documented here with fix directions.
 
 Each finding survived two independent refuters challenging whether the path is actually hot
 and whether the cost is real and quantifiable.
 
-## 1. OnlineLearningSystem: O(|QTable|) full-map scan per RL transition — HIGH
+**Status: findings 1 and 2 are FIXED and verified; 3–5 remain open.**
+
+| # | Subsystem | Severity | Status |
+|---|-----------|----------|--------|
+| 1 | OnlineLearningSystem Q-table scans | HIGH | **Fixed** |
+| 2 | DeepTreeEchoReservoir weight resampling | HIGH | **Fixed** (verified by `GameTraining/Tests/StandaloneReservoirVerification.cpp`) |
+| 3 | ReservoirCognitiveIntegration Hebbian pass | MEDIUM | Open |
+| 4 | DNABodySchemaBinding per-joint hashing | MEDIUM | Open |
+| 5 | HypergraphMemorySystem decay walk | MEDIUM | Open |
+
+## 1. OnlineLearningSystem: O(|QTable|) full-map scan per RL transition — HIGH — FIXED
 
 `Learning/OnlineLearningSystem.cpp` — `GetMaxQValue` linearly scans the entire QTable with
 FString prefix compares, and runs **twice per recorded transition**. With thousands of
 state-action entries this is the dominant per-transition cost. `RecordExperience` also evicts
 its buffer with `RemoveAt(0)` (~90KB memmove per transition once full).
 
-**Fix direction:** restructure QTable as `TMap<State, TMap<Action, Entry>>` so max-Q scans
-only one state's actions; ring-buffer the experience eviction; cache the `Find` result in
-`UpdateQValue` instead of `Contains` + double `operator[]`.
+**Applied fix:** added a `StateActionIndex` (`TMap<State, TArray<Action>>`) secondary index over
+QTable, kept in sync by `UpdateQValue` and cleared alongside QTable in
+`InitializeLearningSystem`/`ResetLearning`. `GetMaxQValue` and `GetBestAction` now examine only
+the target state's actions. `UpdateQValue` collapsed from four hash lookups (`Contains` + two
+`operator[]` + trailing `Add`) to one `FindOrAdd`, with the successor's max-Q computed before
+taking the reference so a rehash cannot invalidate it. Not-found semantics preserved exactly
+(0.0f for an unseen state; empty string for no best action).
 
-## 2. DeepTreeEchoReservoir: connectivity regenerated per input — HIGH
+*Still open in this file:* `RecordExperience` evicts its buffer with `RemoveAt(0)`.
 
-`Reservoir/DeepTreeEchoReservoir.cpp` — `ProcessInput` regenerates random reservoir
+## 2. DeepTreeEchoReservoir: connectivity regenerated per input — HIGH — FIXED
+
+`Reservoir/DeepTreeEchoReservoir.cpp` — `ProcessInput` regenerated random reservoir
 connectivity on every call: ~11,000 RNG invocations (O(Units²)) per input, ~600k per
-movement-embedding query. Beyond the cost, regenerating weights per call breaks the "echo
-state" property the reservoir exists to provide.
+movement-embedding query. This was **not only a performance problem**: resampling W every step
+destroys the Echo State Property, so the reservoir could not encode temporal structure at all —
+its output was filtered noise. Two further defects were found in the same loop: `InputSum` did
+not depend on the unit index (every unit received an identical input drive, so there was no
+input diversity), and `SpectralRadius` was applied as a post-hoc multiplier on an unnormalized
+sum rather than as an actual spectral radius.
 
-**Fix direction:** generate and store the sparse recurrent weight matrix once in
-`CreateReservoir` (CSR layout); `ProcessInput` becomes a fixed sparse mat-vec (~1,000
-multiply-adds at 10% density) into a preallocated scratch buffer.
+**Applied fix:** `FReservoirState` now carries a fixed sparse recurrent matrix in CSR form
+(`RecurrentRowStart`/`RecurrentColIndex`/`RecurrentWeight`) plus a dense `Units × 16` input
+matrix, generated once by `EnsureWeightsBuilt` from a persisted `WeightSeed` and normalized to
+the configured spectral radius by power iteration. `ProcessInput` is now a fixed sparse mat-vec
+with zero RNG draws. The weight arrays are deliberately non-`UPROPERTY` (derived data,
+regenerable from the seed; reflected nested containers are illegal in UHT anyway).
+
+**Verified** by `GameTraining/Tests/StandaloneReservoirVerification.cpp` (6/6): trajectory
+reproducibility, Echo State Property contraction (initial-state separation 18.0 → 0.0002 over
+60 steps), input sensitivity, spectral-radius accuracy, per-unit input diversity, and zero
+hot-path RNG draws. The harness caught a real bug during development — a fixed 20-iteration
+power iteration under-estimated the eigenvalue by ~2.8%, overshooting every requested radius by
+the same factor; normalization now iterates to convergence.
 
 ## 3. ReservoirCognitiveIntegration: unconditional Hebbian pass every tick — MEDIUM
 
