@@ -88,10 +88,136 @@ FReservoirState UDeepTreeEchoReservoir::CreateReservoir(int32 Units, float Spect
         Reservoir.ActivationState[i] = FMath::FRandRange(-0.1f, 0.1f);
     }
     
+    // Derive a stable seed so this reservoir's weights are reproducible and, critically, fixed
+    // for its lifetime. Mixed from the unit count and a running counter so sibling reservoirs
+    // (hierarchy levels, per-stream reservoirs) get distinct connectivity.
+    static int32 ReservoirSeedCounter = 0;
+    Reservoir.WeightSeed = HashCombine(GetTypeHash(++ReservoirSeedCounter), GetTypeHash(Units));
+
+    EnsureWeightsBuilt(Reservoir);
+
     Reservoir.bIsInitialized = true;
     Reservoir.LastUpdateTime = 0.0f;
 
     return Reservoir;
+}
+
+void UDeepTreeEchoReservoir::EnsureWeightsBuilt(FReservoirState& Reservoir)
+{
+    const int32 Units = Reservoir.Units;
+    if (Reservoir.bWeightsBuilt && Reservoir.RecurrentRowStart.Num() == Units + 1)
+    {
+        return;
+    }
+
+    if (Units <= 0)
+    {
+        Reservoir.bWeightsBuilt = true;
+        return;
+    }
+
+    FRandomStream Stream(Reservoir.WeightSeed);
+
+    // ---- Sparse recurrent matrix W, built directly in CSR form ----------------------------
+    Reservoir.RecurrentRowStart.Reset();
+    Reservoir.RecurrentColIndex.Reset();
+    Reservoir.RecurrentWeight.Reset();
+    Reservoir.RecurrentRowStart.Reserve(Units + 1);
+
+    const int32 ExpectedNonZeros = FMath::Max(1, FMath::RoundToInt(Units * Units * RecurrentDensity));
+    Reservoir.RecurrentColIndex.Reserve(ExpectedNonZeros);
+    Reservoir.RecurrentWeight.Reserve(ExpectedNonZeros);
+
+    for (int32 Row = 0; Row < Units; ++Row)
+    {
+        Reservoir.RecurrentRowStart.Add(Reservoir.RecurrentColIndex.Num());
+        for (int32 Col = 0; Col < Units; ++Col)
+        {
+            if (Stream.FRand() < RecurrentDensity)
+            {
+                Reservoir.RecurrentColIndex.Add(Col);
+                Reservoir.RecurrentWeight.Add(Stream.FRandRange(-1.0f, 1.0f));
+            }
+        }
+    }
+    Reservoir.RecurrentRowStart.Add(Reservoir.RecurrentColIndex.Num());
+
+    // ---- Normalize W to the configured spectral radius -------------------------------------
+    // Power iteration on the sparse matrix. This is what actually makes SpectralRadius mean
+    // what its name says; the previous code merely multiplied an unnormalized sum by it.
+    // Init-time only, so these sparse mat-vecs cost nothing at runtime.
+    //
+    // Iterate to convergence rather than a fixed count: a fixed 20 iterations leaves the
+    // estimate systematically low (~3% on a 100-unit, 10%-dense matrix), which scales W up by
+    // the same factor and overshoots the requested radius.
+    {
+        TArray<float> Vec, Next;
+        Vec.Init(1.0f / FMath::Sqrt(static_cast<float>(Units)), Units);
+        Next.SetNumZeroed(Units);
+
+        constexpr int32 MaxPowerIterations = 200;
+        constexpr float ConvergenceTolerance = 1.0e-5f;
+
+        float Eigenvalue = 0.0f;
+        for (int32 Iter = 0; Iter < MaxPowerIterations; ++Iter)
+        {
+            for (int32 Row = 0; Row < Units; ++Row)
+            {
+                float Sum = 0.0f;
+                const int32 Begin = Reservoir.RecurrentRowStart[Row];
+                const int32 End = Reservoir.RecurrentRowStart[Row + 1];
+                for (int32 k = Begin; k < End; ++k)
+                {
+                    Sum += Reservoir.RecurrentWeight[k] * Vec[Reservoir.RecurrentColIndex[k]];
+                }
+                Next[Row] = Sum;
+            }
+
+            float Norm = 0.0f;
+            for (float V : Next)
+            {
+                Norm += V * V;
+            }
+            Norm = FMath::Sqrt(Norm);
+            if (Norm < KINDA_SMALL_NUMBER)
+            {
+                Eigenvalue = 0.0f;
+                break;
+            }
+
+            const float PreviousEigenvalue = Eigenvalue;
+            Eigenvalue = Norm;
+            for (int32 i = 0; i < Units; ++i)
+            {
+                Vec[i] = Next[i] / Norm;
+            }
+
+            if (Iter > 0 && FMath::Abs(Eigenvalue - PreviousEigenvalue) <= ConvergenceTolerance * Eigenvalue)
+            {
+                break;
+            }
+        }
+
+        if (Eigenvalue > KINDA_SMALL_NUMBER)
+        {
+            const float Scale = Reservoir.SpectralRadius / Eigenvalue;
+            for (float& W : Reservoir.RecurrentWeight)
+            {
+                W *= Scale;
+            }
+        }
+    }
+
+    // ---- Dense input matrix Win (Units x MaxInputDimension) --------------------------------
+    // Each unit gets its OWN input weights. Previously every unit received an identical input
+    // sum, so the reservoir had no input diversity across units at all.
+    Reservoir.InputWeight.SetNumUninitialized(Units * FReservoirState::MaxInputDimension);
+    for (int32 i = 0; i < Reservoir.InputWeight.Num(); ++i)
+    {
+        Reservoir.InputWeight[i] = Stream.FRandRange(-1.0f, 1.0f);
+    }
+
+    Reservoir.bWeightsBuilt = true;
 }
 
 TArray<float> UDeepTreeEchoReservoir::ProcessInput(const TArray<float>& Input, int32 StreamID)
@@ -103,36 +229,51 @@ TArray<float> UDeepTreeEchoReservoir::ProcessInput(const TArray<float>& Input, i
 
     // Process through first level
     FReservoirState& BaseReservoir = HierarchicalReservoirs[0];
-    
+
+    // Weights are generated once and then held fixed. Regenerating them per call (as this
+    // previously did, drawing Units^2 randoms every step) destroys the Echo State Property:
+    // with a resampled W the state trajectory carries no reproducible memory of the input
+    // history, so the reservoir cannot encode temporal structure at all.
+    EnsureWeightsBuilt(BaseReservoir);
+
     // Echo State Network update: x(t+1) = (1-lr)*x(t) + lr*tanh(Win*u(t) + W*x(t))
     TArray<float> NewState;
     NewState.SetNum(BaseReservoir.Units);
 
+    const int32 InputDim = FMath::Min(Input.Num(), FReservoirState::MaxInputDimension);
+
     for (int32 i = 0; i < BaseReservoir.Units; ++i)
     {
-        // Simplified ESN update (full implementation would use weight matrices)
+        // Input drive: this unit's own row of Win (previously an identical sum for every unit)
         float InputSum = 0.0f;
-        for (int32 j = 0; j < Input.Num() && j < 10; ++j)
+        if (BaseReservoir.InputWeight.Num() >= (i + 1) * FReservoirState::MaxInputDimension)
         {
-            InputSum += Input[j] * BaseReservoir.InputScaling;
-        }
-
-        // Recurrent contribution (simplified)
-        float RecurrentSum = 0.0f;
-        for (int32 j = 0; j < BaseReservoir.Units; ++j)
-        {
-            // Sparse random connectivity
-            if (FMath::FRand() < 0.1f)
+            const int32 RowBase = i * FReservoirState::MaxInputDimension;
+            for (int32 j = 0; j < InputDim; ++j)
             {
-                RecurrentSum += BaseReservoir.ActivationState[j] * FMath::FRandRange(-1.0f, 1.0f);
+                InputSum += BaseReservoir.InputWeight[RowBase + j] * Input[j];
             }
         }
-        RecurrentSum *= BaseReservoir.SpectralRadius;
+        InputSum *= BaseReservoir.InputScaling;
+
+        // Recurrent contribution: fixed sparse row of W (already spectral-radius normalized,
+        // so no post-hoc multiply by SpectralRadius here)
+        float RecurrentSum = 0.0f;
+        if (BaseReservoir.RecurrentRowStart.IsValidIndex(i + 1))
+        {
+            const int32 Begin = BaseReservoir.RecurrentRowStart[i];
+            const int32 End = BaseReservoir.RecurrentRowStart[i + 1];
+            for (int32 k = Begin; k < End; ++k)
+            {
+                RecurrentSum += BaseReservoir.RecurrentWeight[k] *
+                                BaseReservoir.ActivationState[BaseReservoir.RecurrentColIndex[k]];
+            }
+        }
 
         // Leaky integration with tanh activation
         float PreActivation = InputSum + RecurrentSum;
         float Activation = FMath::Tanh(PreActivation);
-        NewState[i] = (1.0f - BaseReservoir.LeakRate) * BaseReservoir.ActivationState[i] + 
+        NewState[i] = (1.0f - BaseReservoir.LeakRate) * BaseReservoir.ActivationState[i] +
                       BaseReservoir.LeakRate * Activation;
     }
 

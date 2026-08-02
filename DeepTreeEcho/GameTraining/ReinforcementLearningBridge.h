@@ -178,7 +178,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPolicyImproved, float, OldValue,
  * Connects game training with Deep Tree Echo cognitive systems
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UNREALECHO_API UReinforcementLearningBridge : public UActorComponent
 class DEEPTREEECHO_API UReinforcementLearningBridge : public UActorComponent
 {
     GENERATED_BODY()

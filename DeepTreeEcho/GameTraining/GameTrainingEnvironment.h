@@ -337,7 +337,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrainingModeChanged, ETrainingMod
  * Provides RL environment interface for Deep Tree Echo game training
  */
 UCLASS(ClassGroup=(DeepTreeEcho), meta=(BlueprintSpawnableComponent))
-class UNREALECHO_API UGameTrainingEnvironment : public UActorComponent
 class DEEPTREEECHO_API UGameTrainingEnvironment : public UActorComponent
 {
     GENERATED_BODY()

@@ -409,6 +409,13 @@ protected:
     // Internal state
     TArray<FLearningExperience> ExperienceBuffer;
     TMap<FString, FQValueEntry> QTable;
+
+    /** State -> actions recorded for that state. Secondary index over QTable, kept in sync by
+     *  UpdateQValue, so GetMaxQValue/GetBestAction examine only one state's handful of actions
+     *  instead of linearly scanning the whole table with FString compares (GetMaxQValue runs on
+     *  every Q-update, making that scan the dominant per-transition cost). */
+    TMap<FString, TArray<FString>> StateActionIndex;
+
     TArray<FLearnedPattern> LearnedPatterns;
     TArray<FAcquiredSkill> AcquiredSkills;
 
