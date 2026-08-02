@@ -56,10 +56,22 @@ That is what makes it testable without Unreal.
 | `Simulation/DuelAgent.h` | Skill-parameterized agents + the telemetry → `FMasterySignal` derivation. |
 | `Tests/StandaloneDuelSimulation.cpp` | 16 assertions, Tier-1 end-to-end integration. |
 
-Build and run the tests (same convention as `GameTraining/Tests/`):
+Build and run **every** harness in the repo (both `GameTraining/Tests/` and `Mastery/Tests/`):
 
 ```
-g++ -std=c++17 -O2 -o masteryverify Tests/StandaloneMasteryBindingVerification.cpp && ./masteryverify
+./DeepTreeEcho/Tests/run_all.sh            # build + run all, exit code = number of failures
+./DeepTreeEcho/Tests/run_all.sh --syntax   # also compile the real headers
+```
+
+Harnesses are **discovered**, not listed — a new `Standalone*.cpp` under any `Tests/` directory is
+picked up with no edit to the runner. CI runs both modes on every push
+(`.github/workflows/ci-standalone-tests.yml`).
+
+A single harness, if you want just one:
+
+```
+g++ -std=c++17 -O2 -I Mastery/Tests/StandaloneShim -o masteryverify \
+    Mastery/Tests/StandaloneMasteryBindingVerification.cpp && ./masteryverify
 ```
 
 ## Melody

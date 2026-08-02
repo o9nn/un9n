@@ -1,0 +1,120 @@
+name: Standalone Verification Harnesses
+
+# Runs the standalone C++ verification harnesses under DeepTreeEcho/**/Tests/.
+#
+# These require no Unreal install - they are plain C++17 and finish in seconds - so unlike the
+# UE-dependent workflows they can gate every push and PR.
+#
+# WHY THIS WORKFLOW EXISTS
+# The harnesses previously ran only when someone remembered to run them. During development a
+# merge from main broke the GameTraining module for hours (the header kept a bitmask refactor
+# while the .cpp was rewritten against the old field names) while every harness kept reporting
+# success - because they exercise mirrored logic, not the real translation units. The run job
+# closes the "nobody ran them" half of that gap; the headers job closes the other half by
+# compiling the actual headers.
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'claude/**']
+    paths:
+      - 'DeepTreeEcho/**'
+      - '.github/workflows/ci-standalone-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'DeepTreeEcho/**'
+      - '.github/workflows/ci-standalone-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Build and run every harness. Fails the build on any failed assertion.
+  # ============================================================================
+  standalone-harnesses:
+    name: Build & Run Harnesses
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Show compiler version
+        run: g++ --version
+
+      - name: Run all standalone harnesses
+        run: |
+          chmod +x DeepTreeEcho/Tests/run_all.sh
+          ./DeepTreeEcho/Tests/run_all.sh
+
+      - name: Report
+        if: failure()
+        run: |
+          echo "::error::One or more standalone verification harnesses failed."
+          echo "Reproduce locally with: ./DeepTreeEcho/Tests/run_all.sh"
+
+  # ============================================================================
+  # Compile the REAL module headers. This is the check that would have caught
+  # the header/.cpp divergence the harnesses were blind to.
+  # ============================================================================
+  header-consistency:
+    name: Header Consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Syntax-check engine-independent headers
+        run: |
+          chmod +x DeepTreeEcho/Tests/run_all.sh
+          ./DeepTreeEcho/Tests/run_all.sh --syntax
+
+      # A cheap, high-value structural check: two consecutive `class X : public Y` lines is
+      # exactly the shape the main merge produced when it appended a new API-macro declaration
+      # instead of replacing the old one. It is a hard compile error that no harness can see.
+      - name: Detect duplicated class declarations
+        run: |
+          echo "Scanning for duplicate class declarations..."
+          FOUND=0
+          while IFS= read -r f; do
+            n=$(grep -cE '^class [A-Z_]*_API [A-Za-z]+ : public' "$f" || true)
+            if [ "$n" -gt 1 ]; then
+              echo "::error file=$f::$f declares $n API-exported classes at file scope - likely a merge artifact"
+              grep -nE '^class [A-Z_]*_API [A-Za-z]+ : public' "$f"
+              FOUND=$((FOUND+1))
+            fi
+          done < <(find DeepTreeEcho -name '*.h' -not -path '*/StandaloneShim/*')
+          if [ "$FOUND" -gt 0 ]; then
+            echo "::error::$FOUND header(s) contain duplicated class declarations"
+            exit 1
+          fi
+          echo "No duplicate class declarations found."
+
+      # Catches the other half of the same failure: a .cpp referencing struct members its
+      # header does not declare. Full semantic checking needs UHT, so this targets the specific
+      # fields that diverged, and is trivially extended when new ones are refactored.
+      - name: Detect header/implementation field divergence
+        run: |
+          echo "Checking GameTraining field consistency..."
+          HDR=DeepTreeEcho/GameTraining/GameControllerInterface.h
+          FAIL=0
+          for field in ButtonMask LeftStickX RightStickX bIsAIGenerated; do
+            if ! grep -q "$field" "$HDR"; then
+              echo "::error::$field used in implementation but absent from $HDR"
+              FAIL=1
+            fi
+          done
+          # The pre-refactor names must not reappear - their presence means a merge reverted it.
+          if grep -qE 'PressedButtons|CurrentState\.LeftStick\.' DeepTreeEcho/GameTraining/*.cpp; then
+            echo "::error::Pre-refactor field names found in GameTraining .cpp - a merge has likely reverted the bitmask refactor"
+            grep -nE 'PressedButtons|CurrentState\.LeftStick\.' DeepTreeEcho/GameTraining/*.cpp || true
+            FAIL=1
+          fi
+          [ "$FAIL" -eq 0 ] && echo "GameTraining fields consistent."
+          exit $FAIL

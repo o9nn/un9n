@@ -350,3 +350,13 @@ __pycache__/
 # ReservoirEcho specific build exclusions
 ReservoirEcho/reservoircpp_cpp/build/
 MetaHuman-DNA-Calibration/dnacalib/build/
+
+# Standalone verification harness binaries (built by DeepTreeEcho/Tests/run_all.sh).
+# The runner builds into a temp dir by default, but these cover in-tree builds.
+/rlverify
+/resverify
+/masteryverify
+/compverify
+/duelsim
+DeepTreeEcho/**/Tests/*verify
+DeepTreeEcho/**/Tests/duelsim
