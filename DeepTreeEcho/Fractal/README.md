@@ -3,10 +3,20 @@
 The proposal: nest chess boards fractally (each square contains a board), map it onto a game
 world, and run an engine on the result.
 
-That does not merely run slowly. It leaves the domain where search is a coherent verb — a parent
-"move" whose value requires resolving a sub-game multiplies the branching factor by the entire
-sub-tree. Chess is already ~35 branching over ~80 plies; nesting one level makes a meta-move
-depend on a whole subordinate game.
+That does not merely run slowly — but **not for the reason I first gave.** I originally claimed the
+branching factor becomes ~35^64. That is wrong twice over: it describes a *different* game (one
+where a meta-move plays on all 64 sub-boards at once), and 35^64 ≈ 10^99 is *smaller* than plain
+chess's ~10^120, so as a standalone figure it argues nested chess is **easier** than chess.
+
+The correct shape: if resolving a node at level *k* requires solving a game at level *k−1*, the
+branching factor stays ~35 and the blow-up is a **cost-per-node tower**, not a wider tree. Work ≈
+`nodes(1)^d` — roughly 10^240 at depth 2 unpruned, 10^120 with ideal alpha-beta. And at depth ≥ 3
+you lose to *state representation* before search even begins: 64^d squares means depth 3 is 262,144
+squares and depth 6 is ~7×10^10. You cannot instantiate the position, never mind search it.
+
+(Related correction: "effective branching factor" has a specific meaning in engine literature —
+`nodes[d]/nodes[d−1]`, which is **under 2** for a modern engine, not 35. The ~35 figure is average
+legal moves. Applying √b on top of an already-effective figure double-counts the pruning.)
 
 **The escape is to nest the *evaluation* and keep the *search* flat.** Sub-board states become
 features feeding the parent's evaluation function, never nodes to expand. Depth lives in the eval,
@@ -18,9 +28,22 @@ That claim is testable, so it is tested rather than asserted.
 ## The game
 
 **Ultimate Tic-Tac-Toe** — nine 3×3 sub-boards in a 3×3 meta-grid. Winning a sub-board claims that
-meta-cell; claim three in a row to win. It is the minimal *honest* instance of a fractal board:
-the nesting is the game's native mechanic, not a wrapper bolted onto a flat game, and it is small
-enough that the intractability claim can be measured instead of hand-waved.
+meta-cell; claim three in a row to win.
+
+**Important correction: UTTT is *not* an instance of the nested-search construction above,** and I
+originally described it as one. Nobody ever resolves a sub-board to make a meta-move — UTTT is a
+single *flat* game on 81 cells with a coupling constraint. Its branching factor is ~6–7, which is
+**lower** than plain tic-tac-toe's opening 9, because the send-constraint usually restricts you to
+one 9-cell board. Nesting the board there *reduces* branching. It is evidence against the intuition
+that nesting explodes *b*, not for it.
+
+What UTTT is good for is a *different*, narrower question: does folding sub-board state into
+evaluation beat ignoring it, under identical search? That question it answers cleanly. It does not
+speak to the tractability of nested search, which is argued above on arithmetic rather than
+demonstrated here.
+
+(UTTT is also **solved** under the ENS-2020 rule variant — first player forces a win in ≤43 moves —
+though not under the standard competitive variant.)
 
 Its defining mechanic — and the one a naive evaluator misses completely:
 
@@ -56,7 +79,7 @@ Each evaluator plays both colours, so a first-player edge (which is real in UTTT
 |---|---|
 | Rules correctness | 8/8 — including the finished-board free move and drawn-board ownership |
 | Sub-search blow-up | **14.8×** more nodes for a *single* ply of nesting, at equal outer depth |
-| **Nested vs flat, head to head** | **83.1%** for nested (66–13–1 over 80 games) |
+| **Nested vs flat, head to head** | **78.1%** for nested (61–16–3 over 80 games) |
 | Send mechanic in isolation | flat scores the two sends **identically** (diff 0); nested separates them by 52 |
 | Colour fairness | mirror match 9–9–2 |
 | Determinism | same seed, same game |
@@ -64,6 +87,28 @@ Each evaluator plays both colours, so a first-player edge (which is real in UTTT
 The 14.8× is for *one* ply of nesting at shallow depth. It compounds per level and per outer ply —
 which is why the literal fractal-chess version does not run at all, and why the flat-search
 restructuring is not a compromise but the thing that makes it exist.
+
+## The baseline was rigged, and I only found out by being checked
+
+An independent review flagged that the flat evaluator was not weak but **degenerate**, and probing
+my own code confirmed it exactly:
+
+- flat evaluation produced **1 distinct score across all 81 opening moves** (range `[0,0]`)
+- first non-zero score at **ply 29.5** of a ~59-ply game
+
+A meta-grid-only evaluator returns 0 until some sub-board is actually *claimed*, so its entire
+search tree was zeros and move choice fell through to the random tie-break. The flat engine played
+**randomly for half the game.** The original 83.1% therefore measured "an evaluator that plays
+randomly for 30 plies loses to one that doesn't" — near-tautological, and nothing about
+architecture.
+
+Fixed by giving flat every feature its information set legitimately supports — the tempo/free-move
+term (computable from the meta-grid plus the forced-board index alone) and side-to-move. Flat now
+has signal from ply 1, and the honest number is **78.1%**.
+
+It is still 1 distinct score across the 81 *opening* moves — but that is now
+information-theoretic rather than lazy: from an empty symmetric board there genuinely is no
+meta-level information distinguishing them.
 
 ## A bug the test caught
 
@@ -86,12 +131,30 @@ only the isolated test in [4] could distinguish them; the head-to-head alone wou
 search is both tractable and *stronger*; the send mechanic is real and flat evaluation is provably
 blind to it.
 
-**Not established:** that this scales to nested *chess* specifically (UTTT sub-boards are trivially
-evaluable; chess sub-positions are not), or that a hand-tuned nested evaluator beats a *learned*
-one. The natural next step is replacing `EvaluateNested` with a small trained network over the same
-features — at which point this is NNUE with an explicitly hierarchical feature set, and the
-sub-board search from `EvaluateBySubSearch` becomes the *training data generator* rather than the
-runtime cost.
+**Not established — and this list grew after review:**
+
+- **That UTTT tests the nested-search claim at all.** It doesn't (see above). The intractability
+  argument stands on arithmetic; this code does not demonstrate it.
+- **That "nest the evaluation" generalises.** The escape route is sound when subgames are
+  *independent*. UTTT's subgames are **coupled** by the send mechanic, so per-sub-board evaluation
+  is provably lossy there. The reviewer's specific counter-claim — that evaluation-free MCTS over
+  the joint state outperforms hand-crafted-eval minimax at UTTT — is **untested here** and would be
+  the decisive experiment. I am recording it rather than quietly omitting it.
+- **That this scales to nested chess.** UTTT sub-boards are trivially evaluable; chess
+  sub-positions are not.
+- **That the experiment is tournament-grade.** A rigorous version needs three arms (meta-only /
+  unweighted local sum / meta-relevance-weighted local), fixed *node* budgets rather than fixed
+  depth, paired colour-swapped randomised openings, ~2000 games or SPRT, and a fixed external
+  reference opponent. 80 games at fixed depth is a smoke test, not an evaluation.
+
+**Also corrected:** my NNUE analogy was wrong. NNUE is about *incremental update cost* — it made
+Stockfish evaluate **better**, not search less — and it is not an instance of hierarchical nesting.
+
+A further structural point I had missed, worth recording: **nesting breaks transposition tables.**
+TT reuse requires a subgame's value to be context-independent, but in the nested construction the
+parent position determines what winning the subgame is *worth*, so parent context must enter the
+hash key and reuse collapses. That is the same independence condition that governs whether the
+evaluation-nesting escape is sound at all.
 
 ## On the rest of the original idea
 

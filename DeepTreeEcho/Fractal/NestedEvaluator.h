@@ -93,7 +93,30 @@ inline int EvaluateFlat(const FNestedBoard& B)
     if (B.Result == EBoardResult::Drawn) return 0;
 
     // Meta threats are worth far more than sub-board detail, hence the large weights.
-    return ScoreGrid(B.MetaGrid(), 220, 40);
+    int Score = ScoreGrid(B.MetaGrid(), 220, 40);
+
+    // TEMPO / FREE-MOVE. Legitimately a flat feature: it needs only the meta-grid (which boards
+    // are claimed) and the forced-board index. Being sent to a CLAIMED board grants a free move
+    // anywhere, which is a transferable asset.
+    //
+    // This term exists because a meta-grid-only evaluator is otherwise DEGENERATE, not merely
+    // weak: with no sub-board claimed yet it returns exactly 0 for every position, so its whole
+    // search tree is zeros and move choice falls to tie-breaks. Measured on this implementation:
+    // 1 distinct score across all 81 opening moves, first non-zero at ply ~29.5 of a ~59-ply
+    // game. A baseline that plays randomly for half the game is not a control - beating it
+    // measures nothing about architecture. This is the strongest evaluator the flat information
+    // set actually supports.
+    const int SentSign = (B.ToMove == EMark::X) ? 1 : -1;
+    const bool bSentToDeadBoard = (B.ForcedBoard >= 0) && (B.Boards[B.ForcedBoard].Owner() != EMark::None);
+    if (B.ForcedBoard < 0 || bSentToDeadBoard)
+    {
+        Score += SentSign * 55;
+    }
+
+    // Side to move is worth a little; also flat.
+    Score += SentSign * 8;
+
+    return Score;
 }
 
 /**
