@@ -68,13 +68,7 @@ class DynArray {
         DynArray(TIterator start, TIterator end, const allocator_type& allocator = allocator_type{}) :
             DynArray{static_cast<std::size_t>(std::distance(start, end)), allocator} {
 
-            #if defined(_MSC_VER) && !defined(__clang__)
-                if (size() != 0ul) {
-                    std::copy(start, end, stdext::checked_array_iterator<value_type*>(data(), size()));
-                }
-            #else
-                std::copy(start, end, data());
-            #endif
+            std::copy(start, end, data());
         }
 
         ~DynArray() = default;
@@ -205,13 +199,7 @@ class DynArray {
         template<typename TIterator>
         void assign(TIterator start, TIterator end) {
             resize_uninitialized(static_cast<std::size_t>(std::distance(start, end)));
-            #if defined(_MSC_VER) && !defined(__clang__)
-                if (size() != 0ul) {
-                    std::copy(start, end, stdext::checked_array_iterator<value_type*>(data(), size()));
-                }
-            #else
-                std::copy(start, end, data());
-            #endif
+            std::copy(start, end, data());
         }
 
     private:
