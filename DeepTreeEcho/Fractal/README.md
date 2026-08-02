@@ -18,12 +18,15 @@ squares and depth 6 is ~7×10^10. You cannot instantiate the position, never min
 `nodes[d]/nodes[d−1]`, which is **under 2** for a modern engine, not 35. The ~35 figure is average
 legal moves. Applying √b on top of an already-effective figure double-counts the pruning.)
 
-**The escape is to nest the *evaluation* and keep the *search* flat.** Sub-board states become
-features feeding the parent's evaluation function, never nodes to expand. Depth lives in the eval,
-not the tree. This is the same move NNUE makes for chess: compress "what does this position tell
-me" into a function fast enough to call millions of times, rather than searching further.
+**The proposed escape is to nest the *evaluation* and keep the *search* flat.** Sub-board states
+become features feeding the parent's evaluation function, never nodes to expand — depth lives in
+the eval, not the tree.
 
-That claim is testable, so it is tested rather than asserted.
+Two caveats, both learned the hard way and both detailed below. First, this is sound **only when
+subgames are independent**; where a mechanic couples them, per-subgame evaluation is lossy.
+Second, I originally credited this to NNUE — that was wrong. NNUE is about *incremental update
+cost*, and it made Stockfish evaluate **better**, not search less. It is not an instance of
+hierarchical nesting.
 
 ## The game
 
@@ -84,9 +87,9 @@ Each evaluator plays both colours, so a first-player edge (which is real in UTTT
 | Colour fairness | mirror match 9–9–2 |
 | Determinism | same seed, same game |
 
-The 14.8× is for *one* ply of nesting at shallow depth. It compounds per level and per outer ply —
-which is why the literal fractal-chess version does not run at all, and why the flat-search
-restructuring is not a compromise but the thing that makes it exist.
+The 14.8× is for *one* ply of nesting at shallow depth in UTTT, where sub-boards are 9 cells. It
+is an illustration of the shape, not a measurement of the chess case — the argument that literal
+fractal chess cannot run rests on the arithmetic at the top of this file, not on this number.
 
 ## The baseline was rigged, and I only found out by being checked
 
@@ -127,9 +130,11 @@ only the isolated test in [4] could distinguish them; the head-to-head alone wou
 
 ## What this does and does not establish
 
-**Established:** literal nested search is measurably intractable; nested evaluation under flat
-search is both tractable and *stronger*; the send mechanic is real and flat evaluation is provably
-blind to it.
+**Established, narrowly:** in UTTT, under identical search, folding sub-board state into the
+evaluation beats ignoring it (78.1% over 80 games, each engine playing both colours). The send is a
+real feature that a meta-only evaluator is provably blind to — it scores two very different sends
+identically. Resolving sub-boards by search costs measurably more than evaluating them (14.8× at
+one ply, in this game).
 
 **Not established — and this list grew after review:**
 
