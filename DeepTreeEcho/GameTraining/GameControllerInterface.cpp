@@ -295,41 +295,52 @@ void UGameControllerInterface::PollControllerInput()
 
     CurrentState.Timestamp = GetWorld()->GetTimeSeconds();
 
-    // Try to get input from the player controller
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (PC && PC->IsInputKeyDown(EKeys::Gamepad_RightTrigger))
+    // In AI output mode the cognitive system owns CurrentState - ProcessOutputQueue writes it
+    // earlier in the tick, so polling here would overwrite the action we just chose.
+    if (bAIOutputMode)
     {
-        // Physical controller detected - read actual input
-        CurrentState.LeftStick.X = PC->GetInputAxisValue(TEXT("MoveRight"));
-        CurrentState.LeftStick.Y = PC->GetInputAxisValue(TEXT("MoveForward"));
-        CurrentState.RightStick.X = PC->GetInputAxisValue(TEXT("LookRight"));
-        CurrentState.RightStick.Y = PC->GetInputAxisValue(TEXT("LookUp"));
-        CurrentState.LeftTrigger = PC->GetInputAxisValue(TEXT("LeftTrigger"));
-        CurrentState.RightTrigger = PC->GetInputAxisValue(TEXT("RightTrigger"));
-
-        // Poll button states
-        CurrentState.PressedButtons.Empty();
-        if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Bottom))
-            CurrentState.PressedButtons.Add(EGamepadButton::FaceBottom);
-        if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Right))
-            CurrentState.PressedButtons.Add(EGamepadButton::FaceRight);
-        if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Left))
-            CurrentState.PressedButtons.Add(EGamepadButton::FaceLeft);
-        if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Top))
-            CurrentState.PressedButtons.Add(EGamepadButton::FaceTop);
-        if (PC->IsInputKeyDown(EKeys::Gamepad_LeftShoulder))
-            CurrentState.PressedButtons.Add(EGamepadButton::LeftShoulder);
-        if (PC->IsInputKeyDown(EKeys::Gamepad_RightShoulder))
-            CurrentState.PressedButtons.Add(EGamepadButton::RightShoulder);
-
-        CurrentState.bIsAIGenerated = false;
-    }
-    else
-    {
-        // No physical controller - use AI-generated input for training
-        // The cognitive system can set input externally via SetAIInput()
         CurrentState.bIsAIGenerated = true;
+        return;
     }
+
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        CurrentState.bIsAIGenerated = true;
+        return;
+    }
+
+    // Read physical pad state.
+    //
+    // Note: an earlier version gated this whole block on IsInputKeyDown(Gamepad_RightTrigger),
+    // which is a trigger check rather than a presence check - it made the pad readable only
+    // while RT was held, so every other input was dropped. Mode is decided by bAIOutputMode
+    // instead; unconnected pads simply read as zero, which is the correct neutral input.
+    CurrentState.LeftStickX = PC->GetInputAxisValue(TEXT("MoveRight"));
+    CurrentState.LeftStickY = PC->GetInputAxisValue(TEXT("MoveForward"));
+    CurrentState.RightStickX = PC->GetInputAxisValue(TEXT("LookRight"));
+    CurrentState.RightStickY = PC->GetInputAxisValue(TEXT("LookUp"));
+    CurrentState.LeftTrigger = PC->GetInputAxisValue(TEXT("LeftTrigger"));
+    CurrentState.RightTrigger = PC->GetInputAxisValue(TEXT("RightTrigger"));
+
+    // Buttons pack into the bitmask (see FControllerInputState::ButtonMask).
+    CurrentState.ButtonMask = 0;
+    if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Bottom)) CurrentState.Press(EGamepadButton::FaceBottom);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Right))  CurrentState.Press(EGamepadButton::FaceRight);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Left))   CurrentState.Press(EGamepadButton::FaceLeft);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Top))    CurrentState.Press(EGamepadButton::FaceTop);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_LeftShoulder))      CurrentState.Press(EGamepadButton::LeftShoulder);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_RightShoulder))     CurrentState.Press(EGamepadButton::RightShoulder);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_LeftThumbstick))    CurrentState.Press(EGamepadButton::LeftThumb);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_RightThumbstick))   CurrentState.Press(EGamepadButton::RightThumb);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_DPad_Up))           CurrentState.Press(EGamepadButton::DPadUp);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_DPad_Down))         CurrentState.Press(EGamepadButton::DPadDown);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_DPad_Left))         CurrentState.Press(EGamepadButton::DPadLeft);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_DPad_Right))        CurrentState.Press(EGamepadButton::DPadRight);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_Special_Right))     CurrentState.Press(EGamepadButton::Start);
+    if (PC->IsInputKeyDown(EKeys::Gamepad_Special_Left))      CurrentState.Press(EGamepadButton::Select);
+
+    CurrentState.bIsAIGenerated = false;
 }
 
 void UGameControllerInterface::UpdateInputBuffer(float DeltaTime)
@@ -465,7 +476,10 @@ void UGameControllerInterface::DetectAndBroadcastActions()
     }
 
     // Record for imitation learning
-    if (bLearnFromHumanInput && DetectedActions.Num() > 0)
+    // Only genuine human input is imitation-learning material. Recording AI-generated input
+    // here would train the policy on its own output - a feedback loop that launders the
+    // system's current habits into "demonstrations" and steadily entrenches them.
+    if (bLearnFromHumanInput && !CurrentState.bIsAIGenerated && DetectedActions.Num() > 0)
     {
         FString Context = FString::Join(DetectedActions, TEXT(","));
         RecordInputForImitation(CurrentState, Context);

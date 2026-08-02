@@ -109,6 +109,11 @@ struct FControllerInputState
     UPROPERTY(BlueprintReadWrite)
     float Timestamp = 0.0f;
 
+    /** True when this state was produced by the cognitive system rather than a physical pad.
+     *  Imitation learning must only train on human input, so it keys off this. */
+    UPROPERTY(BlueprintReadWrite)
+    bool bIsAIGenerated = false;
+
     bool IsPressed(EGamepadButton Button) const
     {
         return (ButtonMask & (1 << static_cast<uint8>(Button))) != 0;
