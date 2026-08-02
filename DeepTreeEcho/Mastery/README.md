@@ -52,6 +52,9 @@ That is what makes it testable without Unreal.
 | `Backends/MelodyLive2DBackend.h` | The only file that knows a rig-specific parameter name. |
 | `Tests/StandaloneMasteryBindingVerification.cpp` | 21 assertions, runs without UE. |
 | `Tests/StandaloneCompetitiveVerification.cpp` | 10 assertions, 8-opponent tournament. |
+| `Simulation/DuelGame.h` | Frame-accurate 1v1 duel — space, timing, commitment, resources. |
+| `Simulation/DuelAgent.h` | Skill-parameterized agents + the telemetry → `FMasterySignal` derivation. |
+| `Tests/StandaloneDuelSimulation.cpp` | 16 assertions, Tier-1 end-to-end integration. |
 
 Build and run the tests (same convention as `GameTraining/Tests/`):
 
@@ -195,3 +198,61 @@ and motion groups `Idle` / `Tap` / `Flick`. Everything else is standard-Cubism n
 marked **assumed**, written through `ApplyOptional()` so a missing ID degrades one channel
 silently instead of erroring or writing to the wrong parameter. Verify and promote the assumed
 list when the `.moc3` is available.
+
+
+---
+
+## Tier-1 integration — the stack on a real game
+
+`Simulation/DuelGame.h` + `Simulation/DuelAgent.h` + `Tests/StandaloneDuelSimulation.cpp`.
+
+Every other harness tests a pure function against hand-written input. Those proved the binding
+rules are self-consistent; they proved nothing about whether the contract can be **satisfied from
+real play**. This closes that gap:
+
+```
+gameplay -> telemetry -> FMasterySignal -> embodiment binding -> pose
+```
+
+The duel is the smallest game with genuine skill depth: **space** (attacks only reach inside a
+range), **timing** (startup / active / recovery frames, so a whiff leaves you punishable), and
+**resources** (stamina gates blocking and dodging, so turtling is not free). Those three are what
+let mastery be measured rather than declared.
+
+Notably this test compiles the **real** `MasterySignal.h` via a two-typedef shim
+(`Tests/StandaloneShim/CoreMinimal.h`) rather than mirroring the struct — so the contract header
+itself is under test. If that shim ever needs to grow, it means a header has acquired an engine
+dependency it should not have.
+
+### Results (60 rounds per matchup)
+
+| Matchup | Record | Reading |
+|---|---|---|
+| master vs novice | 60–0–0 | game rewards skill |
+| master vs average | 59–0–1 | monotone |
+| average vs novice | 55–0–5 | monotone |
+| master vs master | 24–12–24 | even, no seat advantage |
+
+Signals derived from that play, master vs novice:
+
+| Channel | Master | Novice |
+|---|---|---|
+| Competence | 0.830 | 0.118 |
+| ExecutionQuality | 0.555 | 0.357 |
+| TimingPrecision | 0.665 | 0.093 |
+| ReflexReadiness | 0.929 | 0.143 |
+| Signal trust | 0.759 | 0.765 |
+
+### Three things the numbers say
+
+- **Punish conversion separates players; hit rate barely does.** `TimingPrecision` spans
+  0.093 → 0.665 while `ExecutionQuality` moves only 0.357 → 0.555. That matches how real
+  fighting games actually differentiate skill, and it emerged from the mechanics rather than
+  being designed in.
+- **Signal trust is near-identical for both (0.759 vs 0.765), and that is correct.** Trust
+  measures *evidence quality*, not skill — a novice generates just as much evidence (more
+  attacks, in fact). Conflating the two would have been a design error.
+- **Sensitivity is weak at the top.** A 60–0 master-vs-novice result means this test cannot
+  detect a regression that makes the master merely *somewhat* worse. The skill dials are far
+  apart by design (it is the load-bearing "does skill matter" check), but a graded ladder of
+  closer matchups would make a better regression detector. Worth adding.
