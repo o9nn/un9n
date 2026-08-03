@@ -118,3 +118,59 @@ jobs:
           fi
           [ "$FAIL" -eq 0 ] && echo "GameTraining fields consistent."
           exit $FAIL
+
+  # ============================================================================
+  # Module membership. UBT compiles .cpp found under the MODULE directory
+  # (Source/DeepTreeEcho/) - NOT under PublicIncludePaths, which only adds -I.
+  # Implementation files outside the module are never compiled by the engine,
+  # which is precisely how a merge broke GameTraining unnoticed.
+  #
+  # ~107 .cpp files are currently in that position. That cannot be fixed in one
+  # step (it needs either relocation or a second module, and a real UBT run to
+  # validate), so this is a RATCHET: it fails if the number grows.
+  # ============================================================================
+  module-membership:
+    name: Module Membership Ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Count implementation files outside the compiled module
+        run: |
+          # Baseline recorded when the gap was discovered. Lower it as files are
+          # brought into the build; never raise it to make CI pass.
+          BASELINE=107
+
+          COUNT=$(find DeepTreeEcho -name '*.cpp' -not -path '*/Tests/*' | wc -l)
+          echo "Implementation files under DeepTreeEcho/ not compiled by UBT: $COUNT (baseline $BASELINE)"
+
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "::error::$COUNT .cpp files are outside the compiled module, up from $BASELINE."
+            echo "::error::New code under DeepTreeEcho/ is not reachable by UnrealBuildTool."
+            echo "Either place implementations under Source/DeepTreeEcho/, or reduce the baseline"
+            echo "in this workflow as files are migrated."
+            exit 1
+          fi
+
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "::notice::Down to $COUNT from $BASELINE - lower BASELINE in this workflow."
+          fi
+
+      - name: Report directories with no include path
+        run: |
+          BUILD_CS=Source/DeepTreeEcho/DeepTreeEcho.Build.cs
+          MISSING=0
+          while IFS= read -r dir; do
+            name="$(basename "$dir")"
+            [ "$name" = "Tests" ] && continue
+            n=$(find "$dir" -maxdepth 1 -name '*.cpp' 2>/dev/null | wc -l)
+            [ "$n" -eq 0 ] && continue
+            if ! grep -q "\"$name\"" "$BUILD_CS"; then
+              echo "::warning file=$BUILD_CS::DeepTreeEcho/$name has $n .cpp files but no include path"
+              MISSING=$((MISSING+1))
+            fi
+          done < <(find DeepTreeEcho -mindepth 1 -maxdepth 1 -type d | sort)
+          echo "Directories with .cpp but no registered include path: $MISSING"
