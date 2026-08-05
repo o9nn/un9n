@@ -54,6 +54,18 @@ struct FMasteryEmbodimentPose
     /** Jaw clench. Strain, tilt. */
     float JawTension = 0.0f;
 
+    /**
+     * AU17 - chin raiser, as DEFIANCE rather than as strain.
+     *
+     * Separate from JawTension on purpose. Both can recruit AU17, but they mean opposite things:
+     * a clenched jaw is someone struggling, a raised chin is someone asserting. The authored
+     * catalog is unambiguous that the expressive sense is the second one - chin raise appears in
+     * PUNK_03 "Defiant Confidence", VISION_02/04, and microexpression mEXP_09, all glossed
+     * "defiance, confidence". Driving it from strain (as an earlier version did) made a losing
+     * character lift her chin as though she were winning.
+     */
+    float ChinRaise = 0.0f;
+
     // ---- Body -------------------------------------------------------------------------------
 
     /** Spinal uprightness. 1 = tall and settled; 0 = slumped or hunched. */
@@ -65,7 +77,17 @@ struct FMasteryEmbodimentPose
     /** Shoulder elevation/tension. High = braced; low = loose. */
     float ShoulderTension = 0.0f;
 
-    /** Head tilt magnitude. Curiosity, playfulness, appraisal. */
+    /**
+     * Head tilt, SIGNED [-1,1]. Curiosity, playfulness, appraisal.
+     *
+     * The sign is not decorative and not arbitrary - it is read off the authored expression set,
+     * where the two directions carry different meaning: WONDER_02 "Curious Gaze" tilts to +8
+     * degrees, while JOY_02 "Laughing" and PHOTO_ExuberantLaugh tilt to -4 and -5. So
+     *   positive = inquisitive, still reading the situation
+     *   negative = mirthful, the situation already resolved in her favour
+     * An unsigned magnitude can only ever produce one of those, and a character who tilts her
+     * head exactly one way reads as broken.
+     */
     float HeadTilt = 0.0f;
 
     // ---- Motion quality ---------------------------------------------------------------------

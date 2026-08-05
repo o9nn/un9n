@@ -21,6 +21,16 @@
 //   ParamAngleY                     -2.0  .. 6.0
 //   ParamAngleZ                     -5.0  .. 8.0
 //
+// SCOPE - what this harness does NOT prove. It sweeps the POSE space directly, so it establishes
+// that the BACKEND can reach the authored values. It does not establish that the SYSTEM can,
+// because the binding does not produce every pose in that space. StandaloneExpressionRegister
+// found a concrete instance: this file reaches ParamEyeLOpen 0.15 by driving EyeNarrow to 1.0,
+// but the binding caps EyeNarrow at 0.75 (0.45*Flow + 0.3*Skill*Arousal), so a mastery signal
+// alone can only close the eyes to about 0.36. That is a deliberate scope boundary rather than a
+// bug - JOY_05 "Blissful" is triggered by transcendence, not by competence - but the distinction
+// between backend reachability and system reachability is real, and only the second one is what
+// a viewer actually sees.
+//
 // NOTE ON MouthOpenY. The backend deliberately does NOT cover the authored 0.80 maximum, and
 // that is correct rather than a gap: ParamMouthOpenY is the rig's LipSync channel, owned by a
 // speech system. The authored 0.55-0.80 values come from SPEAK_01 and the laughing expressions,

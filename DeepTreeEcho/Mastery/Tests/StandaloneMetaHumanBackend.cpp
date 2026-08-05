@@ -84,7 +84,8 @@ FMasteryEmbodimentPose FullPose()
     P.MouthCornerUp = 1.0f;
     P.MouthCornerDown = 1.0f;
     P.MouthTension = 0.0f;   // zero so the Duchenne term is not suppressed
-    P.JawTension = 1.0f;
+    P.ChinRaise = 1.0f;
+    P.JawTension = 0.0f;     // zero so AU17 isolates the deliberate chin-raise channel
     P.Asymmetry = 0.0f;      // zero so L and R are directly comparable
     P.BlinkRate = 15.0f;
     P.ExpressionIntensity = 1.0f;
@@ -123,6 +124,28 @@ int main()
         Check(Near(Rig.Get("mouthCornerPullL"), 1.0f), "AU12 -> mouthCornerPull at full");
         Check(Near(Rig.Get("mouthCornerDepressL"), 1.0f), "AU15 -> mouthCornerDepress at full");
         Check(Near(Rig.Get("jawChinRaiseDL"), 1.0f), "AU17 -> jawChinRaiseD at full");
+
+        // AU17 means DEFIANCE, not effort. Both a raised chin and a clenched jaw can recruit it,
+        // but they carry opposite meaning, and an earlier version drove this curve from
+        // JawTension alone - so the chin lifted only while STRUGGLING and never while winning,
+        // which inverts the expression the catalog actually specifies (PUNK_03, mEXP_09).
+        {
+            FRecordingRig Assert, Strainy;
+            FMasteryEmbodimentPose A;
+            A.ExpressionIntensity = 1.0f;
+            A.ChinRaise = 0.8f;
+            MasteryBackendMetaHuman::ApplyPose(Assert, A);
+
+            FMasteryEmbodimentPose S;
+            S.ExpressionIntensity = 1.0f;
+            S.JawTension = 0.8f;
+            MasteryBackendMetaHuman::ApplyPose(Strainy, S);
+
+            std::printf("      AU17 assert=%.3f strain=%.3f\n",
+                        Assert.Get("jawChinRaiseDL"), Strainy.Get("jawChinRaiseDL"));
+            Check(Assert.Get("jawChinRaiseDL") > 3.0f * Strainy.Get("jawChinRaiseDL"),
+                  "AU17 is dominated by assertion, not by strain");
+        }
 
         // The catalog's names, not ARKit's. A backend using ARKit names on a MetaHuman does
         // nothing at all, which is a failure mode worth pinning down explicitly.

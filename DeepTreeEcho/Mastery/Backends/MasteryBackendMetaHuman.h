@@ -150,9 +150,14 @@ namespace MasteryBackendMetaHuman
         ApplyLR(Rig, TEXT("mouthPressD"),       MouthTension * 0.8f, 0.0f);
 
         // ---- AU17 : chin raiser --------------------------------------------------------------
-        // The catalog maps jaw clench most closely to AU17; there is no dedicated "jaw tension"
-        // AU, and using jawOpen (AU26) for it would open the mouth, which is the opposite.
-        ApplyLR(Rig, TEXT("jawChinRaiseD"), I * Pose.JawTension, 0.0f);
+        // Dominated by the deliberate ChinRaise channel (defiance/assertion), with jaw clench a
+        // minor contributor. Both actions can recruit AU17, but they are not the same signal and
+        // an earlier version drove this curve from JawTension ALONE - so the only way to lift the
+        // chin was to be struggling, and a losing character asserted while a winning one never
+        // did. Asymmetry is passed through because the catalog's defiant smirk (PUNK_01/03) is
+        // explicitly one-sided.
+        ApplyLR(Rig, TEXT("jawChinRaiseD"),
+                I * (Pose.ChinRaise + 0.25f * Pose.JawTension), Asym * 0.6f);
 
         // ---- AU43 : eye closure --------------------------------------------------------------
         // Blink RATE is a temporal property; the rig receives instantaneous closure. A blink

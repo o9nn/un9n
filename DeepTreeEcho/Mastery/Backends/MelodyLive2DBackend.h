@@ -151,12 +151,10 @@ namespace MelodyLive2DBackend
         // Scaled to 8 so WONDER_02_CuriousGaze's authored +8 is reachable; a 6x scale clamped
         // at 8 could never actually get there.
         //
-        // KNOWN LIMITATION: FMasteryEmbodimentPose::HeadTilt is UNSIGNED (the binding clamps it
-        // to [0,1]), so only one tilt direction is ever produced. The authored set tilts BOTH
-        // ways - JOY_02 and PHOTO_ExuberantLaugh sit at -4 and -5, WONDER_02 at +8 - and a
-        // character who only ever tilts her head one way reads as broken. Fixing it properly
-        // means making HeadTilt signed in the pose struct, which touches the binding, the
-        // MetaHuman backend and their tests; recorded here rather than done blind.
+        // HeadTilt is now SIGNED, so both authored directions are reachable: positive is the
+        // inquisitive tilt (WONDER_02 at +8), negative the mirthful one (JOY_02 at -4,
+        // PHOTO_ExuberantLaugh at -5). The asymmetric clamp is the rig's, not a mistake - the
+        // artist uses more range one way than the other.
         ApplyOptional(Rig, TEXT("ParamAngleZ"), FMath::Clamp(I * Pose.HeadTilt * 8.0f, -5.0f, 8.0f));
         ApplyOptional(Rig, TEXT("ParamAngleX"), FMath::Clamp(I * Pose.PostureLean * 3.0f, -3.0f, 3.0f));
         ApplyOptional(Rig, TEXT("ParamAngleY"),
