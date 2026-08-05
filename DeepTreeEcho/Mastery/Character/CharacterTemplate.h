@@ -162,7 +162,12 @@ struct FCharacterReference
             Set(ECharacterLayer::Geometry,   EReferenceAuthority::Advisory);
             Set(ECharacterLayer::Identity,   EReferenceAuthority::Authoritative);
             Set(ECharacterLayer::Appearance, EReferenceAuthority::Authoritative);
-            Set(ECharacterLayer::Expression, EReferenceAuthority::Authoritative);
+            // Advisory, not Authoritative. EXPRESSION is defined above as "the blendshape/AU set
+            // the rig can hit", owned by the rig standard - a photograph cannot be authoritative
+            // about what a rig exposes, only about what the result should LOOK like. It is a
+            // target, exactly as portraits are. This was Authoritative and contradicted the
+            // layer's own stated ownership; no other source type claimed authority here.
+            Set(ECharacterLayer::Expression, EReferenceAuthority::Advisory);
             Set(ECharacterLayer::Motion,     EReferenceAuthority::Advisory);
             break;
 
@@ -220,6 +225,50 @@ struct FCharacterGeometry
 
     /** True once the mesh has been confirmed to load and bind in the target engine. */
     bool bValidatedInEngine = false;
+};
+
+/**
+ * IDENTITY layer: the face shape that makes her recognisably her.
+ *
+ * This layer existed in ECharacterLayer and in Validate() before it existed as data - authority
+ * over it could be asserted and checked, but there was nowhere to record WHAT the identity
+ * actually is or where it came from. A layer you can enforce but not represent is a rule with no
+ * subject, and it hid the one fact this whole file is built to keep visible: whether the shipped
+ * face was derived from a source that cannot legitimately originate one.
+ *
+ * Identity is deliberately separate from Geometry. Two characters can share a body mesh,
+ * skeleton and topology - all of Geometry - and differ entirely here.
+ */
+struct FCharacterIdentity
+{
+    /** The head mesh that actually defines the face. */
+    FString SourceHeadMeshPath;
+
+    /** MetaHuman DNA produced by an identity solve, when one exists. */
+    FString DnaPath;
+
+    /**
+     * True when the identity came from Mesh-to-MetaHuman, i.e. was FIT against Epic's scan
+     * database rather than used directly. The fit regresses toward real human averages, which
+     * matters for a stylised character: it is a legitimate identity source, but not a faithful
+     * reproduction of the input head.
+     */
+    bool bSolvedAgainstScanDatabase = false;
+
+    /** Labels of Advisory references used as sculpting TARGETS. Recording these is what keeps
+     *  "sculpted toward" distinguishable from "derived from" months later. */
+    TArray<FString> SculptTargetRefLabels;
+
+    /**
+     * THE FLAG THIS LAYER EXISTS FOR. Set only if the shipped face was actually originated from a
+     * Generated/ConceptArt source - an auto-remeshed image-to-3D output used directly rather than
+     * as a blockout. Such a surface has no edge loops around eyes and lips, no symmetry guarantee
+     * and no stable vertex order, so no blendshape rig can be authored against it.
+     *
+     * Not forbidden outright, because a proxy is a legitimate intermediate. But it must never be
+     * true silently, so Validate() reports it.
+     */
+    bool bOriginatedFromGeneratedSource = false;
 };
 
 /**
@@ -306,6 +355,7 @@ struct FCharacterTemplate
     FString CharacterName;
 
     FCharacterGeometry Geometry;
+    FCharacterIdentity Identity;
     FCharacterAppearance Appearance;
     FCharacterExpression Expression;
     FCharacterMotion Motion;
@@ -366,6 +416,32 @@ struct FCharacterTemplate
         {
             OutProblems.Add(TEXT("No facial rig standard declared - the embodiment binding has "
                                  "no backend to target."));
+            ++Problems;
+        }
+        // A standard can be declared and still have no implementation in this module. ARKit52 and
+        // Custom are real, common rig standards with no backend here, and the failure mode is
+        // silent: a near-miss backend would write curve names the rig has never heard of and
+        // produce a completely motionless face. Say so at validation time rather than at runtime.
+        if (Expression.Standard == EFacialRigStandard::ARKit52 ||
+            Expression.Standard == EFacialRigStandard::Custom)
+        {
+            OutProblems.Add(TEXT("Declared facial rig standard has no backend in this module - "
+                                 "only Live2DCubism and MetaHumanControlRig are implemented. A "
+                                 "mapping must be written before this character can be driven."));
+            ++Problems;
+        }
+        if (Identity.bOriginatedFromGeneratedSource)
+        {
+            OutProblems.Add(TEXT("IDENTITY was originated from a generated source. Such a surface "
+                                 "has no usable edge loops, symmetry or vertex order, so no "
+                                 "blendshape rig can be authored against it - usable as a proxy "
+                                 "blockout only, never as the shipped face."));
+            ++Problems;
+        }
+        if (Identity.SourceHeadMeshPath.IsEmpty())
+        {
+            OutProblems.Add(TEXT("No IDENTITY source head mesh - the layer has an authoritative "
+                                 "reference but no actual geometry recorded against it."));
             ++Problems;
         }
         return Problems;
