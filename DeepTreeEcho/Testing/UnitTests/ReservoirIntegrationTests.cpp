@@ -17,6 +17,9 @@
 #include <cmath>
 #include <Eigen/Dense>
 
+// Portable Pi constant (M_PI is not guaranteed in strict C++17)
+static constexpr double kPi = 3.14159265358979323846;
+
 // ============================================================================
 // Mock Reservoir Computing Types
 // ============================================================================
@@ -704,7 +707,7 @@ TEST(TemporalPatternTest, SequenceProcessing) {
     std::vector<Vector> outputs;
     for (int t = 0; t < 100; t++) {
         Vector input(1);
-        input(0) = std::sin(2.0 * M_PI * t / 20.0);
+        input(0) = std::sin(2.0 * kPi * t / 20.0);
         outputs.push_back(esn.Forward(input));
     }
     

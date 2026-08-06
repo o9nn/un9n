@@ -22,6 +22,10 @@
 #include <chrono>
 #include <random>
 #include <atomic>
+#include <cmath>
+
+// Portable Pi constant (M_PI is not guaranteed in strict C++17)
+static constexpr double kPi = 3.14159265358979323846;
 
 // ============================================================================
 // E2E Test Infrastructure
@@ -498,10 +502,10 @@ protected:
         
         // Create recognizable patterns
         for (int i = 0; i < 128; i++) {
-            input.Visual[i] = std::sin(2.0f * M_PI * i / 128.0f * pattern);
+            input.Visual[i] = std::sin(2.0f * static_cast<float>(kPi) * i / 128.0f * pattern);
         }
         for (int i = 0; i < 64; i++) {
-            input.Auditory[i] = std::cos(2.0f * M_PI * i / 64.0f * pattern);
+            input.Auditory[i] = std::cos(2.0f * static_cast<float>(kPi) * i / 64.0f * pattern);
         }
         
         return input;
