@@ -66,11 +66,20 @@ FMasteryEmbodimentPose MasteryEmbodimentBinding::Evaluate(const FMasterySignal& 
 
     // Economy of motion rises with skill and falls with strain. This is the single strongest
     // "she is good at this" cue.
-    Pose.MotionEconomy = Clamp01(Lerp(0.25f, 0.95f, Skill) - 0.25f * Strain);
+    //
+    // ComboFlow belongs here rather than nowhere. Chaining actions cleanly, without a reset
+    // between them, IS economy of motion - and until now this channel was read from the signal
+    // and then dropped, which meant it still counted toward signal coverage (and so toward the
+    // trust that unlocks expressiveness) while informing no part of the pose. A channel that buys
+    // amplitude without paying for it undermines the trust model.
+    const float ExecutionFluency = Clamp01(0.75f * Skill + 0.25f * ComboFlow);
+    Pose.MotionEconomy = Clamp01(Lerp(0.25f, 0.95f, ExecutionFluency) - 0.25f * Strain);
 
     // Reaction sharpness comes from reflex readiness and prediction - knowing what is coming
     // removes wind-up.
-    Pose.ReactionSharpness = Clamp01(0.15f + 0.5f * Reflex + 0.35f * Prediction);
+    // Coefficients still sum to 1.0 with the baseline, so the ceiling is unchanged.
+    Pose.ReactionSharpness = Clamp01(0.15f + 0.40f * Reflex + 0.25f * Prediction
+                                     + 0.20f * ComboFlow);
 
     // Fidget falls with skill and flow, rises with underload (boredom) and persona bias.
     Pose.IdleFidget = Clamp01(0.55f - 0.4f * Skill - 0.25f * Flow + 0.3f * Underload + Persona.FidgetBias);
@@ -131,13 +140,53 @@ FMasteryEmbodimentPose MasteryEmbodimentBinding::Evaluate(const FMasterySignal& 
     Pose.ShoulderTension = Clamp01((0.6f * Strain + 0.2f * Arousal - 0.25f * Skill)
                                    * (1.0f + Persona.TensionBias));
 
-    // Playful appraisal - suppressed under strain.
-    Pose.HeadTilt = Clamp01(Persona.PlayfulnessBias * (0.3f + 0.5f * Confidence) * (1.0f - Strain));
+    // Playful appraisal - suppressed under strain, and SIGNED.
+    //
+    // Magnitude is playfulness gated by strain, as before. The sign comes from whether the
+    // situation is still a question or already an answer: unresolved reading of an opponent tilts
+    // inquisitively (+, WONDER_02), settled amusement tilts mirthfully (-, JOY_02). Both
+    // directions occur in the authored set, so a magnitude-only channel could never reach half
+    // of it.
+    const float Inquisitive = Clamp01(1.0f - Prediction);
+    Pose.HeadTilt = ClampSigned(Persona.PlayfulnessBias * (1.0f - Strain)
+                                * (0.9f * Inquisitive - 0.8f * Ease));
 
     Pose.BreathRate = Persona.BaseBreathRate * (1.0f + 0.45f * Arousal + 0.35f * Strain - 0.2f * Flow);
 
+    // AU17 as assertion. Rises with confidence that is being EXERCISED - confidence alone, with
+    // nothing to push against, is just contentment. So it needs arousal (something is at stake)
+    // and it is suppressed by frustration, because a chin lifted while losing reads as delusion
+    // rather than defiance. Demonstrative personas show it more; understated ones barely at all.
+    //
+    // The 0.6 gain puts this on the authored catalog's scale rather than on an abstract 0..1 AU
+    // scale. Chin raise is a SLIGHT lift everywhere it appears in the catalog - PUNK_03 "Defiant
+    // Confidence", the most assertive entry in the whole library, sits at 0.20. An ungained
+    // formula produced roughly 0.49 for a confident winner, which is not defiance, it is a
+    // chin-up sneer. The arousal gate has almost no floor for the same reason: assertion with
+    // nothing to assert against is just contentment, and should read as a resting chin.
+    Pose.ChinRaise = Clamp01(0.6f * (0.55f * Confidence + 0.25f * Skill)
+                             * (0.10f + 0.90f * Arousal)
+                             * (1.0f - 0.7f * Frustration)
+                             * (0.3f + 0.7f * Persona.ConfidenceDisplayStyle));
+
     // Genuine affect is asymmetric; perfectly symmetric faces read as synthetic.
-    Pose.Asymmetry = Clamp01(0.15f + 0.35f * Persona.PlayfulnessBias * Ease);
+    //
+    // Driven by ENGAGEMENT, not by ease. The authored catalog makes asymmetry the signature of
+    // the challenge register - "want to play" and "what you've got" are both marked asymmetry
+    // High - and asymmetry is what separates the PUNK smirk from the JOY smile. An earlier
+    // version scaled it by Ease, which had it backwards: a hard-fought exchange flattened her
+    // face toward perfect symmetry exactly when the stakes were highest, which is precisely when
+    // a synthetic-looking face is most costly.
+    //
+    // The 0.55 span (rather than 0.35) is a REACHABILITY fix, measured rather than guessed. The
+    // catalog's signature smirks - PUNK_01 "Confident Smirk" and PUNK_02 "Mischievous Grin" -
+    // both sit at an asymmetry of 0.67 in pose terms (mouth_smile_L 0.5/0.6 against R 0.3/0.4).
+    // A 0.35 span capped the binding near 0.41 even at maximum playfulness and engagement, so
+    // those two expressions were nearest-neighbour to roughly 0.002% of a 1.5M-sample sweep of
+    // the signal space - present in the library, unreachable in practice. Melody could be
+    // defiant (PUNK_03, whose authored asymmetry is only 0.33) but could not actually smirk.
+    const float Engaged = Clamp01(0.5f * Confidence + 0.5f * Arousal);
+    Pose.Asymmetry = Clamp01(0.15f + 0.55f * Persona.PlayfulnessBias * Engaged);
 
     // ---- Expression intensity, and GUARD 2 -----------------------------------------------------
 
@@ -191,6 +240,7 @@ FMasteryEmbodimentPose MasteryEmbodimentBinding::EvaluateSmoothed(const FMastery
     S.MouthCornerDown     = Lerp(S.MouthCornerDown,     Target.MouthCornerDown,     Alpha);
     S.MouthTension        = Lerp(S.MouthTension,        Target.MouthTension,        Alpha);
     S.JawTension          = Lerp(S.JawTension,          Target.JawTension,          Alpha);
+    S.ChinRaise           = Lerp(S.ChinRaise,           Target.ChinRaise,           Alpha);
     S.PostureUprightness  = Lerp(S.PostureUprightness,  Target.PostureUprightness,  Alpha);
     S.PostureLean         = Lerp(S.PostureLean,         Target.PostureLean,         Alpha);
     S.ShoulderTension     = Lerp(S.ShoulderTension,     Target.ShoulderTension,     Alpha);
