@@ -1,6 +1,6 @@
 {
   "goal_id": "un9n-avatar-complete",
-  "status": "built",
+  "status": "inspected",
   "iteration": 1,
   "builder_model": "Claude:Sonnet-4.6",
   "inspector_model": "Claude:Haiku-4.5",
@@ -14,6 +14,12 @@
       "build_status": "pass",
       "unit_tests": "217/217",
       "e2e_tests": "60/60"
+    },
+    {
+      "iteration": 1,
+      "role": "inspector",
+      "verdict": "PASS",
+      "summary": "All criteria verified: build + 217 unit + 60 E2E tests pass; M_PI fix portable/consistent; no scope violations."
     }
   ]
 }
