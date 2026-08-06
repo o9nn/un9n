@@ -15,6 +15,9 @@
 #include <vector>
 #include <cmath>
 #include <random>
+
+// Portable Pi constant (M_PI is not guaranteed in strict C++17)
+static constexpr double kPi = 3.14159265358979323846;
 #include <chrono>
 #include <Eigen/Dense>
 
@@ -389,7 +392,7 @@ protected:
         for (int t = 0; t < length; t++) {
             Vector v(dim);
             for (int i = 0; i < dim; i++) {
-                v(i) = std::sin(2.0 * M_PI * t / 20.0 + i * 0.1);
+                v(i) = std::sin(2.0 * kPi * t / 20.0 + i * 0.1);
             }
             sequence.push_back(v);
         }
