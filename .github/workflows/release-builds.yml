@@ -170,7 +170,8 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: '2024.01.12'
+          # vcpkg tag 2024.01.12 (run-vcpkg requires a full SHA1 hash)
+          vcpkgGitCommitId: '53bef8994c541b6561884a8395ea35715ece75db'
 
       - name: Cache vcpkg
         uses: actions/cache@v6
