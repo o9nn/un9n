@@ -1,4 +1,5 @@
 #include "CognitiveVisualizationComponent.h"
+#include "DeepTreeEchoContentPaths.h"
 #include "DrawDebugHelpers.h"
 
 UCognitiveVisualizationComponent::UCognitiveVisualizationComponent()
@@ -18,6 +19,16 @@ UCognitiveVisualizationComponent::UCognitiveVisualizationComponent()
     bDecisionVisualizationActive = false;
     SelectedDecisionIndex = -1;
     DecisionVisualizationTimer = 0.0f;
+
+    MemoryNodeSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(DTEContent::NiagaraPath(TEXT("NS_MemoryNode"))));
+    EchoResonanceSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(DTEContent::NiagaraPath(TEXT("NS_EchoResonance"))));
+    CognitiveLoadSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(DTEContent::NiagaraPath(TEXT("NS_CognitiveLoad"))));
+    EmotionalAuraSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(DTEContent::NiagaraPath(TEXT("NS_EmotionalAura"))));
+
+    EmotionalAuraPostProcess = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::PostProcessPath(TEXT("PP_EmotionalAura"))));
+    CognitiveLoadHeatMapPostProcess = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::PostProcessPath(TEXT("PP_CognitiveLoadHeatMap"))));
+    GlitchPostProcess = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::PostProcessPath(TEXT("PP_GlitchEffect"))));
+    EchoResonanceDistortionPostProcess = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::PostProcessPath(TEXT("PP_EchoResonanceDistortion"))));
 }
 
 void UCognitiveVisualizationComponent::BeginPlay()

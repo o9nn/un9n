@@ -1,0 +1,159 @@
+{
+  "root": "/Game/DeepTreeEcho",
+  "animationBlueprint": {
+    "name": "ABP_DeepTreeEcho_Avatar",
+    "package": "/Game/DeepTreeEcho/Animations/Blueprints",
+    "parentClass": "AvatarAnimInstance",
+    "locomotionStates": ["Idle", "Walk", "Run"],
+    "gestureSlot": "Gesture"
+  },
+  "materialFunctions": [
+    { "name": "MF_SubsurfaceScattering", "package": "/Game/DeepTreeEcho/Materials/Functions" },
+    { "name": "MF_EmotionalBlush", "package": "/Game/DeepTreeEcho/Materials/Functions" },
+    { "name": "MF_GlitchEffect", "package": "/Game/DeepTreeEcho/Materials/Functions" },
+    { "name": "MF_EyeRefraction", "package": "/Game/DeepTreeEcho/Materials/Functions" },
+    { "name": "MF_AnisotropicSpecular", "package": "/Game/DeepTreeEcho/Materials/Functions" }
+  ],
+  "masterMaterials": [
+    {
+      "name": "M_DTE_Skin",
+      "package": "/Game/DeepTreeEcho/Materials/Master",
+      "shadingModel": "Subsurface",
+      "slot": "Skin"
+    },
+    {
+      "name": "M_DTE_Eye",
+      "package": "/Game/DeepTreeEcho/Materials/Master",
+      "shadingModel": "DefaultLit",
+      "slot": "Eyes"
+    },
+    {
+      "name": "M_DTE_Hair",
+      "package": "/Game/DeepTreeEcho/Materials/Master",
+      "shadingModel": "Hair",
+      "slot": "Hair"
+    }
+  ],
+  "materialInstances": [
+    { "name": "MI_DTE_Skin_Default", "package": "/Game/DeepTreeEcho/Materials/Instances", "parent": "M_DTE_Skin" },
+    { "name": "MI_DTE_Eye_Default", "package": "/Game/DeepTreeEcho/Materials/Instances", "parent": "M_DTE_Eye" },
+    { "name": "MI_DTE_Hair_Default", "package": "/Game/DeepTreeEcho/Materials/Instances", "parent": "M_DTE_Hair" }
+  ],
+  "materialParameters": {
+    "Skin": [
+      "Smoothness",
+      "Subsurface",
+      "Translucency",
+      "BlushIntensity",
+      "BlushColor",
+      "AuraIntensity",
+      "AuraColor",
+      "GlitchIntensity",
+      "BaseColor",
+      "SubsurfaceColor"
+    ],
+    "Hair": [
+      "Anisotropy",
+      "ShimmerIntensity",
+      "ShimmerSpeed",
+      "ChaosColorShift",
+      "EchoGlow"
+    ],
+    "Eyes": [
+      "PupilDilation",
+      "SparkleIntensity",
+      "Moisture",
+      "SparklePositionX",
+      "SparklePositionY"
+    ],
+    "Global": [
+      "GlobalGlitchIntensity",
+      "CognitiveLoad"
+    ]
+  },
+  "montages": [
+    { "id": "Idle_ThinkingPose", "asset": "AM_Idle_ThinkingPose", "category": "Idle", "duration": 3.0, "extraversion": 0.3, "openness": 0.8, "valence": 0.1, "arousal": 0.3 },
+    { "id": "Idle_HairTuck", "asset": "AM_Idle_HairTuck", "category": "Idle", "duration": 2.0, "extraversion": 0.6, "openness": 0.5, "valence": 0.4, "arousal": 0.4 },
+    { "id": "Idle_ArmsCrossed", "asset": "AM_Idle_ArmsCrossed", "category": "Idle", "duration": 4.0, "extraversion": 0.7, "openness": 0.3, "valence": 0.2, "arousal": 0.3 },
+    { "id": "Idle_LookAround", "asset": "AM_Idle_LookAround", "category": "Idle", "duration": 5.0, "extraversion": 0.5, "openness": 0.7, "valence": 0.2, "arousal": 0.4 },
+    { "id": "Idle_ShiftWeight", "asset": "AM_Idle_ShiftWeight", "category": "Idle", "duration": 2.0, "extraversion": 0.5, "openness": 0.5, "valence": 0.0, "arousal": 0.2 },
+    { "id": "Idle_StretchArms", "asset": "AM_Idle_StretchArms", "category": "Idle", "duration": 4.0, "extraversion": 0.4, "openness": 0.5, "valence": 0.3, "arousal": 0.3 },
+    { "id": "Idle_Fidget", "asset": "AM_Idle_Fidget", "category": "Idle", "duration": 3.0, "extraversion": 0.3, "openness": 0.4, "valence": -0.2, "arousal": 0.6 },
+    { "id": "Idle_PlayWithHair", "asset": "AM_Idle_PlayWithHair", "category": "Idle", "duration": 4.0, "extraversion": 0.6, "openness": 0.5, "valence": 0.4, "arousal": 0.4 },
+    { "id": "Emote_Laugh", "asset": "AM_Emote_Laugh", "category": "Emote", "duration": 2.0, "extraversion": 0.8, "openness": 0.6, "valence": 0.9, "arousal": 0.7 },
+    { "id": "Emote_Giggle", "asset": "AM_Emote_Giggle", "category": "Emote", "duration": 1.5, "extraversion": 0.7, "openness": 0.6, "valence": 0.7, "arousal": 0.5 },
+    { "id": "Emote_Sigh", "asset": "AM_Emote_Sigh", "category": "Emote", "duration": 2.0, "extraversion": 0.3, "openness": 0.4, "valence": -0.5, "arousal": 0.2 },
+    { "id": "Emote_Gasp", "asset": "AM_Emote_Gasp", "category": "Emote", "duration": 1.0, "extraversion": 0.5, "openness": 0.7, "valence": 0.1, "arousal": 0.9 },
+    { "id": "Emote_Pout", "asset": "AM_Emote_Pout", "category": "Emote", "duration": 2.0, "extraversion": 0.4, "openness": 0.4, "valence": -0.4, "arousal": 0.3 },
+    { "id": "Emote_Wink", "asset": "AM_Emote_Wink", "category": "Emote", "duration": 0.5, "extraversion": 0.8, "openness": 0.6, "valence": 0.6, "arousal": 0.5 },
+    { "id": "Emote_Blush", "asset": "AM_Emote_Blush", "category": "Emote", "duration": 2.0, "extraversion": 0.4, "openness": 0.5, "valence": 0.3, "arousal": 0.5 },
+    { "id": "Emote_Facepalm", "asset": "AM_Emote_Facepalm", "category": "Emote", "duration": 2.0, "extraversion": 0.4, "openness": 0.4, "valence": -0.4, "arousal": 0.5 },
+    { "id": "Emote_Shrug", "asset": "AM_Emote_Shrug", "category": "Emote", "duration": 1.5, "extraversion": 0.5, "openness": 0.5, "valence": 0.0, "arousal": 0.3 },
+    { "id": "Emote_Nod", "asset": "AM_Emote_Nod", "category": "Emote", "duration": 1.0, "extraversion": 0.5, "openness": 0.5, "valence": 0.3, "arousal": 0.3 },
+    { "id": "Emote_Shake", "asset": "AM_Emote_Shake", "category": "Emote", "duration": 1.0, "extraversion": 0.5, "openness": 0.5, "valence": -0.2, "arousal": 0.3 },
+    { "id": "Gesture_Wave", "asset": "AM_Gesture_Wave", "category": "Gesture", "duration": 2.0, "extraversion": 0.8, "openness": 0.5, "valence": 0.5, "arousal": 0.4 },
+    { "id": "Gesture_Point", "asset": "AM_Gesture_Point", "category": "Gesture", "duration": 1.5, "extraversion": 0.6, "openness": 0.5, "valence": 0.1, "arousal": 0.4 },
+    { "id": "Gesture_Beckon", "asset": "AM_Gesture_Beckon", "category": "Gesture", "duration": 2.0, "extraversion": 0.7, "openness": 0.5, "valence": 0.4, "arousal": 0.4 },
+    { "id": "Gesture_ThumbsUp", "asset": "AM_Gesture_ThumbsUp", "category": "Gesture", "duration": 1.5, "extraversion": 0.7, "openness": 0.5, "valence": 0.6, "arousal": 0.4 },
+    { "id": "Gesture_ThumbsDown", "asset": "AM_Gesture_ThumbsDown", "category": "Gesture", "duration": 1.5, "extraversion": 0.5, "openness": 0.4, "valence": -0.4, "arousal": 0.4 },
+    { "id": "Gesture_Explain", "asset": "AM_Gesture_Explain", "category": "Gesture", "duration": 4.0, "extraversion": 0.6, "openness": 0.7, "valence": 0.2, "arousal": 0.4 },
+    { "id": "Gesture_CountFingers", "asset": "AM_Gesture_CountFingers", "category": "Gesture", "duration": 3.0, "extraversion": 0.5, "openness": 0.6, "valence": 0.1, "arousal": 0.3 },
+    { "id": "Gesture_Shush", "asset": "AM_Gesture_Shush", "category": "Gesture", "duration": 2.0, "extraversion": 0.4, "openness": 0.4, "valence": 0.0, "arousal": 0.3 },
+    { "id": "Gesture_ComeHere", "asset": "AM_Gesture_ComeHere", "category": "Gesture", "duration": 2.0, "extraversion": 0.7, "openness": 0.5, "valence": 0.4, "arousal": 0.5 },
+    { "id": "Gesture_Stop", "asset": "AM_Gesture_Stop", "category": "Gesture", "duration": 1.5, "extraversion": 0.5, "openness": 0.4, "valence": -0.1, "arousal": 0.5 }
+  ],
+  "niagara": [
+    { "name": "NS_MemoryNode", "package": "/Game/DeepTreeEcho/Particles/Niagara", "userParams": ["SpawnRate", "MemoryImportance", "MemoryColor", "OrbitSpeed"] },
+    { "name": "NS_EchoResonance", "package": "/Game/DeepTreeEcho/Particles/Niagara", "userParams": ["EchoIntensity", "EchoColor", "SpawnRate", "RingSpeed"] },
+    { "name": "NS_CognitiveLoad", "package": "/Game/DeepTreeEcho/Particles/Niagara", "userParams": ["CognitiveLoad", "HeatColor", "SpawnRate"] },
+    { "name": "NS_EmotionalAura", "package": "/Game/DeepTreeEcho/Particles/Niagara", "userParams": ["AuraIntensity", "AuraColor", "AuraRadius"] }
+  ],
+  "postProcess": [
+    { "name": "PP_EmotionalAura", "package": "/Game/DeepTreeEcho/PostProcessing", "params": ["AuraColor", "AuraIntensity", "AuraRadius", "AuraSharpness"] },
+    { "name": "PP_CognitiveLoadHeatMap", "package": "/Game/DeepTreeEcho/PostProcessing", "params": ["HeatIntensity", "HeatColor", "CognitiveLoad"] },
+    { "name": "PP_GlitchEffect", "package": "/Game/DeepTreeEcho/PostProcessing", "params": ["GlitchIntensity", "GlitchSpeed", "ChaosFactor"] },
+    { "name": "PP_EchoResonanceDistortion", "package": "/Game/DeepTreeEcho/PostProcessing", "params": ["EchoIntensity", "DistortionAmount", "EchoColor"] }
+  ],
+  "audio": {
+    "voice": [{ "name": "SFX_DTE_Voice_Base", "package": "/Game/DeepTreeEcho/Audio/Voice" }],
+    "gestures": [
+      { "id": "Wave", "name": "SFX_DTE_Gesture_Wave" },
+      { "id": "Point", "name": "SFX_DTE_Gesture_Point" },
+      { "id": "Beckon", "name": "SFX_DTE_Gesture_Beckon" },
+      { "id": "ThumbsUp", "name": "SFX_DTE_Gesture_ThumbsUp" },
+      { "id": "ThumbsDown", "name": "SFX_DTE_Gesture_ThumbsDown" },
+      { "id": "Explain", "name": "SFX_DTE_Gesture_Explain" },
+      { "id": "CountFingers", "name": "SFX_DTE_Gesture_CountFingers" },
+      { "id": "Shush", "name": "SFX_DTE_Gesture_Shush" },
+      { "id": "ComeHere", "name": "SFX_DTE_Gesture_ComeHere" },
+      { "id": "Stop", "name": "SFX_DTE_Gesture_Stop" }
+    ],
+    "emotional": [
+      { "id": "Neutral", "name": "SFX_DTE_Emotion_Neutral" },
+      { "id": "Happy", "name": "SFX_DTE_Emotion_Happy" },
+      { "id": "Sad", "name": "SFX_DTE_Emotion_Sad" },
+      { "id": "Excited", "name": "SFX_DTE_Emotion_Excited" },
+      { "id": "Angry", "name": "SFX_DTE_Emotion_Angry" },
+      { "id": "Flirty", "name": "SFX_DTE_Emotion_Flirty" },
+      { "id": "Surprised", "name": "SFX_DTE_Emotion_Surprised" }
+    ],
+    "music": [
+      { "id": "Neutral", "name": "MUS_DTE_Theme_Neutral" },
+      { "id": "Happy", "name": "MUS_DTE_Theme_Happy" },
+      { "id": "Sad", "name": "MUS_DTE_Theme_Sad" },
+      { "id": "Excited", "name": "MUS_DTE_Theme_Excited" },
+      { "id": "Angry", "name": "MUS_DTE_Theme_Angry" },
+      { "id": "Flirty", "name": "MUS_DTE_Theme_Flirty" }
+    ],
+    "ambient": [
+      { "name": "SFX_DTE_Ambient_Cognitive", "package": "/Game/DeepTreeEcho/Audio/Emotional" },
+      { "name": "SFX_DTE_Ambient_Chaos", "package": "/Game/DeepTreeEcho/Audio/Emotional" },
+      { "name": "SFX_DTE_CognitiveProcessing", "package": "/Game/DeepTreeEcho/Audio/Emotional" },
+      { "name": "SFX_DTE_EchoResonance", "package": "/Game/DeepTreeEcho/Audio/Emotional" }
+    ]
+  },
+  "montageLibrary": {
+    "name": "DA_DTE_MontageLibrary",
+    "package": "/Game/DeepTreeEcho/Animations"
+  }
+}

@@ -53,6 +53,7 @@ public class UnrealEcho : ModuleRules
 				"InputCore",
 				"UMG",
 				"AnimGraphRuntime",
+				"Niagara",
 				"DeepTreeEcho",  // Cognitive architecture dependency
 			}
 		);

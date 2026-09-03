@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "NiagaraSystem.h"
+#include "Materials/MaterialInterface.h"
 #include "CognitiveVisualizationComponent.generated.h"
 
 UENUM(BlueprintType)
@@ -120,6 +122,31 @@ public:
     /** Enable/disable cognitive visualization */
     UFUNCTION(BlueprintCallable, Category = "Cognitive Visualization")
     void SetVisualizationEnabled(bool bEnabled);
+
+    /** Niagara systems generated under /Game/DeepTreeEcho/Particles/Niagara */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|Niagara")
+    TSoftObjectPtr<UNiagaraSystem> MemoryNodeSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|Niagara")
+    TSoftObjectPtr<UNiagaraSystem> EchoResonanceSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|Niagara")
+    TSoftObjectPtr<UNiagaraSystem> CognitiveLoadSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|Niagara")
+    TSoftObjectPtr<UNiagaraSystem> EmotionalAuraSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|PostProcess")
+    TSoftObjectPtr<UMaterialInterface> EmotionalAuraPostProcess;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|PostProcess")
+    TSoftObjectPtr<UMaterialInterface> CognitiveLoadHeatMapPostProcess;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|PostProcess")
+    TSoftObjectPtr<UMaterialInterface> GlitchPostProcess;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cognitive Visualization|PostProcess")
+    TSoftObjectPtr<UMaterialInterface> EchoResonanceDistortionPostProcess;
 
     /** Get neural network nodes */
     UFUNCTION(BlueprintPure, Category = "Cognitive Visualization")
