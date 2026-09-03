@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Sound/SoundBase.h"
+#include "UObject/SoftObjectPath.h"
 #include "AudioManagerComponent.generated.h"
 
 // Forward declarations
@@ -66,6 +67,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Audio|Ambient")
     void UpdateAmbientSound(float CognitiveLoad, float ChaosFactor);
 
+    /** Soft paths for generated audio stubs (no media committed). */
+    UFUNCTION(BlueprintCallable, Category = "Audio|Content")
+    void BindDefaultAudioContentPaths();
+
 protected:
     // Voice System Properties
     UPROPERTY(EditAnywhere, Category = "Audio|Voice")
@@ -109,6 +114,30 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Audio|Ambient")
     USoundBase* ChaosAmbience;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    TMap<FName, FSoftObjectPath> DefaultGestureSoundPaths;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    TMap<EAvatarEmotionalState, FSoftObjectPath> DefaultEmotionalSoundPaths;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    TMap<EAvatarEmotionalState, FSoftObjectPath> DefaultMusicThemePaths;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    FSoftObjectPath DefaultVoicePath;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    FSoftObjectPath DefaultCognitiveSoundPath;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    FSoftObjectPath DefaultEchoResonanceSoundPath;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    FSoftObjectPath DefaultCognitiveAmbiencePath;
+
+    UPROPERTY(EditAnywhere, Category = "Audio|Content")
+    FSoftObjectPath DefaultChaosAmbiencePath;
 
     UPROPERTY()
     UAudioComponent* AmbienceComponent;

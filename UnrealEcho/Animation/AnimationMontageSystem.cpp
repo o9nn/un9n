@@ -4,6 +4,7 @@
 #include "AnimationMontageSystem.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "DeepTreeEchoContentPaths.h"
 #include "Personality/PersonalityTraitSystem.h"
 #include "Cognitive/EmotionalState.h"
 
@@ -72,10 +73,23 @@ void UAnimationMontageSystem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Use default library if set
 	if (DefaultMontageLibrary)
 	{
 		CurrentLibrary = DefaultMontageLibrary;
+	}
+	else if (UObject* Loaded = FSoftObjectPath(DTEContent::MontageLibraryPath()).TryLoad())
+	{
+		CurrentLibrary = Cast<UMontageLibraryDataAsset>(Loaded);
+	}
+
+	if (!CurrentLibrary)
+	{
+		CurrentLibrary = NewObject<UMontageLibraryDataAsset>(this, TEXT("DTE_RuntimeMontageLibrary"));
+	}
+
+	if (CurrentLibrary && CurrentLibrary->Montages.Num() == 0)
+	{
+		DTEContent::FillDefaultMontageLibrary(*CurrentLibrary);
 	}
 }
 

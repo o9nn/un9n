@@ -4,6 +4,7 @@
 #include "Sound/SoundBase.h"
 #include "Avatar/AvatarAnimInstance.h"
 #include "Personality/PersonalityTraitSystem.h"
+#include "DeepTreeEchoContentPaths.h"
 
 UAudioManagerComponent::UAudioManagerComponent()
 {
@@ -18,6 +19,59 @@ UAudioManagerComponent::UAudioManagerComponent()
     CurrentEmotionalIntensity = 0.5f;
     CurrentCognitiveLoad = 0.0f;
     CurrentChaosFactor = 0.0f;
+
+    BindDefaultAudioContentPaths();
+}
+
+void UAudioManagerComponent::BindDefaultAudioContentPaths()
+{
+    DefaultGestureSoundPaths.Empty();
+    DefaultEmotionalSoundPaths.Empty();
+    DefaultMusicThemePaths.Empty();
+
+    DefaultVoicePath = FSoftObjectPath(DTEContent::ObjectPath(TEXT("/Game/DeepTreeEcho/Audio/Voice"), TEXT("SFX_DTE_Voice_Base")));
+    DefaultCognitiveSoundPath = FSoftObjectPath(DTEContent::EmotionSfxPath(TEXT("SFX_DTE_CognitiveProcessing")));
+    DefaultEchoResonanceSoundPath = FSoftObjectPath(DTEContent::EmotionSfxPath(TEXT("SFX_DTE_EchoResonance")));
+    DefaultCognitiveAmbiencePath = FSoftObjectPath(DTEContent::EmotionSfxPath(TEXT("SFX_DTE_Ambient_Cognitive")));
+    DefaultChaosAmbiencePath = FSoftObjectPath(DTEContent::EmotionSfxPath(TEXT("SFX_DTE_Ambient_Chaos")));
+
+    auto BindGesture = [this](const TCHAR* Id, const TCHAR* Asset)
+    {
+        DefaultGestureSoundPaths.Add(Id, FSoftObjectPath(DTEContent::GestureSfxPath(Asset)));
+    };
+    BindGesture(TEXT("Wave"), TEXT("SFX_DTE_Gesture_Wave"));
+    BindGesture(TEXT("Point"), TEXT("SFX_DTE_Gesture_Point"));
+    BindGesture(TEXT("Beckon"), TEXT("SFX_DTE_Gesture_Beckon"));
+    BindGesture(TEXT("ThumbsUp"), TEXT("SFX_DTE_Gesture_ThumbsUp"));
+    BindGesture(TEXT("ThumbsDown"), TEXT("SFX_DTE_Gesture_ThumbsDown"));
+    BindGesture(TEXT("Explain"), TEXT("SFX_DTE_Gesture_Explain"));
+    BindGesture(TEXT("CountFingers"), TEXT("SFX_DTE_Gesture_CountFingers"));
+    BindGesture(TEXT("Shush"), TEXT("SFX_DTE_Gesture_Shush"));
+    BindGesture(TEXT("ComeHere"), TEXT("SFX_DTE_Gesture_ComeHere"));
+    BindGesture(TEXT("Stop"), TEXT("SFX_DTE_Gesture_Stop"));
+
+    auto BindEmotion = [this](EAvatarEmotionalState State, const TCHAR* Asset)
+    {
+        DefaultEmotionalSoundPaths.Add(State, FSoftObjectPath(DTEContent::EmotionSfxPath(Asset)));
+    };
+    BindEmotion(EAvatarEmotionalState::Neutral, TEXT("SFX_DTE_Emotion_Neutral"));
+    BindEmotion(EAvatarEmotionalState::Happy, TEXT("SFX_DTE_Emotion_Happy"));
+    BindEmotion(EAvatarEmotionalState::Sad, TEXT("SFX_DTE_Emotion_Sad"));
+    BindEmotion(EAvatarEmotionalState::Excited, TEXT("SFX_DTE_Emotion_Excited"));
+    BindEmotion(EAvatarEmotionalState::Angry, TEXT("SFX_DTE_Emotion_Angry"));
+    BindEmotion(EAvatarEmotionalState::Flirty, TEXT("SFX_DTE_Emotion_Flirty"));
+    BindEmotion(EAvatarEmotionalState::Surprised, TEXT("SFX_DTE_Emotion_Surprised"));
+
+    auto BindMusic = [this](EAvatarEmotionalState State, const TCHAR* Asset)
+    {
+        DefaultMusicThemePaths.Add(State, FSoftObjectPath(DTEContent::MusicPath(Asset)));
+    };
+    BindMusic(EAvatarEmotionalState::Neutral, TEXT("MUS_DTE_Theme_Neutral"));
+    BindMusic(EAvatarEmotionalState::Happy, TEXT("MUS_DTE_Theme_Happy"));
+    BindMusic(EAvatarEmotionalState::Sad, TEXT("MUS_DTE_Theme_Sad"));
+    BindMusic(EAvatarEmotionalState::Excited, TEXT("MUS_DTE_Theme_Excited"));
+    BindMusic(EAvatarEmotionalState::Angry, TEXT("MUS_DTE_Theme_Angry"));
+    BindMusic(EAvatarEmotionalState::Flirty, TEXT("MUS_DTE_Theme_Flirty"));
 }
 
 void UAudioManagerComponent::BeginPlay()

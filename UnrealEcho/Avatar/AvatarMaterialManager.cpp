@@ -6,10 +6,14 @@
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/Texture.h"
+#include "DeepTreeEchoContentPaths.h"
 
 UAvatarMaterialManager::UAvatarMaterialManager()
 {
     OwnerMesh = nullptr;
+    DefaultSkinMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::SkinInstancePath()));
+    DefaultEyeMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::EyeInstancePath()));
+    DefaultHairMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(DTEContent::HairInstancePath()));
 }
 
 void UAvatarMaterialManager::Initialize(USkeletalMeshComponent* SkeletalMesh)

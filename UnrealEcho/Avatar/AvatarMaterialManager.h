@@ -181,6 +181,16 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Avatar|Materials")
     void SetEmotionalAura(float Intensity, const FLinearColor& Color);
 
+    /** Default generated material instances under /Game/DeepTreeEcho/Materials/Instances */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Materials|Defaults")
+    TSoftObjectPtr<UMaterialInterface> DefaultSkinMaterial;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Materials|Defaults")
+    TSoftObjectPtr<UMaterialInterface> DefaultEyeMaterial;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Materials|Defaults")
+    TSoftObjectPtr<UMaterialInterface> DefaultHairMaterial;
+
 protected:
     /**
      * Material instance storage
