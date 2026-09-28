@@ -153,6 +153,15 @@ Wiring it up exposed a driver bug the single-cue tests could not: `React()` rest
 timer on every cue, so in a fight a slow character's wind-ups were reset before they finished and
 dense cues were never answered. Each cue now has its own timer.
 
+**Routed by the character template.** `FCharacterMotion::BodyStandard` declares the body rig
+(`UE5Skeleton`, `Live2DCubism` or `None`) the same way `EFacialRigStandard` declares the face, and
+`CharacterRigDispatch::ApplyEmbodiment` routes both — so the template, not the caller, decides
+where the body lands. Three refusals mirror the face's ARKit refusal: a `UE5Skeleton` body on a
+mesh whose `SkeletonId` is not `UE5_Manny`/`MetaHuman` (Genesis and Mixamo name the joints
+differently, so every bone write would silently miss), a Live2D body without a Live2D face (the
+body rides the face's shared parameters), and no declared body at all. `Validate()` reports all
+three. The dispatch stays stateless: the caller's `FDriver` owns time and passes its frame in.
+
 **Still not built:** the provider adapters (`UGameSkillTrainingSystem` → signal,
 `UGamingMasterySystem` → signal, `UReinforcementLearningBridge`'s `FCognitiveModulation` → affect
 channels), the multi-provider aggregator, and a MetaHuman backend. The signal contract is still
