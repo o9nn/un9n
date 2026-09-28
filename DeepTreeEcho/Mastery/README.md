@@ -49,7 +49,9 @@ That is what makes it testable without Unreal.
 | `Personas/MelodyPersona.h` | Melody, as a struct literal. No class, no asset path. |
 | `Personas/CompetitivePersonas.h` | Aion and Toga temperaments, plus a weighted `Blend()`. |
 | `Competitive/CounterAdaptivePolicy.h` | Safe exploitation — see the competitive section below. |
-| `Backends/MelodyLive2DBackend.h` | The only file that knows a rig-specific parameter name. |
+| `Backends/MelodyLive2DBackend.h` | Melody's Live2D face; adds the body layer's offsets when given them. |
+| `Backends/MasteryBackendBody.h` | The body: a seeded driver turning motion-quality channels into dynamics, realized on the UE5/MetaHuman skeleton and on Live2D. |
+| `Tests/StandaloneBodyBackend.cpp` | Measures overshoot, wind-up, fidgets, sway and saccades — master vs novice on identical random draws. |
 | `Tests/StandaloneMasteryBindingVerification.cpp` | 21 assertions, runs without UE. |
 | `Tests/StandaloneCompetitiveVerification.cpp` | 10 assertions, 8-opponent tournament. |
 | `Simulation/DuelGame.h` | Frame-accurate 1v1 duel — space, timing, commitment, resources. |
@@ -111,6 +113,30 @@ rules, the Melody persona, and the standalone test (21/21).
 
 **Also built since:** the competitive layer (below), Aion/Toga personas with blending, and
 Melody's Live2D backend.
+
+**Body backend (built).** Both face backends dropped every motion-quality channel, so a master
+and a novice rendered identically except for the face. `Backends/MasteryBackendBody.h` turns
+them into dynamics rather than curves, because none of them is a pose:
+
+| Channel | Becomes | Measured (Melody, master vs novice, via the real binding) |
+|---|---|---|
+| `MotionEconomy` | damping ratio of every postural spring (0.30 → 1.0) | overshoot 0.0% vs 9.4% |
+| `ReactionSharpness` | onset latency 280 → 40 ms, spring stiffness | onset 83 vs 250 ms |
+| `IdleFidget` | Poisson weight shifts, up to 8/min | 1 vs 14 in 120 s |
+| `MicroMovementRate` | amplitude of incommensurate spine/neck sway | 0.40° vs 0.79° RMS |
+| `SaccadeRate` (+ gaze wander) | Poisson ballistic eye jumps, reach from steadiness | 105 vs 337 in 120 s |
+| `ShoulderTension` | clavicle elevation, arriving through the spring | 8° at tension 1 |
+
+**Gating is a lerp to neutral, not a multiply.** For a face zero is neutral; for motion quality
+zero is the *grandmaster* — no fidget, no sway, perfect damping. Scaling by intensity would make
+an unmeasured character stand with expert stillness. Here intensity lerps each channel toward
+the pose's neutral default, so an unmeasured character moves like an ordinary person.
+`StandaloneBodyBackend` section 7 asserts this directly.
+
+Realized on the UE5/MetaHuman skeleton (`pelvis`, `spine_01..05`, `clavicle_l/r`,
+`neck_01/02`, `FACIAL_L/R_Eye` — names from `DNABodySchemaBinding.cpp` and the shipped DNA) and
+on Melody's Live2D rig, where the body angles and eyeballs are shared with the face and so arrive
+as additive offsets, within the authored ±3°. `ParamBodyAngleY` is assumed and guarded.
 
 **Still not built:** the provider adapters (`UGameSkillTrainingSystem` → signal,
 `UGamingMasterySystem` → signal, `UReinforcementLearningBridge`'s `FCognitiveModulation` → affect
