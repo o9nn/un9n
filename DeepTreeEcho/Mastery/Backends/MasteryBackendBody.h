@@ -61,6 +61,13 @@ struct FBodyMotionFrame
     float NeckPitch = 0.0f;      // micro-movement
     float EyeYaw = 0.0f;         // saccade offset, normalized [-1,1]
     float EyePitch = 0.0f;       // saccade offset, normalized [-1,1]
+
+    // ---- Diagnostics: not realized by any rig ----------------------------------------------
+    // The postural spring's position and the target it is chasing, without breath. Exposed so
+    // a harness can measure overcorrection during live play, where cues arrive back to back and
+    // "peak minus target" is no longer well defined.
+    float PostureSpring = 0.0f;
+    float PostureTarget = 0.0f;
 };
 
 /** Rig-facing sink for a skeletal body. Rotations are additive offsets over the animation pose. */
@@ -134,7 +141,8 @@ namespace MasteryBackendBody
             Rng = Seed ? Seed : 1u;
             Time = 0.0f; BreathPhase = 0.0f;
             Lean = FSpring(); Pelvis = FSpring(); Clavicle = FSpring();
-            ReactionPending = -1.0f; ReactionMag = 0.0f; ReactionHold = 0.0f;
+            NumPending = 0; ReactionMag = 0.0f; ReactionHold = 0.0f;
+            Fired = 0; Dropped = 0;
             FidgetSide = 1.0f; FidgetTarget = 0.0f;
             EyeYaw = EyePitch = 0.0f;
             for (float& Ph : Phase) Ph = Uniform() * 6.2831853f;
@@ -146,13 +154,32 @@ namespace MasteryBackendBody
          * Magnitude in [-1,1]: positive presses in, negative pulls back. The reaction is where
          * economy and sharpness become visible at all; a character who is never asked to move
          * cannot show that she moves well.
+         *
+         * Each cue gets its OWN wind-up timer, like separate stimuli each perceived after their
+         * own delay. An earlier version kept one timer and restarted it on every cue, so in a
+         * duel - where an attack starting and the hit landing arrive six frames apart - a slow
+         * character's wind-ups kept being reset, and cues arriving faster than her latency were
+         * never answered at all. The single-cue tests could not see that; StandaloneDuelBody did.
          */
         void React(float Magnitude, const FMasteryEmbodimentPose& Pose)
         {
             const FGatedChannels C = Gate(Pose);
-            ReactionPending = OnsetLatency(C.Sharpness);
-            ReactionMag = FMath::Clamp(Magnitude, -1.0f, 1.0f);
+            if (NumPending == MaxPending)
+            {
+                // Full: the oldest cue is the one the body has had longest to answer and has not.
+                for (int32 i = 1; i < NumPending; ++i) { Pending[i - 1] = Pending[i]; }
+                --NumPending;
+                ++Dropped;
+            }
+            Pending[NumPending].Timer = OnsetLatency(C.Sharpness);
+            Pending[NumPending].Mag = FMath::Clamp(Magnitude, -1.0f, 1.0f);
+            ++NumPending;
         }
+
+        /** Cues whose wind-up has elapsed and which the body has begun to answer. */
+        int32 ReactionsFired() const { return Fired; }
+        /** Cues discarded because more than MaxPending were winding up at once. */
+        int32 ReactionsDropped() const { return Dropped; }
 
         const FBodyMotionFrame& Tick(const FMasteryEmbodimentPose& Pose, float Dt)
         {
@@ -162,11 +189,25 @@ namespace MasteryBackendBody
             Time += Dt;
 
             // ---- Reaction: wind-up, then a held offset the spring has to reach and settle on --
-            if (ReactionPending >= 0.0f)
+            // Timers are equal for equal poses, so pending cues fire in the order they arrived. A
+            // later cue that fires replaces the held offset: the body answers what it most
+            // recently perceived.
+            int32 Kept = 0;
+            for (int32 i = 0; i < NumPending; ++i)
             {
-                ReactionPending -= Dt;
-                if (ReactionPending < 0.0f) { ReactionHold = 0.45f; }
+                Pending[i].Timer -= Dt;
+                if (Pending[i].Timer < 0.0f)
+                {
+                    ReactionMag = Pending[i].Mag;
+                    ReactionHold = 0.45f;
+                    ++Fired;
+                }
+                else
+                {
+                    Pending[Kept++] = Pending[i];
+                }
             }
+            NumPending = Kept;
             float ReactionOffset = 0.0f;
             if (ReactionHold > 0.0f) { ReactionHold -= Dt; ReactionOffset = ReactionMag * 10.0f; }
 
@@ -214,6 +255,8 @@ namespace MasteryBackendBody
             Out.NeckPitch = Amp * 0.5f * SwayC;
             Out.EyeYaw = EyeYaw;
             Out.EyePitch = EyePitch;
+            Out.PostureSpring = Lean.X;
+            Out.PostureTarget = PostureTarget;
             return Out;
         }
 
@@ -229,7 +272,11 @@ namespace MasteryBackendBody
         uint32 Rng = 1u;
         float Time = 0.0f, BreathPhase = 0.0f;
         FSpring Lean, Pelvis, Clavicle;
-        float ReactionPending = -1.0f, ReactionMag = 0.0f, ReactionHold = 0.0f;
+        struct FPendingCue { float Timer = 0.0f; float Mag = 0.0f; };
+        static constexpr int32 MaxPending = 8;
+        FPendingCue Pending[MaxPending];
+        int32 NumPending = 0, Fired = 0, Dropped = 0;
+        float ReactionMag = 0.0f, ReactionHold = 0.0f;
         float FidgetSide = 1.0f, FidgetTarget = 0.0f;
         float EyeYaw = 0.0f, EyePitch = 0.0f;
         float Phase[3] = {0.0f, 0.0f, 0.0f};

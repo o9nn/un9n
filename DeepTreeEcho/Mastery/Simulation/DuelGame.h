@@ -114,6 +114,32 @@ struct FRoundTelemetry
     float MeanReactionFrames() const { return ReactionSamples > 0 ? float(ReactionFrameSum) / ReactionSamples : 0.0f; }
 };
 
+/**
+ * What happened to one fighter on the most recent frame. Cleared at the start of every
+ * StepFrame, so it describes exactly one frame.
+ *
+ * Telemetry is cumulative and answers "how good is she"; these are instantaneous and answer "what
+ * should her body be answering right now". They exist for the body layer - see DuelBodyCues.h -
+ * and are deliberately plain flags rather than a callback, so the game stays engine-free and a
+ * consumer cannot change the simulation by observing it.
+ */
+struct FFrameEvents
+{
+    bool bAttackStarted = false;   // committed to an attack this frame
+    bool bLandedHit = false;       // our attack connected (blocked or clean)
+    bool bTookHit = false;         // hit clean
+    bool bBlockedHit = false;      // hit, but blocking
+    bool bWasPunished = false;     // hit while in recovery
+    bool bDodgedHit = false;       // invulnerability actually avoided an active hitbox
+    bool bWhiffed = false;         // our attack's active window ended without connecting
+
+    bool Any() const
+    {
+        return bAttackStarted || bLandedHit || bTookHit || bBlockedHit || bWasPunished
+            || bDodgedHit || bWhiffed;
+    }
+};
+
 struct FGameState
 {
     FFighter A;
@@ -122,6 +148,8 @@ struct FGameState
     int MaxFrames = FPS * 60;   // 60 second rounds
     FRoundTelemetry TelA;
     FRoundTelemetry TelB;
+    FFrameEvents EventsA;
+    FFrameEvents EventsB;
 
     float Distance() const { return std::fabs(A.Position - B.Position); }
     bool IsOver() const { return A.Health <= 0.0f || B.Health <= 0.0f || Frame >= MaxFrames; }
@@ -142,12 +170,13 @@ struct FGameState
         A.Position = 3.5f; B.Position = 6.5f;
         Frame = 0;
         TelA = FRoundTelemetry(); TelB = FRoundTelemetry();
+        EventsA = FFrameEvents(); EventsB = FFrameEvents();
     }
 };
 
 namespace Detail
 {
-    inline void BeginAction(FFighter& F, EAction Act, FRoundTelemetry& Tel)
+    inline void BeginAction(FFighter& F, EAction Act, FRoundTelemetry& Tel, FFrameEvents& Ev)
     {
         F.bBlocking = false;
         if (!F.IsNeutral()) return;   // committed - input ignored
@@ -162,6 +191,7 @@ namespace Detail
                 F.PhaseFrames = ATTACK_STARTUP;
                 F.bAttackConnected = false;
                 ++Tel.AttacksThrown;
+                Ev.bAttackStarted = true;
             }
             break;
         case EAction::Dodge:
@@ -213,6 +243,7 @@ namespace Detail
 
     inline void ResolveHit(FGameState& S, FFighter& Attacker, FFighter& Defender,
                            FRoundTelemetry& AtkTel, FRoundTelemetry& DefTel,
+                           FFrameEvents& AtkEv, FFrameEvents& DefEv,
                            bool bDefenderWasPunishable)
     {
         if (Attacker.Phase != EPhase::AttackActive || Attacker.bAttackConnected) return;
@@ -221,14 +252,18 @@ namespace Detail
         if (Defender.IsInvulnerable())
         {
             ++DefTel.DodgesSuccessful;
+            DefEv.bDodgedHit = true;
             return;   // dodged cleanly - attack passes through, still whiffs
         }
 
         float Damage = ATTACK_DAMAGE;
-        if (Defender.bBlocking && Defender.Stamina > 0.0f)
+        const bool bBlocked = Defender.bBlocking && Defender.Stamina > 0.0f;
+        if (bBlocked)
         {
             Damage *= BLOCK_DAMAGE_MULT;
         }
+        AtkEv.bLandedHit = true;
+        (bBlocked ? DefEv.bBlockedHit : DefEv.bTookHit) = true;
 
         Defender.Health -= Damage;
         Attacker.bAttackConnected = true;
@@ -236,7 +271,11 @@ namespace Detail
         AtkTel.DamageDealt += Damage;
         DefTel.DamageTaken += Damage;
 
-        if (bDefenderWasPunishable) { ++AtkTel.PunishesConverted; ++DefTel.TimesPunished; }
+        if (bDefenderWasPunishable)
+        {
+            ++AtkTel.PunishesConverted; ++DefTel.TimesPunished;
+            DefEv.bWasPunished = true;
+        }
     }
 }
 
@@ -254,18 +293,21 @@ inline void StepFrame(FGameState& S, EAction ActA, EAction ActB)
     if (bBPunishableAtInput && bInRange && S.A.IsNeutral()) ++S.TelA.PunishOpportunities;
     if (bAPunishableAtInput && bInRange && S.B.IsNeutral()) ++S.TelB.PunishOpportunities;
 
-    Detail::BeginAction(S.A, ActA, S.TelA);
-    Detail::BeginAction(S.B, ActB, S.TelB);
+    S.EventsA = FFrameEvents();
+    S.EventsB = FFrameEvents();
+
+    Detail::BeginAction(S.A, ActA, S.TelA, S.EventsA);
+    Detail::BeginAction(S.B, ActB, S.TelB, S.EventsB);
 
     Detail::ApplyMovement(S.A, ActA, S.B.Position);
     Detail::ApplyMovement(S.B, ActB, S.A.Position);
 
     // Hits resolve before phases advance, so active frames are honoured exactly.
-    Detail::ResolveHit(S, S.A, S.B, S.TelA, S.TelB, bBPunishableAtInput);
-    Detail::ResolveHit(S, S.B, S.A, S.TelB, S.TelA, bAPunishableAtInput);
+    Detail::ResolveHit(S, S.A, S.B, S.TelA, S.TelB, S.EventsA, S.EventsB, bBPunishableAtInput);
+    Detail::ResolveHit(S, S.B, S.A, S.TelB, S.TelA, S.EventsB, S.EventsA, bAPunishableAtInput);
 
-    if (Detail::AdvancePhase(S.A) && !S.A.bAttackConnected) ++S.TelA.AttacksWhiffed;
-    if (Detail::AdvancePhase(S.B) && !S.B.bAttackConnected) ++S.TelB.AttacksWhiffed;
+    if (Detail::AdvancePhase(S.A) && !S.A.bAttackConnected) { ++S.TelA.AttacksWhiffed; S.EventsA.bWhiffed = true; }
+    if (Detail::AdvancePhase(S.B) && !S.B.bAttackConnected) { ++S.TelB.AttacksWhiffed; S.EventsB.bWhiffed = true; }
 
     // Stamina economy.
     S.A.Stamina += S.A.bBlocking ? -BLOCK_DRAIN : STAMINA_REGEN;

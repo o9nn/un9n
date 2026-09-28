@@ -57,6 +57,8 @@ That is what makes it testable without Unreal.
 | `Simulation/DuelGame.h` | Frame-accurate 1v1 duel — space, timing, commitment, resources. |
 | `Simulation/DuelAgent.h` | Skill-parameterized agents + the telemetry → `FMasterySignal` derivation. |
 | `Tests/StandaloneDuelSimulation.cpp` | 16 assertions, Tier-1 end-to-end integration. |
+| `Simulation/DuelBodyCues.h` | Duel frame events → `FDriver::React()` cues, so a fighter's body answers the fight. |
+| `Tests/StandaloneDuelBody.cpp` | Real matches → real binding → body: overshoot and wind-up during play, plus a same-events control. |
 
 Build and run **every** harness in the repo (both `GameTraining/Tests/` and `Mastery/Tests/`):
 
@@ -137,6 +139,19 @@ Realized on the UE5/MetaHuman skeleton (`pelvis`, `spine_01..05`, `clavicle_l/r`
 `neck_01/02`, `FACIAL_L/R_Eye` — names from `DNABodySchemaBinding.cpp` and the shipped DNA) and
 on Melody's Live2D rig, where the body angles and eyeballs are shared with the face and so arrive
 as additive offsets, within the authored ±3°. `ParamBodyAngleY` is assumed and guarded.
+
+**Driven by the duel.** `MotionEconomy` and `ReactionSharpness` only show in how a body answers
+a cue, so they need a producer. `DuelGame` now records per-frame events (attack started, hit
+landed, hit taken, blocked, dodged, punished, whiffed), and `Simulation/DuelBodyCues.h` turns the
+strongest one each frame into a `React()`: positive presses in, negative pulls back. Cues carry
+**no skill** — a master and a novice who are hit get the identical cue — so every difference in
+how they take it comes from the measured pose. Over 60 real master-vs-novice rounds, when both
+bodies answer the *same* novice event stream: overshoot 1.1% vs 3.4% of travel, wind-up 9 vs 12
+frames (150 vs 200 ms), and all 2,770 cues are answered.
+
+Wiring it up exposed a driver bug the single-cue tests could not: `React()` restarted one shared
+timer on every cue, so in a fight a slow character's wind-ups were reset before they finished and
+dense cues were never answered. Each cue now has its own timer.
 
 **Still not built:** the provider adapters (`UGameSkillTrainingSystem` → signal,
 `UGamingMasterySystem` → signal, `UReinforcementLearningBridge`'s `FCognitiveModulation` → affect
