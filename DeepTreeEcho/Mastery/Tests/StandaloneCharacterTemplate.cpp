@@ -341,6 +341,41 @@ int main()
         }
     }
 
+    // ------------------------------------------------------------------ [5b] VerifiedBoneNames
+    std::printf("\n[5b] VerifiedBoneNames: the body's pre-flight check\n");
+    {
+        FCharacterTemplate T = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+        Check(CharacterRigDispatch::FindUnverifiedBones(T).Num() == 0,
+              "an empty VerifiedBoneNames makes no claim, so reports nothing");
+
+        // A skeleton with the spine and neck but no shoulders and no eye joints - e.g. a body-only
+        // export with the face rig stripped.
+        const TCHAR* Present[] = { TEXT("pelvis"), TEXT("spine_01"), TEXT("spine_02"), TEXT("spine_03"),
+                                   TEXT("spine_04"), TEXT("spine_05"), TEXT("neck_01"), TEXT("neck_02") };
+        for (const TCHAR* B : Present) T.Motion.VerifiedBoneNames.Add(B);
+
+        const TArray<FString> Missing = CharacterRigDispatch::FindUnverifiedBones(T);
+        std::printf("      partial skeleton is missing %d driven joints:", Missing.Num());
+        for (int32 i = 0; i < Missing.Num(); ++i) std::printf(" %s", Missing[i].Str.c_str());
+        std::printf("\n");
+        Check(Missing.Num() == 4 && Missing.Contains(FString(TEXT("clavicle_l"))) &&
+              Missing.Contains(FString(TEXT("FACIAL_R_Eye"))),
+              "reports exactly the 4 driven joints the rig lacks - both clavicles, both eyes");
+        Check(!Missing.Contains(FString(TEXT("spine_03"))), "  and none of the joints it has");
+
+        // A refused template reports nothing: those bones will never be written anyway, and the
+        // refusal itself is what Validate() and ApplyEmbodiment already surface.
+        FCharacterTemplate Genesis = T;
+        Genesis.Geometry.SkeletonId = TEXT("Genesis9");
+        Check(CharacterRigDispatch::FindUnverifiedBones(Genesis).Num() == 0,
+              "a template whose body is refused reports no bones - it will never drive them");
+
+        FCharacterTemplate L2 = BuildableTemplate(EFacialRigStandard::Live2DCubism);
+        L2.Motion.VerifiedBoneNames.Add(TEXT("pelvis"));
+        Check(CharacterRigDispatch::FindUnverifiedBones(L2).Num() == 0,
+              "a Live2D body drives no joints, so a bone list cannot be contradicted");
+    }
+
     // ------------------------------------------------------------------ [6] authority coherence
     std::printf("\n[6] source authority matches each layer's documented owner\n");
     {

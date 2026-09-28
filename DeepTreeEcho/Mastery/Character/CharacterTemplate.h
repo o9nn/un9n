@@ -364,6 +364,13 @@ struct FCharacterMotion
     /** Where the motion-quality channels land. None means mastery shows only in the face. */
     EBodyRigStandard BodyStandard = EBodyRigStandard::None;
 
+    /** Joints verified present on the body rig - the body's VerifiedShapeNames. A skeleton that
+     *  has been trimmed or re-rooted is missing some joints the body layer drives, and the
+     *  skeleton backend skips absent bones silently, so this is what makes that visible. Empty
+     *  makes no claim. Only meaningful for UE5Skeleton; Live2D body motion is checked through
+     *  Expression.VerifiedShapeNames, since it rides the face's parameters. */
+    TArray<FString> VerifiedBoneNames;
+
     /** Named poses extracted from action-pose reference (guard, jab, idle...). */
     TArray<FString> PoseLibraryPaths;
 

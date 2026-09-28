@@ -281,4 +281,52 @@ namespace CharacterRigDispatch
         }
         return Missing;
     }
+
+    /**
+     * Pre-flight check for the body: which joints would the skeleton backend drive that the
+     * template does NOT list in Motion.VerifiedBoneNames?
+     *
+     * The body analogue of FindUnverifiedParameters, for the same reason. ApplyToSkeleton skips
+     * any bone the sink lacks, so a rig missing clavicle_l looks exactly like a character who
+     * never raises her shoulders - and stillness is what expertise looks like, so the gap would
+     * read as a trait rather than a fault.
+     *
+     * Returns empty when no claim is made (empty VerifiedBoneNames) or when the template's body
+     * would not be routed to a skeleton at all.
+     */
+    inline TArray<FString> FindUnverifiedBones(const FCharacterTemplate& Template)
+    {
+        TArray<FString> Missing;
+        if (Template.Motion.VerifiedBoneNames.Num() == 0)
+        {
+            return Missing;   // no claim made, nothing to contradict
+        }
+
+        struct FBoneProbe : public IBodySkeletonSink
+        {
+            TArray<FString> Written;
+            bool HasBone(const FString&) const override { return true; }
+            void SetBoneRotationOffset(const FString& Bone, float, float, float) override { Written.AddUnique(Bone); }
+        };
+
+        // Which bones are driven does not depend on the frame's values, so a neutral frame is
+        // enough - and routing it through ApplyEmbodiment means a refused template (wrong
+        // skeleton, no body) reports nothing rather than a list of bones it will never touch.
+        FBoneProbe Probe;
+        const FBodyMotionFrame Frame;
+        if (ApplyEmbodiment(Template, FMasteryEmbodimentPose::Neutral(), &Frame,
+                            nullptr, nullptr, &Probe).Body != ERigDispatchResult::Applied)
+        {
+            return Missing;
+        }
+
+        for (int32 i = 0; i < Probe.Written.Num(); ++i)
+        {
+            if (!Template.Motion.VerifiedBoneNames.Contains(Probe.Written[i]))
+            {
+                Missing.Add(Probe.Written[i]);
+            }
+        }
+        return Missing;
+    }
 }

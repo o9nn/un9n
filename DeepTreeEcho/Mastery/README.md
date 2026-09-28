@@ -161,6 +161,11 @@ mesh whose `SkeletonId` is not `UE5_Manny`/`MetaHuman` (Genesis and Mixamo name 
 differently, so every bone write would silently miss), a Live2D body without a Live2D face (the
 body rides the face's shared parameters), and no declared body at all. `Validate()` reports all
 three. The dispatch stays stateless: the caller's `FDriver` owns time and passes its frame in.
+`FCharacterMotion::VerifiedBoneNames` is the body's `VerifiedShapeNames`:
+`CharacterRigDispatch::FindUnverifiedBones` lists every joint the skeleton backend would drive that
+the rig is not verified to have. It matters more for the body than for the face, because the
+backend skips missing bones silently and a missing `clavicle_l` looks exactly like a composed
+character who never raises her shoulders.
 
 **Still not built:** the provider adapters (`UGameSkillTrainingSystem` → signal,
 `UGamingMasterySystem` → signal, `UReinforcementLearningBridge`'s `FCognitiveModulation` → affect
