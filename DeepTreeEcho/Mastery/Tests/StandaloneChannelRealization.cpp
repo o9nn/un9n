@@ -17,8 +17,13 @@
 // It reaches no rig at all. Neither do IdleFidget, MicroMovementRate, ShoulderTension or
 // SaccadeRate.
 //
-// So the module currently renders mastery ONLY through the face: exactly the failure its own
-// header warns against.
+// So the module rendered mastery ONLY through the face: exactly the failure its own header warns
+// against.
+//
+// RESOLVED by Backends/MasteryBackendBody.h, which realizes all six motion-quality channels as
+// dynamics (damping, onset latency, event rates, sway). This census now renders over time through
+// every backend and expects all 23 channels to reach a rig; StandaloneBodyBackend checks that each
+// one moves the property it claims to, not merely that some output changed.
 //
 // METHOD. Not grep. Grep tells you a symbol is absent from a file, which is weak evidence about
 // behaviour - a channel could be read through an alias, folded into a derived term, or read and
@@ -30,7 +35,7 @@
 // The unrealized set is DECLARED here rather than merely tolerated, exactly as
 // StandaloneLive2DCoverage declares the lip-sync channel and AuthoredExpressionSet declares
 // JOY_05 out of scope. The test fails if a channel silently joins or leaves that set - so wiring
-// a body backend will fail this test until the declaration is updated, which is the point.
+// a new backend will fail this test until the declaration is updated, which is the point.
 //
 // Build & run:
 //   g++ -std=c++17 -O2 -I StandaloneShim -o chanreal StandaloneChannelRealization.cpp
@@ -42,6 +47,7 @@
 #include "../MasteryEmbodimentPose.h"
 #include "../Backends/MelodyLive2DBackend.h"
 #include "../Backends/MasteryBackendMetaHuman.h"
+#include "../Backends/MasteryBackendBody.h"
 
 namespace
 {
@@ -55,9 +61,14 @@ void Check(bool bCond, const std::string& Label)
 }
 
 /** Accepts every name and records name+value, so we can diff two applications exactly. */
-struct FProbe : public IMelodyRigSink, public IMetaHumanRigSink
+struct FProbe : public IMelodyRigSink, public IMetaHumanRigSink, public IBodySkeletonSink
 {
     std::vector<std::pair<std::string, float>> Out;
+    bool HasBone(const FString&) const override { return true; }
+    void SetBoneRotationOffset(const FString& B, float P, float Y, float R) override
+    {
+        Out.push_back({B.Str, P + 7.0f * Y + 13.0f * R});
+    }
 
     bool HasParameter(const FString&) const override { return true; }
     void SetParameter(const FString& Id, float V) override { Out.push_back({Id.Str, V}); }
@@ -65,12 +76,31 @@ struct FProbe : public IMelodyRigSink, public IMetaHumanRigSink
     void SetCurve(const FString& N, float V) override { Out.push_back({N.Str, V}); }
 };
 
-/** Apply a pose through BOTH backends and collect everything written. */
+/**
+ * Render a pose through EVERY backend - face, Live2D, and the body layer - over twenty seconds
+ * with one reaction cue, and collect everything written.
+ *
+ * Twenty seconds and a cue, rather than one frame, because the body channels are dynamics: fidget,
+ * saccade and sway are event rates and oscillations, and ReactionSharpness and MotionEconomy only
+ * exist in how the body answers a cue. A single-frame census would report them dead even when
+ * they are wired - the same false negative, in the other direction, as reading a symbol with grep.
+ * The length is set by the slowest of them: fidget fires at most 8 times a minute, and a two-second
+ * window measured IdleFidget as unrealized even though StandaloneBodyBackend shows it working.
+ * The seed is fixed, so two renders differ only through the pose.
+ */
 std::vector<std::pair<std::string, float>> RenderAll(const FMasteryEmbodimentPose& P)
 {
     FProbe Probe;
-    MelodyLive2DBackend::ApplyPose(Probe, P);
-    MasteryBackendMetaHuman::ApplyPose(Probe, P);
+    MasteryBackendBody::FDriver Body(0xC0FFEEu);
+    for (int i = 0; i < 1200; ++i)
+    {
+        if (i == 10) Body.React(1.0f, P);
+        const FBodyMotionFrame& F = Body.Tick(P, 1.0f / 60.0f);
+        const MasteryBackendBody::FLive2DBodyOffsets Off = MasteryBackendBody::ToLive2D(F);
+        MelodyLive2DBackend::ApplyPose(Probe, P, &Off);
+        MasteryBackendMetaHuman::ApplyPose(Probe, P);
+        MasteryBackendBody::ApplyToSkeleton(Probe, F);
+    }
     return Probe.Out;
 }
 
@@ -126,23 +156,17 @@ int main()
         { "Asymmetry",           [](FMasteryEmbodimentPose& P){ P.Asymmetry = 1.0f; },          true,  "" },
         { "ExpressionIntensity", [](FMasteryEmbodimentPose& P){ P.ExpressionIntensity = 0.2f; },true,  "" },
 
-        // ---- The gap ------------------------------------------------------------------------
-        // Every one of these is a MOTION-QUALITY channel, and motion quality is what the binding
-        // header names as the primary carrier of legible expertise. Both backends are face-only,
-        // so none of them reaches a rig. This is a missing body/animation backend, not five
-        // unrelated oversights.
-        { "MotionEconomy",     [](FMasteryEmbodimentPose& P){ P.MotionEconomy = 1.0f; },     false,
-          "THE headline expertise cue per the binding header; no body backend exists" },
-        { "IdleFidget",        [](FMasteryEmbodimentPose& P){ P.IdleFidget = 1.0f; },        false,
-          "named in the header as an inverse competence cue; needs an idle/fidget layer" },
-        { "MicroMovementRate", [](FMasteryEmbodimentPose& P){ P.MicroMovementRate = 1.0f; }, false,
-          "composed stillness vs restlessness; needs an additive noise layer" },
-        { "ShoulderTension",   [](FMasteryEmbodimentPose& P){ P.ShoulderTension = 1.0f; },   false,
-          "bracing; needs upper-body control, absent from both face rigs" },
-        { "SaccadeRate",       [](FMasteryEmbodimentPose& P){ P.SaccadeRate = 1.0f; },       false,
-          "eye darting is temporal; a look-at/saccade driver owns it, as with BlinkRate" },
-        { "ReactionSharpness", [](FMasteryEmbodimentPose& P){ P.ReactionSharpness = 1.0f; }, false,
-          "consumed by SelectMotionGroup, not by ApplyPose - motion selection, not a curve" },
+        // ---- Motion quality: realized by MasteryBackendBody ------------------------------------
+        // These were the gap - computed, smoothed, asserted on, and dropped by two face-only
+        // backends, so the module rendered mastery ONLY through the face, exactly the failure the
+        // binding header warns against. The body layer turns each into a dynamics parameter;
+        // StandaloneBodyBackend checks that each moves the property it claims to.
+        { "MotionEconomy",     [](FMasteryEmbodimentPose& P){ P.MotionEconomy = 1.0f; },     true, "" },
+        { "IdleFidget",        [](FMasteryEmbodimentPose& P){ P.IdleFidget = 1.0f; },        true, "" },
+        { "MicroMovementRate", [](FMasteryEmbodimentPose& P){ P.MicroMovementRate = 1.0f; }, true, "" },
+        { "ShoulderTension",   [](FMasteryEmbodimentPose& P){ P.ShoulderTension = 1.0f; },   true, "" },
+        { "SaccadeRate",       [](FMasteryEmbodimentPose& P){ P.SaccadeRate = 1.0f; },       true, "" },
+        { "ReactionSharpness", [](FMasteryEmbodimentPose& P){ P.ReactionSharpness = 1.0f; }, true, "" },
     };
 
     const auto Baseline = RenderAll(Base);
@@ -180,16 +204,16 @@ int main()
     Check(Mismatches == 0,
           "every channel's realization matches its declaration");
 
-    // The specific claim, pinned so it cannot quietly change: the module's stated primary
-    // expertise cue currently reaches no rig.
+    // The claim this harness used to pin was "a master and a novice are RIG-IDENTICAL on motion
+    // economy alone". It is now inverted, and pinned the other way so it cannot quietly regress.
     {
         FMasteryEmbodimentPose Expert = Base;
         Expert.MotionEconomy = 1.0f;
         FMasteryEmbodimentPose Flailing = Base;
         Flailing.MotionEconomy = 0.0f;
 
-        Check(!Differs(RenderAll(Expert), RenderAll(Flailing)),
-              "a master and a novice are RIG-IDENTICAL on motion economy alone");
+        Check(Differs(RenderAll(Expert), RenderAll(Flailing)),
+              "a master and a novice are RIG-DISTINCT on motion economy alone");
     }
 
     // And the converse, so the census cannot pass by everything being dead: the face channels

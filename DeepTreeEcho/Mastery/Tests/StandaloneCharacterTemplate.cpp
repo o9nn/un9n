@@ -39,9 +39,12 @@ void Check(bool bCond, const std::string& Label)
 }
 
 /** Records everything written, accepting all names. */
-struct FRecorder : public IMelodyRigSink, public IMetaHumanRigSink
+struct FRecorder : public IMelodyRigSink, public IMetaHumanRigSink, public IBodySkeletonSink
 {
     TArray<FString> Written;
+    TArray<FString> Bones;
+    bool HasBone(const FString&) const override { return true; }
+    void SetBoneRotationOffset(const FString& B, float, float, float) override { Bones.Add(B); }
     bool HasParameter(const FString&) const override { return true; }
     void SetParameter(const FString& Id, float) override { Written.Add(Id); }
     bool HasCurve(const FString&) const override { return true; }
@@ -90,6 +93,18 @@ FCharacterTemplate BuildableTemplate(EFacialRigStandard Standard)
     T.Identity.SculptTargetRefLabels.Add(TEXT("portrait, three-quarter"));
 
     T.Expression.Standard = Standard;
+
+    // Each face standard gets its matching body, so "buildable" still means buildable now that a
+    // missing body rig is a validation problem.
+    if (Standard == EFacialRigStandard::Live2DCubism)
+    {
+        T.Motion.BodyStandard = EBodyRigStandard::Live2DCubism;
+    }
+    else if (Standard == EFacialRigStandard::MetaHumanControlRig)
+    {
+        T.Geometry.SkeletonId = TEXT("MetaHuman");
+        T.Motion.BodyStandard = EBodyRigStandard::UE5Skeleton;
+    }
     return T;
 }
 
@@ -232,8 +247,137 @@ int main()
         Check(!bReportsEyes, "  and NOT the eyes, which it does expose");
     }
 
-    // ------------------------------------------------------------------ [5] authority coherence
-    std::printf("\n[5] source authority matches each layer's documented owner\n");
+    // ------------------------------------------------------------------ [5] the body is routed
+    std::printf("\n[5] the declared BODY rig selects the body backend\n");
+    {
+        // A real frame from the driver, mid-reaction, so every body output is non-zero.
+        FMasteryEmbodimentPose Pose = ExpressivePose();
+        Pose.MicroMovementRate = 1.0f;
+        Pose.ShoulderTension = 1.0f;
+        MasteryBackendBody::FDriver Driver(42u);
+        Driver.React(1.0f, Pose);
+        for (int32 i = 0; i < 30; ++i) Driver.Tick(Pose, 1.0f / 60.0f);
+        const FBodyMotionFrame Frame = Driver.Current();
+
+        // MetaHuman face + UE5 body: both routes, each to its own sink.
+        {
+            FRecorder Rec;
+            const FCharacterTemplate Mh = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+            const FEmbodimentDispatchResult R =
+                CharacterRigDispatch::ApplyEmbodiment(Mh, Pose, &Frame, &Rec, &Rec, &Rec);
+            std::printf("      MetaHuman: face=%s body=%s  curves=%d bones=%d\n",
+                        CharacterRigDispatch::ResultName(R.Face), CharacterRigDispatch::ResultName(R.Body),
+                        Rec.Written.Num(), Rec.Bones.Num());
+            Check(R.Face == ERigDispatchResult::Applied && R.Body == ERigDispatchResult::Applied,
+                  "a MetaHuman template routes the face AND the body");
+            Check(Rec.Bones.Num() == 12, "  all 12 declared joints receive the body frame");
+        }
+
+        // Live2D: the body travels inside the face call, so it changes the face's own writes.
+        {
+            FRecorder FaceOnly, Full;
+            const FCharacterTemplate L2 = BuildableTemplate(EFacialRigStandard::Live2DCubism);
+            CharacterRigDispatch::ApplyPose(L2, Pose, &FaceOnly, nullptr);
+            const FEmbodimentDispatchResult R =
+                CharacterRigDispatch::ApplyEmbodiment(L2, Pose, &Frame, &Full, nullptr, nullptr);
+            std::printf("      Live2D:    face=%s body=%s  params face-only=%d with-body=%d\n",
+                        CharacterRigDispatch::ResultName(R.Face), CharacterRigDispatch::ResultName(R.Body),
+                        FaceOnly.Written.Num(), Full.Written.Num());
+            Check(R.Body == ERigDispatchResult::Applied && Full.Wrote("ParamBodyAngleY") &&
+                  !FaceOnly.Wrote("ParamBodyAngleY"),
+                  "a Live2D template carries the body inside the face call - no skeleton sink needed");
+        }
+
+        // Refusals: the body analogue of routing an ARKit face to the MetaHuman backend.
+        {
+            FRecorder Rec;
+            FCharacterTemplate Genesis = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+            Genesis.Geometry.SkeletonId = TEXT("Genesis9");
+            const FEmbodimentDispatchResult R =
+                CharacterRigDispatch::ApplyEmbodiment(Genesis, Pose, &Frame, &Rec, &Rec, &Rec);
+            Check(R.Body == ERigDispatchResult::NoBackendForStandard && Rec.Bones.Num() == 0,
+                  "a UE5 body on a Genesis9 skeleton is REFUSED - no bone writes that would silently miss");
+            TArray<FString> P;
+            Check(Genesis.Validate(P) > 0, "  and Validate() reports it before runtime does");
+
+            FCharacterTemplate Mixed = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+            Mixed.Motion.BodyStandard = EBodyRigStandard::Live2DCubism;
+            TArray<FString> P2;
+            Check(CharacterRigDispatch::ApplyEmbodiment(Mixed, Pose, &Frame, &Rec, &Rec, &Rec).Body
+                      == ERigDispatchResult::NoBackendForStandard && Mixed.Validate(P2) > 0,
+                  "a Live2D body without a Live2D face is refused and reported");
+
+            FCharacterTemplate NoBody = BuildableTemplate(EFacialRigStandard::Live2DCubism);
+            NoBody.Motion.BodyStandard = EBodyRigStandard::None;
+            TArray<FString> P3;
+            Check(CharacterRigDispatch::ApplyEmbodiment(NoBody, Pose, &Frame, &Rec, nullptr, nullptr).Body
+                      == ERigDispatchResult::NoStandardDeclared && NoBody.Validate(P3) > 0,
+                  "an undeclared body rig is reported - mastery would show only in the face");
+        }
+
+        // Missing inputs are named, not collapsed into one failure.
+        {
+            FRecorder Rec;
+            const FCharacterTemplate Mh = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+            Check(CharacterRigDispatch::ApplyEmbodiment(Mh, Pose, nullptr, &Rec, &Rec, &Rec).Body
+                      == ERigDispatchResult::MotionNotSupplied,
+                  "no body frame -> MotionNotSupplied");
+            Check(CharacterRigDispatch::ApplyEmbodiment(Mh, Pose, &Frame, &Rec, &Rec, nullptr).Body
+                      == ERigDispatchResult::SinkNotSupplied,
+                  "no skeleton sink -> SinkNotSupplied");
+        }
+
+        // VerifiedShapeNames now sees what the body adds to a Live2D rig.
+        {
+            FCharacterTemplate T = BuildableTemplate(EFacialRigStandard::Live2DCubism);
+            T.Expression.VerifiedShapeNames.Add(TEXT("ParamEyeLOpen"));
+            auto Contains = [](const TArray<FString>& A, const TCHAR* N) {
+                for (int32 i = 0; i < A.Num(); ++i) if (A[i] == FString(N)) return true;
+                return false;
+            };
+            Check(!Contains(CharacterRigDispatch::FindUnverifiedParameters(T, Pose), TEXT("ParamBodyAngleY")) &&
+                  Contains(CharacterRigDispatch::FindUnverifiedParameters(T, Pose, &Frame), TEXT("ParamBodyAngleY")),
+                  "the pre-flight check reports body-only parameters when the body is routed");
+        }
+    }
+
+    // ------------------------------------------------------------------ [5b] VerifiedBoneNames
+    std::printf("\n[5b] VerifiedBoneNames: the body's pre-flight check\n");
+    {
+        FCharacterTemplate T = BuildableTemplate(EFacialRigStandard::MetaHumanControlRig);
+        Check(CharacterRigDispatch::FindUnverifiedBones(T).Num() == 0,
+              "an empty VerifiedBoneNames makes no claim, so reports nothing");
+
+        // A skeleton with the spine and neck but no shoulders and no eye joints - e.g. a body-only
+        // export with the face rig stripped.
+        const TCHAR* Present[] = { TEXT("pelvis"), TEXT("spine_01"), TEXT("spine_02"), TEXT("spine_03"),
+                                   TEXT("spine_04"), TEXT("spine_05"), TEXT("neck_01"), TEXT("neck_02") };
+        for (const TCHAR* B : Present) T.Motion.VerifiedBoneNames.Add(B);
+
+        const TArray<FString> Missing = CharacterRigDispatch::FindUnverifiedBones(T);
+        std::printf("      partial skeleton is missing %d driven joints:", Missing.Num());
+        for (int32 i = 0; i < Missing.Num(); ++i) std::printf(" %s", Missing[i].Str.c_str());
+        std::printf("\n");
+        Check(Missing.Num() == 4 && Missing.Contains(FString(TEXT("clavicle_l"))) &&
+              Missing.Contains(FString(TEXT("FACIAL_R_Eye"))),
+              "reports exactly the 4 driven joints the rig lacks - both clavicles, both eyes");
+        Check(!Missing.Contains(FString(TEXT("spine_03"))), "  and none of the joints it has");
+
+        // A refused template reports nothing: those bones will never be written anyway, and the
+        // refusal itself is what Validate() and ApplyEmbodiment already surface.
+        FCharacterTemplate Genesis = T;
+        Genesis.Geometry.SkeletonId = TEXT("Genesis9");
+        Check(CharacterRigDispatch::FindUnverifiedBones(Genesis).Num() == 0,
+              "a template whose body is refused reports no bones - it will never drive them");
+
+        FCharacterTemplate L2 = BuildableTemplate(EFacialRigStandard::Live2DCubism);
+        L2.Motion.VerifiedBoneNames.Add(TEXT("pelvis"));
+        Check(CharacterRigDispatch::FindUnverifiedBones(L2).Num() == 0,
+              "a Live2D body drives no joints, so a bone list cannot be contradicted");
+    }
+
+    // ------------------------------------------------------------------ [6] authority coherence
+    std::printf("\n[6] source authority matches each layer's documented owner\n");
     {
         const FCharacterReference Photo = FCharacterReference::FromSource(
             TEXT("photo"), TEXT("/p.png"), EReferenceSource::Photograph);

@@ -34,6 +34,7 @@
 #include "../MasteryEmbodimentPose.h"
 #include "../Backends/MelodyLive2DBackend.h"
 #include "../Backends/MasteryBackendMetaHuman.h"
+#include "../Backends/MasteryBackendBody.h"
 
 /** Outcome of a dispatch attempt. Every non-Applied value means nothing was written. */
 enum class ERigDispatchResult : uint8
@@ -46,6 +47,15 @@ enum class ERigDispatchResult : uint8
     NoBackendForStandard,
     /** Standard is supported but the caller supplied no sink of the matching type. */
     SinkNotSupplied,
+    /** Body only: a body rig is declared but no FBodyMotionFrame was supplied to realize. */
+    MotionNotSupplied,
+};
+
+/** Face and body are declared separately in the template, so they succeed or fail separately. */
+struct FEmbodimentDispatchResult
+{
+    ERigDispatchResult Face = ERigDispatchResult::NoStandardDeclared;
+    ERigDispatchResult Body = ERigDispatchResult::NoStandardDeclared;
 };
 
 namespace CharacterRigDispatch
@@ -57,6 +67,7 @@ namespace CharacterRigDispatch
         case ERigDispatchResult::Applied:              return TEXT("Applied");
         case ERigDispatchResult::NoStandardDeclared:   return TEXT("NoStandardDeclared");
         case ERigDispatchResult::NoBackendForStandard: return TEXT("NoBackendForStandard");
+        case ERigDispatchResult::MotionNotSupplied:    return TEXT("MotionNotSupplied");
         default:                                       return TEXT("SinkNotSupplied");
         }
     }
@@ -75,10 +86,13 @@ namespace CharacterRigDispatch
      * That ordering matters - a caller that picks the backend itself has already made the
      * assumption this file exists to prevent.
      */
-    inline ERigDispatchResult ApplyPose(const FCharacterTemplate& Template,
+    namespace Detail
+    {
+    inline ERigDispatchResult ApplyFace(const FCharacterTemplate& Template,
                                         const FMasteryEmbodimentPose& Pose,
                                         IMelodyRigSink* Live2DSink,
-                                        IMetaHumanRigSink* MetaHumanSink)
+                                        IMetaHumanRigSink* MetaHumanSink,
+                                        const MasteryBackendBody::FLive2DBodyOffsets* Live2DBody)
     {
         switch (Template.Expression.Standard)
         {
@@ -87,7 +101,7 @@ namespace CharacterRigDispatch
             {
                 return ERigDispatchResult::SinkNotSupplied;
             }
-            MelodyLive2DBackend::ApplyPose(*Live2DSink, Pose);
+            MelodyLive2DBackend::ApplyPose(*Live2DSink, Pose, Live2DBody);
             return ERigDispatchResult::Applied;
 
         case EFacialRigStandard::MetaHumanControlRig:
@@ -108,6 +122,94 @@ namespace CharacterRigDispatch
             return ERigDispatchResult::NoStandardDeclared;
         }
     }
+    } // namespace Detail
+
+    /** Face only. Kept for callers with no body layer; ApplyEmbodiment is the full route. */
+    inline ERigDispatchResult ApplyPose(const FCharacterTemplate& Template,
+                                        const FMasteryEmbodimentPose& Pose,
+                                        IMelodyRigSink* Live2DSink,
+                                        IMetaHumanRigSink* MetaHumanSink)
+    {
+        return Detail::ApplyFace(Template, Pose, Live2DSink, MetaHumanSink, nullptr);
+    }
+
+    /**
+     * Apply a pose AND a body frame through whichever backends the template declares.
+     *
+     * The body frame comes from the caller's MasteryBackendBody::FDriver, which owns time; this
+     * stays stateless so the template, not the caller, still decides where everything lands.
+     *
+     * Live2D is the awkward case and the reason this cannot be two independent calls: Melody's
+     * body and head angles are the SAME parameters her face writes, so her body motion has to
+     * travel inside the face call as additive offsets. Writing it separately would leave
+     * whichever backend ran last. So a Live2D body only reaches the rig if the Live2D face does,
+     * and reports the face's outcome.
+     *
+     * A UE5Skeleton body on a mesh whose SkeletonId is not UE5_Manny/MetaHuman is REFUSED rather
+     * than attempted, mirroring the ARKit refusal above: those bone names would not exist, every
+     * write would no-op, and a motionless body is exactly what expertise looks like.
+     */
+    inline FEmbodimentDispatchResult ApplyEmbodiment(const FCharacterTemplate& Template,
+                                                     const FMasteryEmbodimentPose& Pose,
+                                                     const FBodyMotionFrame* Body,
+                                                     IMelodyRigSink* Live2DSink,
+                                                     IMetaHumanRigSink* MetaHumanSink,
+                                                     IBodySkeletonSink* SkeletonSink)
+    {
+        FEmbodimentDispatchResult R;
+
+        const bool bLive2DBody = Template.Motion.BodyStandard == EBodyRigStandard::Live2DCubism
+            && Template.Expression.Standard == EFacialRigStandard::Live2DCubism
+            && Body != nullptr;
+        const MasteryBackendBody::FLive2DBodyOffsets Offsets =
+            bLive2DBody ? MasteryBackendBody::ToLive2D(*Body) : MasteryBackendBody::FLive2DBodyOffsets();
+
+        R.Face = Detail::ApplyFace(Template, Pose, Live2DSink, MetaHumanSink,
+                                   bLive2DBody ? &Offsets : nullptr);
+
+        switch (Template.Motion.BodyStandard)
+        {
+        case EBodyRigStandard::UE5Skeleton:
+            if (!IsUE5BodySkeleton(Template.Geometry.SkeletonId))
+            {
+                R.Body = ERigDispatchResult::NoBackendForStandard;
+            }
+            else if (Body == nullptr)
+            {
+                R.Body = ERigDispatchResult::MotionNotSupplied;
+            }
+            else if (SkeletonSink == nullptr)
+            {
+                R.Body = ERigDispatchResult::SinkNotSupplied;
+            }
+            else
+            {
+                MasteryBackendBody::ApplyToSkeleton(*SkeletonSink, *Body);
+                R.Body = ERigDispatchResult::Applied;
+            }
+            break;
+
+        case EBodyRigStandard::Live2DCubism:
+            if (Template.Expression.Standard != EFacialRigStandard::Live2DCubism)
+            {
+                R.Body = ERigDispatchResult::NoBackendForStandard;
+            }
+            else if (Body == nullptr)
+            {
+                R.Body = ERigDispatchResult::MotionNotSupplied;
+            }
+            else
+            {
+                R.Body = R.Face;   // carried inside the face call - see above
+            }
+            break;
+
+        default:
+            R.Body = ERigDispatchResult::NoStandardDeclared;
+            break;
+        }
+        return R;
+    }
 
     /**
      * Pre-flight check: which parameters would the backend try to write that the template does
@@ -123,7 +225,8 @@ namespace CharacterRigDispatch
      * from it; that returns empty rather than reporting every parameter as absent.
      */
     inline TArray<FString> FindUnverifiedParameters(const FCharacterTemplate& Template,
-                                                    const FMasteryEmbodimentPose& Pose)
+                                                    const FMasteryEmbodimentPose& Pose,
+                                                    const FBodyMotionFrame* Body = nullptr)
     {
         TArray<FString> Missing;
 
@@ -143,8 +246,11 @@ namespace CharacterRigDispatch
             void SetCurve(const FString& Name, float) override { Written.Add(Name); }
         };
 
+        // With a body frame, the probe also sees what the body layer adds to a Live2D rig (e.g.
+        // ParamBodyAngleY, which only the body writes). Skeleton bones are not shapes, so no
+        // skeleton sink is passed - VerifiedShapeNames makes no claim about joints.
         FProbe Probe;
-        if (ApplyPose(Template, Pose, &Probe, &Probe) != ERigDispatchResult::Applied)
+        if (ApplyEmbodiment(Template, Pose, Body, &Probe, &Probe, nullptr).Face != ERigDispatchResult::Applied)
         {
             return Missing;
         }
@@ -171,6 +277,54 @@ namespace CharacterRigDispatch
                 {
                     Missing.Add(Probe.Written[i]);
                 }
+            }
+        }
+        return Missing;
+    }
+
+    /**
+     * Pre-flight check for the body: which joints would the skeleton backend drive that the
+     * template does NOT list in Motion.VerifiedBoneNames?
+     *
+     * The body analogue of FindUnverifiedParameters, for the same reason. ApplyToSkeleton skips
+     * any bone the sink lacks, so a rig missing clavicle_l looks exactly like a character who
+     * never raises her shoulders - and stillness is what expertise looks like, so the gap would
+     * read as a trait rather than a fault.
+     *
+     * Returns empty when no claim is made (empty VerifiedBoneNames) or when the template's body
+     * would not be routed to a skeleton at all.
+     */
+    inline TArray<FString> FindUnverifiedBones(const FCharacterTemplate& Template)
+    {
+        TArray<FString> Missing;
+        if (Template.Motion.VerifiedBoneNames.Num() == 0)
+        {
+            return Missing;   // no claim made, nothing to contradict
+        }
+
+        struct FBoneProbe : public IBodySkeletonSink
+        {
+            TArray<FString> Written;
+            bool HasBone(const FString&) const override { return true; }
+            void SetBoneRotationOffset(const FString& Bone, float, float, float) override { Written.AddUnique(Bone); }
+        };
+
+        // Which bones are driven does not depend on the frame's values, so a neutral frame is
+        // enough - and routing it through ApplyEmbodiment means a refused template (wrong
+        // skeleton, no body) reports nothing rather than a list of bones it will never touch.
+        FBoneProbe Probe;
+        const FBodyMotionFrame Frame;
+        if (ApplyEmbodiment(Template, FMasteryEmbodimentPose::Neutral(), &Frame,
+                            nullptr, nullptr, &Probe).Body != ERigDispatchResult::Applied)
+        {
+            return Missing;
+        }
+
+        for (int32 i = 0; i < Probe.Written.Num(); ++i)
+        {
+            if (!Template.Motion.VerifiedBoneNames.Contains(Probe.Written[i]))
+            {
+                Missing.Add(Probe.Written[i]);
             }
         }
         return Missing;

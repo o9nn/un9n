@@ -43,6 +43,7 @@
 
 #include "CoreMinimal.h"
 #include "../MasteryEmbodimentPose.h"
+#include "MasteryBackendBody.h"
 
 /**
  * Rig-facing sink. Implemented against whatever Live2D integration is actually linked
@@ -92,8 +93,14 @@ namespace MelodyLive2DBackend
      * Asymmetry is applied by biasing the left/right eye pair, since genuine affect is asymmetric
      * and a perfectly mirrored face reads as synthetic.
      */
-    inline void ApplyPose(IMelodyRigSink& Rig, const FMasteryEmbodimentPose& Pose)
+    inline void ApplyPose(IMelodyRigSink& Rig, const FMasteryEmbodimentPose& Pose,
+                          const MasteryBackendBody::FLive2DBodyOffsets* Body = nullptr)
     {
+        // Body layer (MasteryBackendBody) shares the head/body/eyeball parameters with the face,
+        // so it is ADDED here rather than written separately - two writers would leave whichever
+        // ran last. Without it this reproduces the face-only output exactly.
+        const MasteryBackendBody::FLive2DBodyOffsets B = Body ? *Body : MasteryBackendBody::FLive2DBodyOffsets();
+
         const float I = FMath::Clamp(Pose.ExpressionIntensity, 0.0f, 1.0f);
 
         // ---- Eyes (CONFIRMED) ----------------------------------------------------------------
@@ -142,8 +149,8 @@ namespace MelodyLive2DBackend
         // Steady gaze means the eyeballs stop wandering. Drive toward centre as steadiness rises;
         // an actual look-at target, when one exists, should be composited over this.
         const float GazeWander = FMath::Clamp(1.0f - Pose.GazeSteadiness, 0.0f, 1.0f);
-        ApplyOptional(Rig, TEXT("ParamEyeBallX"), I * GazeWander * 0.4f);
-        ApplyOptional(Rig, TEXT("ParamEyeBallY"), I * GazeWander * 0.2f);
+        ApplyOptional(Rig, TEXT("ParamEyeBallX"), FMath::Clamp(I * GazeWander * 0.4f + B.EyeBallX, -1.0f, 1.0f));
+        ApplyOptional(Rig, TEXT("ParamEyeBallY"), FMath::Clamp(I * GazeWander * 0.2f + B.EyeBallY, -1.0f, 1.0f));
 
         // ---- Head and body ---------------------------------------------------------------------
         // Degrees, calibrated to the authored range (see header). These are SMALL - the whole
@@ -156,15 +163,21 @@ namespace MelodyLive2DBackend
         // PHOTO_ExuberantLaugh at -5). The asymmetric clamp is the rig's, not a mistake - the
         // artist uses more range one way than the other.
         ApplyOptional(Rig, TEXT("ParamAngleZ"), FMath::Clamp(I * Pose.HeadTilt * 8.0f, -5.0f, 8.0f));
-        ApplyOptional(Rig, TEXT("ParamAngleX"), FMath::Clamp(I * Pose.PostureLean * 3.0f, -3.0f, 3.0f));
+        ApplyOptional(Rig, TEXT("ParamAngleX"), FMath::Clamp(I * Pose.PostureLean * 3.0f + B.AngleX, -3.0f, 3.0f));
         ApplyOptional(Rig, TEXT("ParamAngleY"),
-                      FMath::Clamp(I * (1.0f - Pose.GazeSteadiness) * 4.0f, -2.0f, 6.0f));
+                      FMath::Clamp(I * (1.0f - Pose.GazeSteadiness) * 4.0f + B.AngleY, -2.0f, 6.0f));
 
         // Body angles are smaller still in the authored set (about +/-3).
         ApplyOptional(Rig, TEXT("ParamBodyAngleZ"),
-                      FMath::Clamp((Pose.PostureUprightness - 0.5f) * 4.0f, -3.0f, 3.0f));
+                      FMath::Clamp((Pose.PostureUprightness - 0.5f) * 4.0f + B.BodyAngleZ, -3.0f, 3.0f));
         ApplyOptional(Rig, TEXT("ParamBodyAngleX"),
-                      FMath::Clamp(I * Pose.PostureLean * 2.0f, -2.0f, 2.0f));
+                      FMath::Clamp(I * Pose.PostureLean * 2.0f + B.BodyAngleX, -3.0f, 3.0f));
+        // Forward pitch has no face-layer writer, so it is written only when a body layer exists.
+        // ParamBodyAngleY is the Cubism standard ID but is ASSUMED for Melody - hence guarded.
+        if (Body)
+        {
+            ApplyOptional(Rig, TEXT("ParamBodyAngleY"), B.BodyAngleY);
+        }
 
         // ---- Breath (ASSUMED - guarded) ------------------------------------------------------
         // Cubism's ParamBreath is a 0..1 oscillator driven by the host; expose rate as amplitude
