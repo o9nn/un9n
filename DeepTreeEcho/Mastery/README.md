@@ -49,12 +49,16 @@ That is what makes it testable without Unreal.
 | `Personas/MelodyPersona.h` | Melody, as a struct literal. No class, no asset path. |
 | `Personas/CompetitivePersonas.h` | Aion and Toga temperaments, plus a weighted `Blend()`. |
 | `Competitive/CounterAdaptivePolicy.h` | Safe exploitation — see the competitive section below. |
-| `Backends/MelodyLive2DBackend.h` | The only file that knows a rig-specific parameter name. |
+| `Backends/MelodyLive2DBackend.h` | Melody's Live2D face; adds the body layer's offsets when given them. |
+| `Backends/MasteryBackendBody.h` | The body: a seeded driver turning motion-quality channels into dynamics, realized on the UE5/MetaHuman skeleton and on Live2D. |
+| `Tests/StandaloneBodyBackend.cpp` | Measures overshoot, wind-up, fidgets, sway and saccades — master vs novice on identical random draws. |
 | `Tests/StandaloneMasteryBindingVerification.cpp` | 21 assertions, runs without UE. |
 | `Tests/StandaloneCompetitiveVerification.cpp` | 10 assertions, 8-opponent tournament. |
 | `Simulation/DuelGame.h` | Frame-accurate 1v1 duel — space, timing, commitment, resources. |
 | `Simulation/DuelAgent.h` | Skill-parameterized agents + the telemetry → `FMasterySignal` derivation. |
 | `Tests/StandaloneDuelSimulation.cpp` | 16 assertions, Tier-1 end-to-end integration. |
+| `Simulation/DuelBodyCues.h` | Duel frame events → `FDriver::React()` cues, so a fighter's body answers the fight. |
+| `Tests/StandaloneDuelBody.cpp` | Real matches → real binding → body: overshoot and wind-up during play, plus a same-events control. |
 
 Build and run **every** harness in the repo (both `GameTraining/Tests/` and `Mastery/Tests/`):
 
@@ -111,6 +115,57 @@ rules, the Melody persona, and the standalone test (21/21).
 
 **Also built since:** the competitive layer (below), Aion/Toga personas with blending, and
 Melody's Live2D backend.
+
+**Body backend (built).** Both face backends dropped every motion-quality channel, so a master
+and a novice rendered identically except for the face. `Backends/MasteryBackendBody.h` turns
+them into dynamics rather than curves, because none of them is a pose:
+
+| Channel | Becomes | Measured (Melody, master vs novice, via the real binding) |
+|---|---|---|
+| `MotionEconomy` | damping ratio of every postural spring (0.30 → 1.0) | overshoot 0.0% vs 9.4% |
+| `ReactionSharpness` | onset latency 280 → 40 ms, spring stiffness | onset 83 vs 250 ms |
+| `IdleFidget` | Poisson weight shifts, up to 8/min | 1 vs 14 in 120 s |
+| `MicroMovementRate` | amplitude of incommensurate spine/neck sway | 0.40° vs 0.79° RMS |
+| `SaccadeRate` (+ gaze wander) | Poisson ballistic eye jumps, reach from steadiness | 105 vs 337 in 120 s |
+| `ShoulderTension` | clavicle elevation, arriving through the spring | 8° at tension 1 |
+
+**Gating is a lerp to neutral, not a multiply.** For a face zero is neutral; for motion quality
+zero is the *grandmaster* — no fidget, no sway, perfect damping. Scaling by intensity would make
+an unmeasured character stand with expert stillness. Here intensity lerps each channel toward
+the pose's neutral default, so an unmeasured character moves like an ordinary person.
+`StandaloneBodyBackend` section 7 asserts this directly.
+
+Realized on the UE5/MetaHuman skeleton (`pelvis`, `spine_01..05`, `clavicle_l/r`,
+`neck_01/02`, `FACIAL_L/R_Eye` — names from `DNABodySchemaBinding.cpp` and the shipped DNA) and
+on Melody's Live2D rig, where the body angles and eyeballs are shared with the face and so arrive
+as additive offsets, within the authored ±3°. `ParamBodyAngleY` is assumed and guarded.
+
+**Driven by the duel.** `MotionEconomy` and `ReactionSharpness` only show in how a body answers
+a cue, so they need a producer. `DuelGame` now records per-frame events (attack started, hit
+landed, hit taken, blocked, dodged, punished, whiffed), and `Simulation/DuelBodyCues.h` turns the
+strongest one each frame into a `React()`: positive presses in, negative pulls back. Cues carry
+**no skill** — a master and a novice who are hit get the identical cue — so every difference in
+how they take it comes from the measured pose. Over 60 real master-vs-novice rounds, when both
+bodies answer the *same* novice event stream: overshoot 1.1% vs 3.4% of travel, wind-up 9 vs 12
+frames (150 vs 200 ms), and all 2,770 cues are answered.
+
+Wiring it up exposed a driver bug the single-cue tests could not: `React()` restarted one shared
+timer on every cue, so in a fight a slow character's wind-ups were reset before they finished and
+dense cues were never answered. Each cue now has its own timer.
+
+**Routed by the character template.** `FCharacterMotion::BodyStandard` declares the body rig
+(`UE5Skeleton`, `Live2DCubism` or `None`) the same way `EFacialRigStandard` declares the face, and
+`CharacterRigDispatch::ApplyEmbodiment` routes both — so the template, not the caller, decides
+where the body lands. Three refusals mirror the face's ARKit refusal: a `UE5Skeleton` body on a
+mesh whose `SkeletonId` is not `UE5_Manny`/`MetaHuman` (Genesis and Mixamo name the joints
+differently, so every bone write would silently miss), a Live2D body without a Live2D face (the
+body rides the face's shared parameters), and no declared body at all. `Validate()` reports all
+three. The dispatch stays stateless: the caller's `FDriver` owns time and passes its frame in.
+`FCharacterMotion::VerifiedBoneNames` is the body's `VerifiedShapeNames`:
+`CharacterRigDispatch::FindUnverifiedBones` lists every joint the skeleton backend would drive that
+the rig is not verified to have. It matters more for the body than for the face, because the
+backend skips missing bones silently and a missing `clavicle_l` looks exactly like a composed
+character who never raises her shoulders.
 
 **Still not built:** the provider adapters (`UGameSkillTrainingSystem` → signal,
 `UGamingMasterySystem` → signal, `UReinforcementLearningBridge`'s `FCognitiveModulation` → affect

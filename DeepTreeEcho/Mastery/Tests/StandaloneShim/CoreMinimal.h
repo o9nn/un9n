@@ -87,6 +87,8 @@ struct FMath
     template <typename T> static T Square(T V) { return V * V; }
 
     static float Sqrt(float V) { return std::sqrt(V); }
+    static float Sin(float V) { return std::sin(V); }
+    static float Cos(float V) { return std::cos(V); }
     static float Pow(float A, float B) { return std::pow(A, B); }
     static float Loge(float V) { return std::log(V); }
     static float Exp(float V) { return std::exp(V); }

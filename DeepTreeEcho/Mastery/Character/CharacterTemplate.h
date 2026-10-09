@@ -332,10 +332,45 @@ struct FCharacterExpression
 };
 
 /**
+ * Which body rig the motion-quality channels are realized on (see MasteryBackendBody.h).
+ *
+ * Declared rather than inferred from SkeletonId, for the same reason the facial standard is: a
+ * body backend pointed at the wrong skeleton writes bone names that do not exist, every write
+ * no-ops, and the character stands perfectly still - which is what a grandmaster looks like.
+ */
+enum class EBodyRigStandard : uint8
+{
+    /** UE5 Manny / MetaHuman body skeleton: pelvis, spine_01..05, clavicle_l/r, neck_01/02,
+     *  plus the FACIAL_L/R_Eye joints for saccades. */
+    UE5Skeleton,
+    /** A Live2D Cubism rig. Body and head angles are shared with the face, so this requires a
+     *  Live2DCubism facial standard - the offsets are added inside the face backend. */
+    Live2DCubism,
+    None
+};
+
+/** SkeletonIds whose joint names UE5Skeleton writes. Genesis, Mixamo and others name the same
+ *  joints differently ("hip", "abdomenLower", "mixamorig:Spine") and need a mapping first. */
+inline bool IsUE5BodySkeleton(const FString& SkeletonId)
+{
+    return SkeletonId == FString(TEXT("UE5_Manny")) || SkeletonId == FString(TEXT("MetaHuman"));
+}
+
+/**
  * MOTION layer.
  */
 struct FCharacterMotion
 {
+    /** Where the motion-quality channels land. None means mastery shows only in the face. */
+    EBodyRigStandard BodyStandard = EBodyRigStandard::None;
+
+    /** Joints verified present on the body rig - the body's VerifiedShapeNames. A skeleton that
+     *  has been trimmed or re-rooted is missing some joints the body layer drives, and the
+     *  skeleton backend skips absent bones silently, so this is what makes that visible. Empty
+     *  makes no claim. Only meaningful for UE5Skeleton; Live2D body motion is checked through
+     *  Expression.VerifiedShapeNames, since it rides the face's parameters. */
+    TArray<FString> VerifiedBoneNames;
+
     /** Named poses extracted from action-pose reference (guard, jab, idle...). */
     TArray<FString> PoseLibraryPaths;
 
@@ -428,6 +463,32 @@ struct FCharacterTemplate
             OutProblems.Add(TEXT("Declared facial rig standard has no backend in this module - "
                                  "only Live2DCubism and MetaHumanControlRig are implemented. A "
                                  "mapping must be written before this character can be driven."));
+            ++Problems;
+        }
+        // The body is where the binding says expertise is MOST legible. Without a declared body
+        // rig the character renders mastery through the face alone - the "smugness, not skill"
+        // failure MasteryEmbodimentBinding.h warns against - so it is reported, not tolerated.
+        if (Motion.BodyStandard == EBodyRigStandard::None)
+        {
+            OutProblems.Add(TEXT("No body rig standard declared - motion economy, fidget, sway "
+                                 "and saccades have nowhere to land, so mastery would show only "
+                                 "in the face."));
+            ++Problems;
+        }
+        if (Motion.BodyStandard == EBodyRigStandard::UE5Skeleton &&
+            !IsUE5BodySkeleton(Geometry.SkeletonId))
+        {
+            OutProblems.Add(TEXT("Body rig is UE5Skeleton but the mesh skeleton is not UE5_Manny or "
+                                 "MetaHuman - its joints are named differently, and every bone "
+                                 "write would silently miss. Retarget, or write a mapping."));
+            ++Problems;
+        }
+        if (Motion.BodyStandard == EBodyRigStandard::Live2DCubism &&
+            Expression.Standard != EFacialRigStandard::Live2DCubism)
+        {
+            OutProblems.Add(TEXT("Body rig is Live2DCubism but the face is not - Live2D body "
+                                 "motion is carried by the face backend's shared parameters, so "
+                                 "it cannot exist without a Live2D face."));
             ++Problems;
         }
         if (Identity.bOriginatedFromGeneratedSource)
