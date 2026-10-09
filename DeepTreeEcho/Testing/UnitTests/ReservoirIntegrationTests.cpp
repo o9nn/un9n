@@ -772,8 +772,14 @@ TEST(ReservoirPerformanceTest, ESNForwardPerformance) {
     
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
+
+    // The 1s bound is for optimized builds. Debug+coverage (ubuntu Debug CI)
+    // is several times slower; keep a hang bound so the unit suite still passes.
+#if defined(NDEBUG)
     EXPECT_LT(duration.count(), 1000);  // 1000 forward passes in under 1 second
+#else
+    EXPECT_LT(duration.count(), 120000);
+#endif
 }
 
 TEST(ReservoirPerformanceTest, CognitiveBridgePerformance) {
@@ -794,8 +800,12 @@ TEST(ReservoirPerformanceTest, CognitiveBridgePerformance) {
     
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
+
+#if defined(NDEBUG)
     EXPECT_LT(duration.count(), 2000);  // 500 cognitive cycles in under 2 seconds
+#else
+    EXPECT_LT(duration.count(), 120000);
+#endif
 }
 
 // ============================================================================
